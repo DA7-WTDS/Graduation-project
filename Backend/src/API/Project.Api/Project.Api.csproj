@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.3.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\Project.Common.Application\Project.Common.Application.csproj" />
+    <ProjectReference Include="..\..\Common\Project.Common.Infrastructure\Project.Common.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Common\Project.Common.Presentation\Project.Common.Presentation.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\Project.Modules.Notifications.Application\Project.Modules.Notifications.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Users\Project.Modules.Users.Application\Project.Modules.Users.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Users\Project.Modules.Users.Infrastructure\Project.Modules.Users.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
