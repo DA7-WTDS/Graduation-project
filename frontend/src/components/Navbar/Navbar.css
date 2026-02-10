@@ -1,0 +1,119 @@
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    z-index: 1000;
+    transition: background-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.navbar.transparent {
+    background-color: transparent;
+}
+
+.navbar.solid {
+    background-color: var(--color-white);
+    box-shadow: var(--shadow-sm);
+}
+
+.navbar-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--space-lg);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.navbar-logo {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-display);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.navbar.transparent .navbar-logo {
+    color: var(--color-white);
+}
+
+.navbar.solid .navbar-logo {
+    color: var(--color-primary-navy);
+}
+
+.logo-gradient {
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.navbar-links {
+    display: flex;
+    gap: var(--space-2xl);
+    list-style: none;
+}
+
+.navbar-link {
+    font-weight: var(--font-weight-medium);
+    transition: color var(--transition-base);
+    cursor: pointer;
+}
+
+.navbar.transparent .navbar-link {
+    color: var(--color-white);
+}
+
+.navbar.solid .navbar-link {
+    color: var(--color-gray-700);
+}
+
+.navbar-link:hover {
+    color: var(--color-primary-purple);
+}
+
+.navbar-cta {
+    padding: 12px 28px;
+    background: var(--gradient-cta);
+    color: var(--color-white);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-weight-semibold);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.navbar-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.navbar-mobile-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.navbar-mobile-toggle span {
+    width: 25px;
+    height: 3px;
+    background-color: var(--color-white);
+    transition: all var(--transition-base);
+}
+
+.navbar.solid .navbar-mobile-toggle span {
+    background-color: var(--color-primary-navy);
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .navbar-links {
+        display: none;
+    }
+
+    .navbar-mobile-toggle {
+        display: flex;
+    }
+}

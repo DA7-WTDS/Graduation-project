@@ -1,0 +1,102 @@
+.features {
+    background-color: var(--color-background-light);
+    padding: var(--space-5xl) 0;
+}
+
+.features-header {
+    text-align: center;
+    margin-bottom: var(--space-4xl);
+}
+
+.features-eyebrow {
+    font-size: var(--font-size-small);
+    color: var(--color-primary-teal);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--space-md);
+}
+
+.features-title {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-display);
+    color: var(--color-primary-navy);
+    margin-bottom: var(--space-md);
+}
+
+.features-subtitle {
+    font-size: var(--font-size-large);
+    color: var(--color-gray-600);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--space-lg);
+}
+
+.feature-card {
+    background: var(--color-white);
+    border-radius: var(--radius-xl);
+    padding: var(--space-2xl);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+}
+
+.feature-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-cta);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: var(--space-lg);
+}
+
+.feature-title {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary-navy);
+    margin-bottom: var(--space-md);
+}
+
+.feature-description {
+    font-size: var(--font-size-base);
+    color: var(--color-gray-600);
+    line-height: 1.6;
+}
+
+/* Mobile responsive */
+@media (max-width: 1024px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .features {
+        padding: 60px 0;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .features-title {
+        font-size: var(--font-size-h2);
+    }
+}

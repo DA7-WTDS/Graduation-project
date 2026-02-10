@@ -1,0 +1,190 @@
+.pricing {
+    background: var(--gradient-hero);
+    padding: var(--space-5xl) 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.pricing-header {
+    text-align: center;
+    margin-bottom: var(--space-4xl);
+    color: var(--color-white);
+}
+
+.pricing-eyebrow {
+    font-size: var(--font-size-small);
+    color: var(--color-primary-teal);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--space-md);
+}
+
+.pricing-title {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-display);
+    margin-bottom: var(--space-md);
+}
+
+.pricing-subtitle {
+    font-size: var(--font-size-large);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.pricing-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--space-lg);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+}
+
+.pricing-card {
+    background: var(--color-white);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-2xl);
+    position: relative;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+    border: 2px solid transparent;
+}
+
+.pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-2xl);
+}
+
+.pricing-card.featured {
+    border-color: var(--color-primary-purple);
+    transform: scale(1.05);
+}
+
+.pricing-badge {
+    position: absolute;
+    top: -12px;
+    right: var(--space-xl);
+    background: var(--gradient-cta);
+    color: var(--color-white);
+    padding: 6px 20px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+}
+
+.pricing-card-header {
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-xl);
+    border-bottom: 1px solid var(--color-gray-200);
+}
+
+.pricing-plan-name {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary-navy);
+    margin-bottom: var(--space-sm);
+}
+
+.pricing-price {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: var(--space-xs);
+}
+
+.pricing-currency {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary-navy);
+    margin-top: 8px;
+}
+
+.pricing-amount {
+    font-size: 56px;
+    font-weight: var(--font-weight-extrabold);
+    font-family: var(--font-display);
+    color: var(--color-primary-navy);
+    line-height: 1;
+}
+
+.pricing-period {
+    font-size: var(--font-size-base);
+    color: var(--color-gray-500);
+    align-self: flex-end;
+    margin-bottom: 8px;
+}
+
+.pricing-description {
+    font-size: var(--font-size-small);
+    color: var(--color-gray-600);
+}
+
+.pricing-features {
+    list-style: none;
+    margin-bottom: var(--space-xl);
+}
+
+.pricing-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-size-base);
+    color: var(--color-gray-700);
+}
+
+.pricing-feature-icon {
+    color: var(--color-success);
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.pricing-cta {
+    width: 100%;
+    padding: 16px 32px;
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-base);
+    transition: all var(--transition-base);
+    cursor: pointer;
+}
+
+.pricing-cta.primary {
+    background: var(--gradient-cta);
+    color: var(--color-white);
+}
+
+.pricing-cta.secondary {
+    background: transparent;
+    color: var(--color-primary-purple);
+    border: 2px solid var(--color-primary-purple);
+}
+
+.pricing-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Mobile responsive */
+@media (max-width: 1024px) {
+    .pricing-container {
+        grid-template-columns: 1fr;
+    }
+
+    .pricing-card.featured {
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 768px) {
+    .pricing {
+        padding: 60px 0;
+    }
+
+    .pricing-title {
+        font-size: var(--font-size-h2);
+    }
+}
