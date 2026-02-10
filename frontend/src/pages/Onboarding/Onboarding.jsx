@@ -23,7 +23,6 @@ const Onboarding = () => {
 
         // Step 3: Preferences
         investmentExperience: '',
-        incomeStability: '',
 
         // Step 4: Results
         recommendedPortfolio: null
@@ -97,7 +96,7 @@ const Onboarding = () => {
             case 2:
                 return formData.marketReaction
             case 3:
-                return formData.investmentExperience && formData.incomeStability
+                return formData.investmentExperience
             case 4:
                 return true
             default:
@@ -181,9 +180,9 @@ const Step1Goals = ({ formData, onChange }) => {
     ]
 
     const timeHorizons = [
-        { id: 'short', icon: '⚡', title: '1-3 Years', description: 'Short-term goals' },
-        { id: 'medium', icon: '📅', title: '3-7 Years', description: 'Medium-term planning' },
-        { id: 'long', icon: '🎯', title: '7+ Years', description: 'Long-term investing' }
+        { id: 'short', icon: '⚡', title: '6 Months', description: 'Very short-term goals' },
+        { id: 'medium', icon: '📅', title: '1-2 Years', description: 'Medium-term planning' },
+        { id: 'long', icon: '🎯', title: '3+ Years', description: 'Long-term investing' }
     ]
 
     return (
@@ -300,18 +299,12 @@ const Step3Preferences = ({ formData, onChange }) => {
         { id: 'low', title: 'Beginner', description: 'New to investing' }
     ]
 
-    const incomes = [
-        { id: 'high', title: 'Very Stable', description: 'Steady income, emergency fund' },
-        { id: 'medium', title: 'Moderate', description: 'Regular income, some savings' },
-        { id: 'low', title: 'Variable', description: 'Irregular income or expenses' }
-    ]
-
     return (
         <div className="onboarding-form">
             <div className="onboarding-header">
                 <h2 className="onboarding-title">Investment Preferences</h2>
                 <p className="onboarding-subtitle">
-                    A few more details to personalize your portfolio
+                    Tell us about your investment experience
                 </p>
             </div>
 
@@ -327,23 +320,6 @@ const Step3Preferences = ({ formData, onChange }) => {
                             <input type="radio" name="experience" value={exp.id} checked={formData.investmentExperience === exp.id} readOnly />
                             <div className="option-title">{exp.title}</div>
                             <div className="option-description">{exp.description}</div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="form-section">
-                <h3 className="form-section-title">How stable is your income?</h3>
-                <div className="option-grid">
-                    {incomes.map((income) => (
-                        <div
-                            key={income.id}
-                            className={`option-card ${formData.incomeStability === income.id ? 'selected' : ''}`}
-                            onClick={() => onChange('incomeStability', income.id)}
-                        >
-                            <input type="radio" name="income" value={income.id} checked={formData.incomeStability === income.id} readOnly />
-                            <div className="option-title">{income.title}</div>
-                            <div className="option-description">{income.description}</div>
                         </div>
                     ))}
                 </div>

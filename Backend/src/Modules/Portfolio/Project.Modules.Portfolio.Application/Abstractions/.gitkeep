@@ -1,0 +1,3 @@
+namespace Project.Modules.Portfolio.Application.Abstractions;
+
+// TODO: Add application abstractions like repositories, etc.
