@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - ./postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql
     networks:
       - project-network
 
@@ -19,7 +19,7 @@ services:
       - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
-      - ./redis_data:/data
+      - redis_data:/data
     networks:
       - project-network
 
@@ -42,7 +42,7 @@ services:
     ports:
       - "5050:80"
     volumes:
-      - ./pgadmin_data:/var/lib/pgadmin
+      - pgadmin_data:/var/lib/pgadmin
     depends_on:
       - postgres
     networks:
@@ -51,7 +51,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
-    container_name: rabbitmq_project
+    container_name: rabbitmq-project
     ports:
       - "5672:5672" 
       - "15672:15672"
