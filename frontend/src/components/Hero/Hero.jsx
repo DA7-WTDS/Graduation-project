@@ -12,7 +12,7 @@ const Hero = () => {
 
             <div className="hero-container">
                 <div className="hero-content">
-                    <div className="hero-eyebrow">AI-Powered Investment Management</div>
+                    <div className="hero-eyebrow">AI-Powered Portfolio Advisory</div>
 
                     <h1 className="hero-title">
                         Build Wealth with<br />
@@ -21,14 +21,14 @@ const Hero = () => {
                     </h1>
 
                     <p className="hero-subtitle">
-                        Let artificial intelligence optimize your investments.
-                        Get personalized portfolios, real-time insights, and
-                        automated rebalancing—all in one platform.
+                        Let artificial intelligence analyze your portfolio.
+                        Get personalized recommendations, real-time insights, and
+                        data-driven guidance—all in one platform.
                     </p>
 
                     <div className="hero-cta-group">
                         <button className="cta-primary">
-                            Start Investing Now
+                            Get Started Free
                             <span>→</span>
                         </button>
                         <button className="cta-secondary">
@@ -40,11 +40,11 @@ const Hero = () => {
                     <div className="hero-trust-indicators">
                         <div className="hero-trust-item">
                             <span>✓</span>
-                            No minimum investment
+                            Free to use
                         </div>
                         <div className="hero-trust-item">
                             <span>✓</span>
-                            SEC regulated
+                            AI-powered insights
                         </div>
                         <div className="hero-trust-item">
                             <span>✓</span>

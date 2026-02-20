@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import './Dashboard.css'
 
 // MOCK DATA - Replace with API calls to your backend
@@ -32,30 +33,32 @@ const MOCK_DATA = {
     recommendations: [
         {
             id: 1,
-            type: 'Rebalance',
+            type: 'Rebalance Advisory',
             confidence: 'High',
-            text: 'Your stock allocation is now 42% vs target 40%. Consider rebalancing to reduce tech exposure by $2,500.',
-            actions: ['Accept', 'Dismiss']
+            text: 'Your stock allocation is now 42% vs target 40%. Our AI suggests reducing tech exposure by $2,500 to maintain your target allocation.',
+            actions: ['View Details', 'Dismiss']
         },
         {
             id: 2,
             type: 'Buy Opportunity',
             confidence: 'Medium',
-            text: 'GOOGL is down 3% today and approaching your target buy price of $140. Consider adding 10 shares ($1,400).',
-            actions: ['Review', 'Ignore']
+            text: 'GOOGL is down 3% today and approaching your target buy price of $140. Consider reviewing this opportunity with your broker.',
+            actions: ['View Details', 'Dismiss']
         }
     ],
     activities: [
-        { icon: '💰', title: 'Dividend Received', description: 'AAPL paid $25.00 dividend', time: '2 hours ago' },
-        { icon: '🔄', title: 'Auto-Rebalance', description: 'Portfolio rebalanced: Bought 5 shares of BND', time: '1 day ago' },
-        { icon: '📈', title: 'AI Recommendation', description: 'Suggested buying MSFT - You accepted', time: '2 days ago' },
-        { icon: '💵', title: 'Deposit', description: 'Added $5,000 to account', time: '3 days ago' },
-        { icon: '🎯', title: 'Goal Progress', description: 'Retirement goal: 32% complete', time: '1 week ago' }
+        { icon: '📊', title: 'Portfolio Analysis', description: 'AI completed your weekly portfolio health check', time: '2 hours ago' },
+        { icon: '📈', title: 'AI Recommendation', description: 'New rebalancing suggestion available for review', time: '1 day ago' },
+        { icon: '🎯', title: 'Goal Progress', description: 'Retirement goal: 32% complete', time: '2 days ago' },
+        { icon: '🔔', title: 'Market Alert', description: 'TSLA volatility spike detected — review your exposure', time: '3 days ago' },
+        { icon: '📋', title: 'Report Ready', description: 'Your monthly portfolio report is ready to view', time: '1 week ago' }
     ]
 }
 
 const Dashboard = () => {
+    const { user } = useAuth()
     const { portfolio, quickStats, allocation, holdings, recommendations, activities } = MOCK_DATA
+    const initials = user ? `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}` : '?'
 
     return (
         <div className="dashboard">
@@ -73,7 +76,7 @@ const Dashboard = () => {
                             🔔
                             <span className="notification-badge"></span>
                         </div>
-                        <div className="dashboard-avatar">JD</div>
+                        <Link to="/profile" className="dashboard-avatar" title="View Profile">{initials}</Link>
                     </div>
                 </div>
             </div>
@@ -97,9 +100,9 @@ const Dashboard = () => {
                             <span style={{ opacity: 0.8, fontSize: 'var(--font-size-base)' }}>Today</span>
                         </div>
                         <div className="portfolio-actions">
-                            <button className="portfolio-action-btn">Deposit</button>
-                            <button className="portfolio-action-btn">Withdraw</button>
-                            <button className="portfolio-action-btn">Rebalance</button>
+                            <button className="portfolio-action-btn">View Report</button>
+                            <button className="portfolio-action-btn">AI Insights</button>
+                            <button className="portfolio-action-btn">Set Goals</button>
                         </div>
                     </div>
 

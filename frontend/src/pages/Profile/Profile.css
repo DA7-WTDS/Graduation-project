@@ -1,0 +1,391 @@
+/* =============================================
+   PROFILE PAGE — Premium Redesign
+   ============================================= */
+
+.profile-page {
+    min-height: 100vh;
+    background: #0d1117;
+    position: relative;
+    overflow: hidden;
+    font-family: var(--font-primary);
+}
+
+/* Floating orb decorations */
+.profile-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.profile-orb-1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(108, 99, 255, 0.25) 0%, transparent 70%);
+    top: -150px;
+    right: -100px;
+}
+
+.profile-orb-2 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 201, 167, 0.2) 0%, transparent 70%);
+    bottom: -100px;
+    left: -80px;
+}
+
+/* ---- Nav Bar ---- */
+.profile-nav {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg) var(--space-2xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.profile-nav-back {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    transition: color var(--transition-base);
+}
+
+.profile-nav-back:hover {
+    color: var(--color-primary-teal);
+}
+
+.back-arrow {
+    font-size: 18px;
+}
+
+.profile-nav-logo {
+    font-size: var(--font-size-large);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-display);
+    color: white;
+}
+
+/* ---- Main Container ---- */
+.profile-container {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: var(--space-3xl) auto;
+    padding: 0 var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+/* ---- Hero Card ---- */
+.profile-hero-card {
+    position: relative;
+    border-radius: var(--radius-2xl);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #0A2463 0%, #6C63FF 60%, #00C9A7 100%);
+    opacity: 0.9;
+}
+
+.profile-hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xl);
+    padding: var(--space-3xl);
+}
+
+/* Avatar with animated ring */
+.profile-avatar-ring {
+    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #6C63FF, #00C9A7, #6C63FF);
+    padding: 3px;
+    animation: spin-ring 6s linear infinite;
+}
+
+@keyframes spin-ring {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.profile-avatar-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(10, 36, 99, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-initials {
+    font-size: 42px;
+    font-weight: var(--font-weight-bold);
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Hero text */
+.profile-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.profile-full-name {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-extrabold);
+    font-family: var(--font-display);
+    color: white;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.profile-email-display {
+    font-size: var(--font-size-base);
+    color: rgba(255, 255, 255, 0.75);
+    margin: 0;
+}
+
+/* Role badge */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 14px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: fit-content;
+}
+
+.role-user {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.role-admin {
+    background: rgba(0, 201, 167, 0.25);
+    color: #00C9A7;
+    border: 1px solid rgba(0, 201, 167, 0.4);
+}
+
+/* ---- Info Cards Grid ---- */
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+}
+
+.profile-info-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+}
+
+.profile-info-card:hover {
+    background: rgba(108, 99, 255, 0.08);
+    border-color: rgba(108, 99, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.info-card-icon {
+    font-size: 28px;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-lg);
+    background: rgba(108, 99, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.info-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.info-card-body label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.info-card-body p {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: rgba(255, 255, 255, 0.9);
+    word-break: break-word;
+    margin: 0;
+}
+
+/* ---- Actions Bar ---- */
+.profile-actions-bar {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: flex-end;
+}
+
+.profile-btn-secondary {
+    padding: 12px 28px;
+    background: transparent;
+    border: 1px solid rgba(108, 99, 255, 0.5);
+    color: rgba(108, 99, 255, 0.9);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.profile-btn-secondary:hover {
+    background: rgba(108, 99, 255, 0.12);
+    border-color: var(--color-primary-purple);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.profile-btn-logout {
+    padding: 12px 28px;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    color: #FF6B6B;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.profile-btn-logout:hover {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: #FF6B6B;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
+}
+
+/* ---- Loading & Error States ---- */
+.profile-loading,
+.profile-error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    gap: var(--space-lg);
+    position: relative;
+    z-index: 1;
+}
+
+.loading-spinner {
+    width: 52px;
+    height: 52px;
+    border: 3px solid rgba(108, 99, 255, 0.2);
+    border-top-color: var(--color-primary-purple);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.profile-loading p,
+.profile-error-state p {
+    font-size: var(--font-size-large);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.error-icon {
+    font-size: 48px;
+}
+
+.retry-button {
+    padding: 12px 28px;
+    background: var(--gradient-cta);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.retry-button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+    .profile-nav {
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    .profile-container {
+        margin: var(--space-xl) auto;
+    }
+
+    .profile-hero-content {
+        flex-direction: column;
+        text-align: center;
+        padding: var(--space-2xl) var(--space-lg);
+        gap: var(--space-lg);
+    }
+
+    .profile-full-name {
+        font-size: var(--font-size-h3);
+    }
+
+    .role-badge {
+        margin: 0 auto;
+    }
+
+    .profile-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-actions-bar {
+        flex-direction: column;
+    }
+
+    .profile-btn-secondary,
+    .profile-btn-logout {
+        width: 100%;
+        text-align: center;
+    }
+}

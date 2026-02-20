@@ -69,6 +69,13 @@
     color: var(--color-white);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
+    text-decoration: none;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.dashboard-avatar:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-glow);
 }
 
 /* Main Content */

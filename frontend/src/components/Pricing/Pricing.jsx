@@ -6,11 +6,11 @@ const pricingPlans = [
         name: 'Starter',
         price: '0',
         period: '/month',
-        description: 'Perfect for beginners starting their investment journey',
+        description: 'Perfect for beginners exploring AI-driven portfolio insights',
         features: [
             'AI-powered portfolio recommendations',
-            'Up to $10,000 in assets',
-            'Monthly rebalancing',
+            'Up to 3 portfolio analyses/month',
+            'Monthly rebalancing suggestions',
             'Basic performance analytics',
             'Email support',
             'Mobile app access'
@@ -22,16 +22,16 @@ const pricingPlans = [
         name: 'Professional',
         price: '29',
         period: '/month',
-        description: 'For serious investors who want more control',
+        description: 'For serious investors who want deeper AI-driven guidance',
         features: [
             'Everything in Starter',
-            'Unlimited assets under management',
-            'Real-time rebalancing',
+            'Unlimited portfolio analyses',
+            'Real-time rebalancing suggestions',
             'Advanced analytics & reports',
             'Goal-based planning',
             'Priority support',
-            'Tax-loss harvesting',
-            'Custom asset allocation'
+            'Tax optimization insights',
+            'Custom asset allocation targets'
         ],
         cta: 'Start 30-Day Trial',
         ctaType: 'primary',

@@ -5,12 +5,12 @@ const featuresData = [
     {
         icon: '🧠',
         title: 'AI Portfolio Builder',
-        description: 'Advanced algorithms analyze thousands of assets to build your perfect portfolio'
+        description: 'Advanced algorithms analyze thousands of assets to build your personalized portfolio recommendation'
     },
     {
         icon: '🔄',
-        title: 'Smart Rebalancing',
-        description: 'Automatic portfolio adjustments to maintain optimal allocation and minimize risk'
+        title: 'Rebalancing Insights',
+        description: 'AI-powered analysis identifies when your portfolio drifts from target allocation and recommends corrective actions'
     },
     {
         icon: '📈',
@@ -30,7 +30,7 @@ const featuresData = [
     {
         icon: '🔒',
         title: 'Bank-Level Security',
-        description: '256-bit encryption, 2FA, and SOC 2 compliance protect your investments'
+        description: '256-bit encryption, 2FA, and SOC 2 compliance protect your data and privacy'
     }
 ]
 

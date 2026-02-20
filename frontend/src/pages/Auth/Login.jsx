@@ -1,13 +1,18 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import './Auth.css'
 
 const Login = () => {
+    const navigate = useNavigate()
+    const { login } = useAuth()
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         rememberMe: false
     })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target
@@ -15,12 +20,26 @@ const Login = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }))
+        // Clear error when user starts typing
+        if (error) setError('')
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        console.log('Login attempt:', formData)
-        // TODO: Implement actual login logic
+        setError('')
+        setLoading(true)
+
+        try {
+            await login(formData.email, formData.password)
+
+            // Redirect to dashboard after successful login
+            navigate('/dashboard')
+        } catch (err) {
+            console.error('Login error:', err)
+            setError(err.message || 'Invalid email or password. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -48,6 +67,20 @@ const Login = () => {
                         <p className="auth-subtitle">Log in to manage your portfolio</p>
                     </div>
 
+                    {error && (
+                        <div style={{
+                            padding: '12px 16px',
+                            marginBottom: '16px',
+                            backgroundColor: '#fee',
+                            border: '1px solid #fcc',
+                            borderRadius: '8px',
+                            color: '#c33',
+                            fontSize: '14px'
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
                     <form className="auth-form" onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label htmlFor="email" className="form-label">Email Address</label>
@@ -60,6 +93,7 @@ const Login = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -74,6 +108,7 @@ const Login = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -97,8 +132,8 @@ const Login = () => {
                             </Link>
                         </div>
 
-                        <button type="submit" className="auth-submit">
-                            Sign In
+                        <button type="submit" className="auth-submit" disabled={loading}>
+                            {loading ? 'Signing In...' : 'Sign In'}
                         </button>
                     </form>
 

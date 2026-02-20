@@ -1,16 +1,21 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import './Auth.css'
 
 const Signup = () => {
     const navigate = useNavigate()
+    const { register } = useAuth()
     const [formData, setFormData] = useState({
-        fullName: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
         confirmPassword: '',
         agreeToTerms: false
     })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target
@@ -18,27 +23,48 @@ const Signup = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }))
+        // Clear error when user starts typing
+        if (error) setError('')
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
+        setError('')
 
         // Basic validation
         if (formData.password !== formData.confirmPassword) {
-            alert('Passwords do not match!')
+            setError('Passwords do not match!')
             return
         }
 
         if (!formData.agreeToTerms) {
-            alert('Please agree to the terms and conditions')
+            setError('Please agree to the terms and conditions')
             return
         }
 
-        console.log('Signup attempt:', formData)
-        // TODO: Implement actual signup logic with backend
+        if (formData.password.length < 8) {
+            setError('Password must be at least 8 characters long')
+            return
+        }
 
-        // Redirect to onboarding after successful signup
-        navigate('/onboarding')
+        setLoading(true)
+
+        try {
+            await register(
+                formData.firstName,
+                formData.lastName,
+                formData.email,
+                formData.password
+            )
+
+            // Redirect to onboarding after successful signup
+            navigate('/onboarding')
+        } catch (err) {
+            console.error('Signup error:', err)
+            setError(err.message || 'Failed to create account. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -66,18 +92,48 @@ const Signup = () => {
                         <p className="auth-subtitle">Start your investment journey today</p>
                     </div>
 
+                    {error && (
+                        <div style={{
+                            padding: '12px 16px',
+                            marginBottom: '16px',
+                            backgroundColor: '#fee',
+                            border: '1px solid #fcc',
+                            borderRadius: '8px',
+                            color: '#c33',
+                            fontSize: '14px'
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
                     <form className="auth-form" onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <label htmlFor="fullName" className="form-label">Full Name</label>
+                            <label htmlFor="firstName" className="form-label">First Name</label>
                             <input
                                 type="text"
-                                id="fullName"
-                                name="fullName"
+                                id="firstName"
+                                name="firstName"
                                 className="form-input"
-                                placeholder="John Doe"
-                                value={formData.fullName}
+                                placeholder="John"
+                                value={formData.firstName}
                                 onChange={handleChange}
                                 required
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="lastName" className="form-label">Last Name</label>
+                            <input
+                                type="text"
+                                id="lastName"
+                                name="lastName"
+                                className="form-input"
+                                placeholder="Doe"
+                                value={formData.lastName}
+                                onChange={handleChange}
+                                required
+                                disabled={loading}
                             />
                         </div>
 
@@ -92,6 +148,7 @@ const Signup = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -107,6 +164,7 @@ const Signup = () => {
                                 onChange={handleChange}
                                 required
                                 minLength="8"
+                                disabled={loading}
                             />
                         </div>
 
@@ -121,6 +179,7 @@ const Signup = () => {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -139,8 +198,8 @@ const Signup = () => {
                             </label>
                         </div>
 
-                        <button type="submit" className="auth-submit">
-                            Create Account
+                        <button type="submit" className="auth-submit" disabled={loading}>
+                            {loading ? 'Creating Account...' : 'Create Account'}
                         </button>
                     </form>
 
