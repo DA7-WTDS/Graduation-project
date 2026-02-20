@@ -9,7 +9,6 @@ internal sealed class PortfolioApi(PortfolioDbContext dbContext) : IPortfolioApi
     public async Task<PortfolioResponse?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var portfolio = await dbContext.Portfolios
-            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
 
         if (portfolio == null)

@@ -32,5 +32,8 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.HashedPassword)
             .HasMaxLength(256);
+
+        builder.Property(u => u.CreatedAt)
+            .IsRequired();
     }
 }

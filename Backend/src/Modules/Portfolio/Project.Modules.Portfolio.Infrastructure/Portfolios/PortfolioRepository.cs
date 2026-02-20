@@ -10,12 +10,12 @@ internal sealed class PortfolioRepository(PortfolioDbContext dbContext) : IPortf
 {
     public async Task<Domain.Portfolios.Portfolio?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await dbContext.Portfolios.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        return await dbContext.Portfolios.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
     public async Task<Domain.Portfolios.Portfolio?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        return await dbContext.Portfolios.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+        return await dbContext.Portfolios.FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
     }
 
     public async Task<Domain.Portfolios.Portfolio> AddAsync(Domain.Portfolios.Portfolio entity, CancellationToken cancellationToken = default)

@@ -20,7 +20,7 @@ internal sealed class UserCreatedDomainEventHandler(
 
         if (result.IsFailed)
         {
-            throw new ProjectException(nameof(GetUserQuery), (Error)result.Errors);
+            throw new ProjectException(nameof(GetUserQuery), result.Errors.FirstOrDefault() as Error);
         }
 
         await eventBus.PublishAsync(new UserCreatedIntegrationEvent(

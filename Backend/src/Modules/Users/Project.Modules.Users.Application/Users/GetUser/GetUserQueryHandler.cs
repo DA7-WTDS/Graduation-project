@@ -39,7 +39,8 @@ internal sealed class GetUserQueryHandler(
                 first_name AS {nameof(UserResponse.FirstName)},
                 last_name AS {nameof(UserResponse.LastName)},
                 email AS {nameof(UserResponse.Email)},
-                role AS {nameof(UserResponse.Role)}
+                role AS {nameof(UserResponse.Role)},
+                created_at AS {nameof(UserResponse.CreatedAt)}
             FROM users.users
             WHERE id = @Id;
             """;

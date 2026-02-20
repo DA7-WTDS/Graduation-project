@@ -12,6 +12,7 @@ public sealed class User : Entity
     public string Email { get; private set; }
     public string HashedPassword { get; private set; }
     public Role Role { get; private set; }
+    public DateTime CreatedAt { get; private set; }
 
     public static User Create(string firstName, string lastName, string email, string hashedPassword)
     {
@@ -22,7 +23,8 @@ public sealed class User : Entity
             LastName = lastName,
             Email = email,
             HashedPassword = hashedPassword,
-            Role = Role.User
+            Role = Role.User,
+            CreatedAt = DateTime.UtcNow
         };
         user.Raise(new UserCreatedDomainEvent(Guid.NewGuid(), DateTime.UtcNow, user.Id));
         return user;
