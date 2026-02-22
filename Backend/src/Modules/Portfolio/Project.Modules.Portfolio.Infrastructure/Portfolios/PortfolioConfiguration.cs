@@ -50,6 +50,6 @@ internal sealed class PortfolioConfiguration : IEntityTypeConfiguration<Domain.P
             .IsRequired();
 
         builder.Property(p => p.UpdatedAt)
-            .IsRequired();
+            .IsRequired(false);
     }
 }

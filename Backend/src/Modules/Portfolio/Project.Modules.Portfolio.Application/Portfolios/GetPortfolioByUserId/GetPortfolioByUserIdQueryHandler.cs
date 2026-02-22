@@ -2,7 +2,7 @@ using FluentResults;
 using Project.Common.Application.Messaging;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Application.Portfolios.GetPortfolio;
-using Project.Modules.Portfolio.Domain.Portfolios;
+using static Project.Modules.Portfolio.Domain.Portfolios.PortfolioErrors;
 
 namespace Project.Modules.Portfolio.Application.Portfolios.GetPortfolioByUserId;
 
@@ -11,11 +11,11 @@ internal sealed class GetPortfolioByUserIdQueryHandler(IPortfolioRepository port
 {
     public async Task<Result<PortfolioResponse>> Handle(GetPortfolioByUserIdQuery request, CancellationToken cancellationToken)
     {
-        Portfolio? portfolio = await portfolioRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        Domain.Portfolios.Portfolio? portfolio = await portfolioRepository.GetByUserIdAsync(request.UserId, cancellationToken);
         
         if (portfolio is null)
         {
-            return Result.Fail(PortfolioErrors.PortfolioNotFoundForUser(request.UserId));
+            return Result.Fail(PortfolioNotFoundForUser(request.UserId));
         }
         
         return Result.Ok(new PortfolioResponse(

@@ -23,12 +23,34 @@ public sealed class Portfolio : Entity
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    public static Portfolio Create(Guid userId)
+    public static Portfolio Create(
+        Guid userId,
+        string primaryGoal,
+        string timeHorizon,
+        int riskTolerance,
+        string marketReaction,
+        string investmentExperience,
+        int stocksPercentage,
+        int bondsPercentage,
+        int etfsPercentage,
+        int cashPercentage,
+        RiskProfile riskProfile)
     {
         var portfolio = new Portfolio
         {
             Id = Guid.NewGuid(),
-            UserId = userId
+            UserId = userId,
+            PrimaryGoal = primaryGoal,
+            TimeHorizon = timeHorizon,
+            RiskTolerance = riskTolerance,
+            MarketReaction = marketReaction,
+            InvestmentExperience = investmentExperience,
+            StocksPercentage = stocksPercentage,
+            BondsPercentage = bondsPercentage,
+            EtfsPercentage = etfsPercentage,
+            CashPercentage = cashPercentage,
+            RiskProfile = riskProfile,
+            CreatedAt = DateTime.UtcNow
         };
 
         portfolio.Raise(new PortfolioCreatedDomainEvent(Guid.NewGuid(), DateTime.UtcNow, portfolio.Id, userId));

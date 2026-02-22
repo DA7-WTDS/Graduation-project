@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createPortfolio } from '../../services/portfolioService'
 import './Onboarding.css'
 
 const steps = [
@@ -12,6 +13,8 @@ const steps = [
 const Onboarding = () => {
     const navigate = useNavigate()
     const [currentStep, setCurrentStep] = useState(1)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [submitError, setSubmitError] = useState(null)
     const [formData, setFormData] = useState({
         // Step 1: Goals
         primaryGoal: '',
@@ -28,12 +31,35 @@ const Onboarding = () => {
         recommendedPortfolio: null
     })
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (currentStep < 4) {
             setCurrentStep(currentStep + 1)
         } else {
-            // Complete onboarding - navigate to dashboard
-            navigate('/dashboard')
+            // Step 4: Submit portfolio to backend then navigate
+            const portfolio = formData.recommendedPortfolio
+            if (!portfolio) return
+
+            setIsSubmitting(true)
+            setSubmitError(null)
+            try {
+                await createPortfolio({
+                    primaryGoal: formData.primaryGoal,
+                    timeHorizon: formData.timeHorizon,
+                    riskTolerance: formData.riskTolerance,
+                    marketReaction: formData.marketReaction,
+                    investmentExperience: formData.investmentExperience,
+                    stocksPercentage: portfolio.stocks,
+                    bondsPercentage: portfolio.bonds,
+                    etfsPercentage: portfolio.etfs,
+                    cashPercentage: portfolio.cash,
+                    riskProfile: portfolio.risk,
+                })
+                navigate('/dashboard')
+            } catch (err) {
+                setSubmitError(err.message || 'Failed to save your portfolio. Please try again.')
+            } finally {
+                setIsSubmitting(false)
+            }
         }
     }
 
@@ -152,16 +178,21 @@ const Onboarding = () => {
                     {/* Navigation */}
                     <div className="onboarding-nav">
                         {currentStep > 1 && (
-                            <button className="nav-button secondary" onClick={handleBack}>
+                            <button className="nav-button secondary" onClick={handleBack} disabled={isSubmitting}>
                                 Back
                             </button>
+                        )}
+                        {submitError && (
+                            <p style={{ color: 'var(--color-danger)', fontSize: 'var(--font-size-small)', flex: 1, textAlign: 'center' }}>
+                                {submitError}
+                            </p>
                         )}
                         <button
                             className="nav-button primary"
                             onClick={handleNext}
-                            disabled={!isStepComplete()}
+                            disabled={!isStepComplete() || isSubmitting}
                         >
-                            {currentStep === 4 ? 'Complete Setup' : 'Continue'}
+                            {currentStep === 4 ? (isSubmitting ? 'Saving...' : 'Complete Setup') : 'Continue'}
                         </button>
                     </div>
                 </div>

@@ -31,6 +31,9 @@
     <ProjectReference Include="..\..\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Users\Project.Modules.Users.Application\Project.Modules.Users.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Users\Project.Modules.Users.Infrastructure\Project.Modules.Users.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Portfolio\Project.Modules.Portfolio.Application\Project.Modules.Portfolio.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Portfolio\Project.Modules.Portfolio.Infrastructure\Project.Modules.Portfolio.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Portfolio\Project.Modules.Portfolio.Presentation\Project.Modules.Portfolio.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

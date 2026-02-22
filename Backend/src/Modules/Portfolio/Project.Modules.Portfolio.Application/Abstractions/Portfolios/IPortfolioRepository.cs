@@ -6,5 +6,6 @@ namespace Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 
 public interface IPortfolioRepository : IRepository<Domain.Portfolios.Portfolio>
 {
+    Task<Domain.Portfolios.Portfolio?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Domain.Portfolios.Portfolio?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 }

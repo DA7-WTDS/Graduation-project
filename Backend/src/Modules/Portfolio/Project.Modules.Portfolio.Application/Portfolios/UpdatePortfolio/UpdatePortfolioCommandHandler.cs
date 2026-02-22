@@ -2,7 +2,7 @@ using FluentResults;
 using Project.Common.Application.Messaging;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
-using Project.Modules.Portfolio.Domain.Portfolios;
+using static Project.Modules.Portfolio.Domain.Portfolios.PortfolioErrors;
 
 namespace Project.Modules.Portfolio.Application.Portfolios.UpdatePortfolio;
 
@@ -13,16 +13,16 @@ internal sealed class UpdatePortfolioCommandHandler(
 {
     public async Task<Result> Handle(UpdatePortfolioCommand request, CancellationToken cancellationToken)
     {
-        Portfolio? portfolio = await portfolioRepository.GetByIdAsync(request.Id, cancellationToken);
+        Domain.Portfolios.Portfolio? portfolio = await portfolioRepository.GetByIdAsync(request.Id, cancellationToken);
         
         if (portfolio is null)
         {
-            return Result.Fail(PortfolioErrors.PortfolioNotFound(request.Id));
+            return Result.Fail(PortfolioNotFound(request.Id));
         }
 
-        if (!Enum.TryParse<RiskProfile>(request.RiskProfile, out var riskProfile))
+        if (!Enum.TryParse<Domain.Portfolios.RiskProfile>(request.RiskProfile, out var riskProfile))
         {
-            return Result.Fail(PortfolioErrors.InvalidRiskProfile);
+            return Result.Fail(InvalidRiskProfile);
         }
         
         portfolio.Update(

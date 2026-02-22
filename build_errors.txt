@@ -1,0 +1,31 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Project.Modules.Notifications.PublicApi -> d:\cs projects\Graduation-project\Backend\src\Modules\Notifications\Project.Modules.Notifications.PublicApi\bin\Debug\net10.0\Project.Modules.Notifications.PublicApi.dll
+  Project.Modules.Portfolio.PublicApi -> d:\cs projects\Graduation-project\Backend\src\Modules\Portfolio\Project.Modules.Portfolio.PublicApi\bin\Debug\net10.0\Project.Modules.Portfolio.PublicApi.dll
+  Project.Modules.Users.PublicApi -> d:\cs projects\Graduation-project\Backend\src\Modules\Users\Project.Modules.Users.PublicApi\bin\Debug\net10.0\Project.Modules.Users.PublicApi.dll
+  Project.Common.Domain -> d:\cs projects\Graduation-project\Backend\src\Common\Project.Common.Domain\bin\Debug\net10.0\Project.Common.Domain.dll
+  Project.Common.Application -> d:\cs projects\Graduation-project\Backend\src\Common\Project.Common.Application\bin\Debug\net10.0\Project.Common.Application.dll
+  Project.Modules.Portfolio.Domain -> d:\cs projects\Graduation-project\Backend\src\Modules\Portfolio\Project.Modules.Portfolio.Domain\bin\Debug\net10.0\Project.Modules.Portfolio.Domain.dll
+  Project.Modules.Notifications.Domain -> d:\cs projects\Graduation-project\Backend\src\Modules\Notifications\Project.Modules.Notifications.Domain\bin\Debug\net10.0\Project.Modules.Notifications.Domain.dll
+  Project.Modules.Users.Domain -> d:\cs projects\Graduation-project\Backend\src\Modules\Users\Project.Modules.Users.Domain\bin\Debug\net10.0\Project.Modules.Users.Domain.dll
+  Project.Modules.Portfolio.IntegrationEvents -> d:\cs projects\Graduation-project\Backend\src\Modules\Portfolio\Project.Modules.Portfolio.IntegrationEvents\bin\Debug\net10.0\Project.Modules.Portfolio.IntegrationEvents.dll
+  Project.Common.Presentation -> d:\cs projects\Graduation-project\Backend\src\Common\Project.Common.Presentation\bin\Debug\net10.0\Project.Common.Presentation.dll
+  Project.Modules.Users.IntegrationEvents -> d:\cs projects\Graduation-project\Backend\src\Modules\Users\Project.Modules.Users.IntegrationEvents\bin\Debug\net10.0\Project.Modules.Users.IntegrationEvents.dll
+  Project.Modules.Notifications.IntegrationEvents -> d:\cs projects\Graduation-project\Backend\src\Modules\Notifications\Project.Modules.Notifications.IntegrationEvents\bin\Debug\net10.0\Project.Modules.Notifications.IntegrationEvents.dll
+  Project.Modules.Portfolio.Application -> d:\cs projects\Graduation-project\Backend\src\Modules\Portfolio\Project.Modules.Portfolio.Application\bin\Debug\net10.0\Project.Modules.Portfolio.Application.dll
+  Project.Modules.Users.Application -> d:\cs projects\Graduation-project\Backend\src\Modules\Users\Project.Modules.Users.Application\bin\Debug\net10.0\Project.Modules.Users.Application.dll
+  Project.Modules.Notifications.Application -> d:\cs projects\Graduation-project\Backend\src\Modules\Notifications\Project.Modules.Notifications.Application\bin\Debug\net10.0\Project.Modules.Notifications.Application.dll
+  Project.Common.Infrastructure -> d:\cs projects\Graduation-project\Backend\src\Common\Project.Common.Infrastructure\bin\Debug\net10.0\Project.Common.Infrastructure.dll
+  Project.Modules.Users.Presentation -> d:\cs projects\Graduation-project\Backend\src\Modules\Users\Project.Modules.Users.Presentation\bin\Debug\net10.0\Project.Modules.Users.Presentation.dll
+  Project.Modules.Notifications.Presentation -> d:\cs projects\Graduation-project\Backend\src\Modules\Notifications\Project.Modules.Notifications.Presentation\bin\Debug\net10.0\Project.Modules.Notifications.Presentation.dll
+  Project.Modules.Users.Infrastructure -> d:\cs projects\Graduation-project\Backend\src\Modules\Users\Project.Modules.Users.Infrastructure\bin\Debug\net10.0\Project.Modules.Users.Infrastructure.dll
+  Project.Modules.Notifications.Infrastructure -> d:\cs projects\Graduation-project\Backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\bin\Debug\net10.0\Project.Modules.Notifications.Infrastructure.dll
+  Project.Modules.Portfolio.Presentation -> d:\cs projects\Graduation-project\Backend\src\Modules\Portfolio\Project.Modules.Portfolio.Presentation\bin\Debug\net10.0\Project.Modules.Portfolio.Presentation.dll
+  Project.Modules.Portfolio.Infrastructure -> d:\cs projects\Graduation-project\Backend\src\Modules\Portfolio\Project.Modules.Portfolio.Infrastructure\bin\Debug\net10.0\Project.Modules.Portfolio.Infrastructure.dll
+  Project.Api -> d:\cs projects\Graduation-project\Backend\src\API\Project.Api\bin\Debug\net10.0\Project.Api.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.31

@@ -2,7 +2,7 @@ using FluentResults;
 using Project.Common.Application.Messaging;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
-using Project.Modules.Portfolio.Domain.Portfolios;
+using static Project.Modules.Portfolio.Domain.Portfolios.PortfolioErrors;
 
 namespace Project.Modules.Portfolio.Application.Portfolios.CreatePortfolio;
 
@@ -13,19 +13,19 @@ internal sealed class CreatePortfolioCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CreatePortfolioCommand request, CancellationToken cancellationToken)
     {
-        Portfolio? existingPortfolio = await portfolioRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        Domain.Portfolios.Portfolio? existingPortfolio = await portfolioRepository.GetByUserIdAsync(request.UserId, cancellationToken);
 
         if (existingPortfolio is not null)
         {
-            return Result.Fail(PortfolioErrors.PortfolioAlreadyExists(request.UserId));
+            return Result.Fail(PortfolioAlreadyExists(request.UserId));
         }
 
-        if (!Enum.TryParse<RiskProfile>(request.RiskProfile, out var riskProfile))
+        if (!Enum.TryParse<Domain.Portfolios.RiskProfile>(request.RiskProfile, out var riskProfile))
         {
-            return Result.Fail(PortfolioErrors.InvalidRiskProfile);
+            return Result.Fail(InvalidRiskProfile);
         }
 
-        var portfolio = Portfolio.Create(
+        var portfolio = Domain.Portfolios.Portfolio.Create(
             request.UserId,
             request.PrimaryGoal,
             request.TimeHorizon,
@@ -37,7 +37,7 @@ internal sealed class CreatePortfolioCommandHandler(
             request.EtfsPercentage,
             request.CashPercentage,
             riskProfile
-        );
+        ); // All fields populated at creation — domain bug fixed
 
         await portfolioRepository.AddAsync(portfolio, cancellationToken);
 
