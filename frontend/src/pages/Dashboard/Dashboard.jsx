@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './Dashboard.css'
 
@@ -70,6 +70,15 @@ const Dashboard = () => {
                             <span className="gradient-text">SmartInvest</span> AI
                         </Link>
                     </div>
+
+                    <nav className="dashboard-nav">
+                        <NavLink to="/dashboard" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
+                            Dashboard
+                        </NavLink>
+                        <NavLink to="/onboarding" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
+                            Onboarding
+                        </NavLink>
+                    </nav>
 
                     <div className="dashboard-user">
                         <div className="dashboard-notifications">

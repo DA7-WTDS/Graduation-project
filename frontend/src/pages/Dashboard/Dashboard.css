@@ -20,6 +20,41 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+}
+
+/* Nav Links */
+.dashboard-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.dashboard-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-gray-600);
+    text-decoration: none;
+    transition: all var(--transition-base);
+}
+
+.dashboard-nav-link:hover {
+    background: var(--color-background-light);
+    color: var(--color-primary-navy);
+}
+
+.dashboard-nav-link.active {
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.12), rgba(0, 201, 167, 0.12));
+    color: var(--color-primary-purple);
+    box-shadow: 0 0 0 1px rgba(108, 99, 255, 0.25);
 }
 
 .dashboard-logo {
