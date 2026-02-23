@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { notificationService } from '../../services/notificationService'
 import './Dashboard.css'
 
 // MOCK DATA - Replace with API calls to your backend
@@ -57,8 +58,74 @@ const MOCK_DATA = {
 
 const Dashboard = () => {
     const { user } = useAuth()
+    const [notifications, setNotifications] = useState([])
+    const [unreadCount, setUnreadCount] = useState(0)
+    const [showNotifications, setShowNotifications] = useState(false)
+    const notificationRef = useRef(null)
+
     const { portfolio, quickStats, allocation, holdings, recommendations, activities } = MOCK_DATA
     const initials = user ? `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}` : '?'
+
+    useEffect(() => {
+        if (user) {
+            fetchNotifications()
+        }
+
+        // Close dropdown when clicking outside
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setShowNotifications(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    const fetchNotifications = async () => {
+        try {
+            const [notifsResponse, countResponse] = await Promise.all([
+                notificationService.getNotifications(1, 10),
+                notificationService.getUnreadCount()
+            ])
+
+            if (notifsResponse && Array.isArray(notifsResponse)) setNotifications(notifsResponse)
+            if (typeof countResponse === 'number') setUnreadCount(countResponse)
+        } catch (error) {
+            console.error('Error fetching notifications:', error)
+        }
+    }
+
+    const handleMarkAsRead = async (id) => {
+        try {
+            await notificationService.markAsRead(id)
+            setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n))
+            setUnreadCount(prev => Math.max(0, prev - 1))
+        } catch (error) {
+            console.error('Error marking notification as read:', error)
+        }
+    }
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await notificationService.markAllAsRead()
+            setNotifications(notifications.map(n => ({ ...n, isRead: true })))
+            setUnreadCount(0)
+        } catch (error) {
+            console.error('Error marking all as read:', error)
+        }
+    }
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString)
+        const now = new Date()
+        const diffInSeconds = Math.floor((now - date) / 1000)
+
+        if (diffInSeconds < 60) return 'Just now'
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+        return date.toLocaleDateString()
+    }
 
     return (
         <div className="dashboard">
@@ -81,9 +148,50 @@ const Dashboard = () => {
                     </nav>
 
                     <div className="dashboard-user">
-                        <div className="dashboard-notifications">
-                            🔔
-                            <span className="notification-badge"></span>
+                        <div className="dashboard-notifications-wrapper" ref={notificationRef}>
+                            <div
+                                className="dashboard-notifications"
+                                onClick={() => setShowNotifications(!showNotifications)}
+                            >
+                                🔔
+                                {unreadCount > 0 && (
+                                    <span className="notification-badge">{unreadCount}</span>
+                                )}
+                            </div>
+
+                            {showNotifications && (
+                                <div className="notifications-dropdown">
+                                    <div className="notifications-header">
+                                        <h3>Notifications</h3>
+                                        {unreadCount > 0 && (
+                                            <button onClick={handleMarkAllAsRead}>Mark all as read</button>
+                                        )}
+                                    </div>
+                                    <div className="notifications-list">
+                                        {notifications.length > 0 ? (
+                                            notifications.map(notification => (
+                                                <div
+                                                    key={notification.id}
+                                                    className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
+                                                    onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                                                >
+                                                    <div className="notification-dot"></div>
+                                                    <div className="notification-content">
+                                                        <div className="notification-title">{notification.title}</div>
+                                                        <div className="notification-message">{notification.message}</div>
+                                                        <div className="notification-time">{formatDate(notification.createdAt)}</div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="notifications-empty">No notifications yet</div>
+                                        )}
+                                    </div>
+                                    <div className="notifications-footer">
+                                        <button>View all activity</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <Link to="/profile" className="dashboard-avatar" title="View Profile">{initials}</Link>
                     </div>

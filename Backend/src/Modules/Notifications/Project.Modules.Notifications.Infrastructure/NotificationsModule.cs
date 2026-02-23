@@ -4,6 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MassTransit;
+using Project.Modules.Notifications.Application.Abstractions.Notifications;
+using Project.Modules.Notifications.Domain.Notifications;
+using Project.Modules.Notifications.Infrastructure.Notifications;
 using Project.Modules.Notifications.Infrastructure.Inbox;
 using Project.Common.Presentation.Endpoints;
 using Project.Common.Application.Messaging;
@@ -45,6 +48,8 @@ public static class NotificationsModule
                 .UseSnakeCaseNamingConvention());
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<NotificationsDbContext>());
+
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         services.AddEmailServices(configuration);
 

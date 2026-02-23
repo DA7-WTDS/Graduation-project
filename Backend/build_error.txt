@@ -1,0 +1,23 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Project.Modules.Notifications.PublicApi -> D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.PublicApi\bin\Debug\net10.0\Project.Modules.Notifications.PublicApi.dll
+  Project.Common.Domain -> D:\cs projects\Graduation-project\backend\src\Common\Project.Common.Domain\bin\Debug\net10.0\Project.Common.Domain.dll
+  Project.Modules.Notifications.Domain -> D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Domain\bin\Debug\net10.0\Project.Modules.Notifications.Domain.dll
+  Project.Common.Application -> D:\cs projects\Graduation-project\backend\src\Common\Project.Common.Application\bin\Debug\net10.0\Project.Common.Application.dll
+  Project.Common.Presentation -> D:\cs projects\Graduation-project\backend\src\Common\Project.Common.Presentation\bin\Debug\net10.0\Project.Common.Presentation.dll
+  Project.Modules.Notifications.IntegrationEvents -> D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.IntegrationEvents\bin\Debug\net10.0\Project.Modules.Notifications.IntegrationEvents.dll
+  Project.Modules.Users.IntegrationEvents -> D:\cs projects\Graduation-project\backend\src\Modules\Users\Project.Modules.Users.IntegrationEvents\bin\Debug\net10.0\Project.Modules.Users.IntegrationEvents.dll
+  Project.Modules.Notifications.Application -> D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Application\bin\Debug\net10.0\Project.Modules.Notifications.Application.dll
+  Project.Common.Infrastructure -> D:\cs projects\Graduation-project\backend\src\Common\Project.Common.Infrastructure\bin\Debug\net10.0\Project.Common.Infrastructure.dll
+  Project.Modules.Notifications.Presentation -> D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Presentation\bin\Debug\net10.0\Project.Modules.Notifications.Presentation.dll
+D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\NotificationsModule.cs(51,28): error CS0246: The type or namespace name 'INotificationRepository' could not be found (are you missing a using directive or an assembly reference?) [D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj]
+D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\NotificationsModule.cs(51,18): error CS0311: The type 'Project.Modules.Notifications.Infrastructure.Notifications.NotificationRepository' cannot be used as type parameter 'TImplementation' in the generic type or method 'ServiceCollectionServiceExtensions.AddScoped<TService, TImplementation>(IServiceCollection)'. There is no implicit reference conversion from 'Project.Modules.Notifications.Infrastructure.Notifications.NotificationRepository' to 'INotificationRepository'. [D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj]
+
+Build FAILED.
+
+D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\NotificationsModule.cs(51,28): error CS0246: The type or namespace name 'INotificationRepository' could not be found (are you missing a using directive or an assembly reference?) [D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj]
+D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\NotificationsModule.cs(51,18): error CS0311: The type 'Project.Modules.Notifications.Infrastructure.Notifications.NotificationRepository' cannot be used as type parameter 'TImplementation' in the generic type or method 'ServiceCollectionServiceExtensions.AddScoped<TService, TImplementation>(IServiceCollection)'. There is no implicit reference conversion from 'Project.Modules.Notifications.Infrastructure.Notifications.NotificationRepository' to 'INotificationRepository'. [D:\cs projects\Graduation-project\backend\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj]
+    0 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:01.96
