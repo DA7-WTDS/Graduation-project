@@ -67,6 +67,17 @@ const Dashboard = () => {
     const initials = user ? `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}` : '?'
 
     useEffect(() => {
+        // Expose test function to window for the user to call easily from console
+        window.triggerTestNotification = async () => {
+            try {
+                await notificationService.createTestNotification();
+                console.log('Test notification triggered!');
+                fetchNotifications(); // Refresh the counts
+            } catch (err) {
+                console.error('Failed to trigger test notification:', err);
+            }
+        };
+
         if (user) {
             fetchNotifications()
         }
