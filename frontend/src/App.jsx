@@ -6,6 +6,9 @@ import Signup from './pages/Auth/Signup'
 import Onboarding from './pages/Onboarding/Onboarding'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Profile from './pages/Profile/Profile'
+import Portfolios from './pages/Portfolios/Portfolios'
+import Simulator from './pages/Simulator/Simulator'
+import Market from './pages/Market/Market'
 import PrivateRoute from './components/PrivateRoute'
 
 function App() {
@@ -29,6 +32,30 @@ function App() {
                         element={
                             <PrivateRoute>
                                 <Dashboard />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/portfolios"
+                        element={
+                            <PrivateRoute>
+                                <Portfolios />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/simulator"
+                        element={
+                            <PrivateRoute>
+                                <Simulator />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route
+                        path="/market"
+                        element={
+                            <PrivateRoute>
+                                <Market />
                             </PrivateRoute>
                         }
                     />

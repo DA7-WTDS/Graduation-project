@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getUserProfile } from '../../services/authService'
 import './Profile.css'
@@ -74,12 +74,31 @@ const Profile = () => {
 
             {/* Top nav bar */}
             <nav className="profile-nav">
-                <Link to="/dashboard" className="profile-nav-back">
-                    <span className="back-arrow">←</span>
-                    Back to Dashboard
-                </Link>
-                <div className="profile-nav-logo">
-                    <span className="gradient-text">SmartInvest</span> AI
+                <div className="profile-header-left">
+                    <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <span className="gradient-text">SmartInvest</span> AI
+                    </Link>
+                </div>
+
+                <div className="profile-nav-links">
+                    <NavLink to="/dashboard" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
+                        Dashboard
+                    </NavLink>
+                    <NavLink to="/portfolios" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
+                        Portfolios
+                    </NavLink>
+                    <NavLink to="/simulator" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
+                        Learning
+                    </NavLink>
+                    <NavLink to="/market" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
+                        Market
+                    </NavLink>
+                </div>
+
+                <div className="profile-header-right">
+                    <NavLink to="/profile" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
+                        Profile
+                    </NavLink>
                 </div>
             </nav>
 

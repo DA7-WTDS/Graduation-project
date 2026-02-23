@@ -46,30 +46,45 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.profile-nav-back {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: var(--font-size-small);
-    font-weight: var(--font-weight-medium);
-    text-decoration: none;
-    transition: color var(--transition-base);
-}
-
-.profile-nav-back:hover {
-    color: var(--color-primary-teal);
-}
-
-.back-arrow {
-    font-size: 18px;
-}
-
-.profile-nav-logo {
+.profile-header-left {
     font-size: var(--font-size-large);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-display);
     color: white;
+}
+
+.profile-nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.profile-nav-link {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-base);
+}
+
+.profile-nav-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.profile-nav-link.active {
+    color: var(--color-primary-teal);
+    background: rgba(0, 201, 167, 0.1);
+}
+
+.profile-header-right {
+    display: flex;
+    align-items: center;
 }
 
 /* ---- Main Container ---- */

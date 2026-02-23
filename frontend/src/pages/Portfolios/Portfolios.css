@@ -1,0 +1,40 @@
+.portfolios-page {
+    min-height: 100vh;
+    background: var(--color-background-light);
+}
+
+.portfolios-body {
+    padding: var(--space-3xl) var(--space-2xl);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.portfolios-hero {
+    text-align: center;
+    margin-bottom: var(--space-5xl);
+}
+
+.portfolios-placeholder {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    padding: var(--space-3xl);
+    border-radius: var(--radius-2xl);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.portfolios-placeholder .icon {
+    font-size: 64px;
+    margin-bottom: var(--space-lg);
+    opacity: 0.5;
+}
+
+.portfolios-placeholder h3 {
+    margin-bottom: var(--space-sm);
+    color: var(--color-primary-navy);
+}
+
+.portfolios-placeholder p {
+    color: var(--color-gray-500);
+}

@@ -142,8 +142,14 @@ const Dashboard = () => {
                         <NavLink to="/dashboard" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
                             Dashboard
                         </NavLink>
-                        <NavLink to="/onboarding" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
-                            Onboarding
+                        <NavLink to="/portfolios" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
+                            Portfolios
+                        </NavLink>
+                        <NavLink to="/simulator" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
+                            Learning
+                        </NavLink>
+                        <NavLink to="/market" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
+                            Market
                         </NavLink>
                     </nav>
 
