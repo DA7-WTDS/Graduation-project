@@ -3,7 +3,6 @@ import Navbar from '../../components/Navbar/Navbar'
 import Hero from '../../components/Hero/Hero'
 import Features from '../../components/Features/Features'
 import HowItWorks from '../../components/HowItWorks/HowItWorks'
-import Pricing from '../../components/Pricing/Pricing'
 import About from '../../components/About/About'
 import Footer from '../../components/Footer/Footer'
 
@@ -14,7 +13,6 @@ const LandingPage = () => {
             <Hero />
             <Features />
             <HowItWorks />
-            <Pricing />
             <About />
             <Footer />
         </div>

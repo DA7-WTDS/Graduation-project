@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 // Common headers for API requests
 export const getHeaders = (includeAuth = false) => {
@@ -41,7 +41,10 @@ export const apiCall = async (endpoint, options = {}) => {
 
         return data
     } catch (error) {
-        console.error('API call failed:', error)
+        // Only log unexpected errors (not 401/404 which are handled by callers)
+        if (!error.message?.includes('401') && !error.message?.includes('404')) {
+            console.error('API call failed:', error)
+        }
         throw error
     }
 }

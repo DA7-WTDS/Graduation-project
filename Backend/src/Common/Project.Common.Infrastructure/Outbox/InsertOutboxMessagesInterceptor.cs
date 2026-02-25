@@ -9,20 +9,20 @@ namespace Project.Common.Infrastructure.Outbox;
 
 public sealed class InsertOutboxMessagesInterceptor : SaveChangesInterceptor
 {
-    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    public override async ValueTask<InterceptionResult<int>>SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
         if (eventData.Context is not null)
         {
-            InsertOutboxMessages(eventData.Context);
+            await InsertOutboxMessagesAsync(eventData.Context, cancellationToken);
         }
 
         return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
-    private static void InsertOutboxMessages(DbContext context)
+    private static async Task InsertOutboxMessagesAsync(DbContext context, CancellationToken cancellationToken)
     {
         List<OutboxMessage> outboxMessages = [.. context
             .ChangeTracker
@@ -44,6 +44,6 @@ public sealed class InsertOutboxMessagesInterceptor : SaveChangesInterceptor
                 OccurredOnUtc = domainEvent.OccurredOnUtc
             })];
 
-        context.BulkInsertAsync(outboxMessages);
+        await context.BulkInsertAsync(outboxMessages, cancellationToken: cancellationToken);
     }
 }

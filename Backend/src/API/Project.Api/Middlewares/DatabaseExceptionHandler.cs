@@ -16,7 +16,19 @@ internal sealed class DatabaseExceptionHandler(
             return false;
         }
 
-        logger.LogError(pgEx, "Database exception occurred. {Message}", pgEx.Message);
+        // Log comprehensive error details
+        logger.LogError(pgEx, 
+            "Database exception occurred.\n" +
+            "PostgreSQL Error Code: {SqlState}\n" +
+            "PostgreSQL Message: {Message}\n" +
+            "DbUpdateException Message: {DbMessage}\n" +
+            "Affected Entities: {Entities}\n" +
+            "Full Exception: {FullException}",
+            pgEx.SqlState,
+            pgEx.Message,
+            dbEx.Message,
+            string.Join(", ", dbEx.Entries.Select(e => $"{e.Entity.GetType().Name} (State: {e.State})")),
+            exception.ToString());
 
         int status = pgEx.SqlState switch
         {

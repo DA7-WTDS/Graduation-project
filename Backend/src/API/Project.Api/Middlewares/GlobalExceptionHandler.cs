@@ -13,7 +13,21 @@ internal sealed class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-        logger.LogError(exception, "An unhandled exception occurred. {Message}", exception.Message);
+        // Log comprehensive error details
+        logger.LogError(exception, 
+            "An unhandled exception occurred.\\n" +
+            "Request Path: {Path}\\n" +
+            "Request Method: {Method}\\n" +
+            "Exception Type: {ExceptionType}\\n" +
+            "Message: {Message}\\n" +
+            "Inner Exception: {InnerException}\\n" +
+            "Full Exception: {FullException}",
+            httpContext.Request.Path,
+            httpContext.Request.Method,
+            exception.GetType().Name,
+            exception.Message,
+            exception.InnerException?.Message ?? "None",
+            exception.ToString());
 
         httpContext.Response.ContentType = "application/json";
 

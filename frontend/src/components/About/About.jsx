@@ -1,13 +1,6 @@
 import React from 'react'
 import './About.css'
 
-const stats = [
-    { number: '50K+', label: 'Active Investors' },
-    { number: '$500M+', label: 'Assets Managed' },
-    { number: '99.9%', label: 'Uptime' },
-    { number: '4.9★', label: 'User Rating' }
-]
-
 const About = () => {
     return (
         <section id="about" className="about">
@@ -25,19 +18,14 @@ const About = () => {
                     <div className="about-text">
                         <h3>Our Story</h3>
                         <p>
-                            Founded in 2024, SmartInvest AI was born from a simple observation:
-                            institutional investors had access to powerful AI and data analytics,
-                            while individual investors were left behind.
+                            SmartInvest AI was born from a simple observation: institutional investors 
+                            had access to powerful AI and data analytics, while individual investors 
+                            were left behind.
                         </p>
                         <p>
-                            We set out to change that. By combining cutting-edge machine learning
-                            with intuitive design, we've created a platform that puts sophisticated
+                            We set out to change that. By combining cutting-edge machine learning 
+                            with intuitive design, we've created a platform that puts sophisticated 
                             investment strategies in everyone's hands.
-                        </p>
-                        <p>
-                            Today, we're proud to serve thousands of investors, from first-time
-                            savers to experienced portfolio managers, helping them achieve their
-                            financial goals with confidence.
                         </p>
                     </div>
 
@@ -48,15 +36,6 @@ const About = () => {
                             Advanced AI algorithms paired with an interface anyone can use
                         </p>
                     </div>
-                </div>
-
-                <div className="about-stats">
-                    {stats.map((stat, index) => (
-                        <div key={index} className="stat-card">
-                            <div className="stat-number">{stat.number}</div>
-                            <div className="stat-label">{stat.label}</div>
-                        </div>
-                    ))}
                 </div>
 
                 <div className="about-mission">

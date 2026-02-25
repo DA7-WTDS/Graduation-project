@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { hasCompletedQuestionnaire } from '../../services/portfolioService'
 import './Auth.css'
 
 const Login = () => {
@@ -32,8 +33,16 @@ const Login = () => {
         try {
             await login(formData.email, formData.password)
 
-            // Redirect to dashboard after successful login
-            navigate('/dashboard')
+            // Check if user has completed questionnaire
+            const hasQuestionnaire = await hasCompletedQuestionnaire()
+            
+            if (!hasQuestionnaire) {
+                // First-time user - redirect to onboarding
+                navigate('/onboarding')
+            } else {
+                // Existing user - redirect to dashboard
+                navigate('/dashboard')
+            }
         } catch (err) {
             console.error('Login error:', err)
             setError(err.message || 'Invalid email or password. Please try again.')

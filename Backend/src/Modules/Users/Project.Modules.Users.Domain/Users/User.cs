@@ -26,7 +26,14 @@ public sealed class User : Entity
             Role = Role.User,
             CreatedAt = DateTime.UtcNow
         };
-        user.Raise(new UserCreatedDomainEvent(Guid.NewGuid(), DateTime.UtcNow, user.Id));
+        user.Raise(new UserCreatedDomainEvent(
+            Guid.NewGuid(),
+            DateTime.UtcNow,
+            user.Id,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            user.Role.ToString()));
         return user;
     }
 

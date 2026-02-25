@@ -21,8 +21,7 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true)
             }
         } catch (error) {
-            console.error('Failed to load user:', error)
-            // Token might be invalid, clear it
+            // Token is invalid or expired - silently clear it
             authService.removeToken()
             setUser(null)
             setIsAuthenticated(false)
