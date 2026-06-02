@@ -8,6 +8,7 @@ using Project.Api.Extensions;
 using Project.Modules.Users.Infrastructure;
 using Project.Modules.Users.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure;
+using Project.Modules.Recommendations.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using MassTransit;
@@ -39,7 +40,8 @@ builder.Services.AddCors(options =>
 Assembly[] moduleApplicationAssemblies = [
     Project.Modules.Users.Application.AssemblyReference.Assembly,
     Project.Modules.Notifications.Application.AssemblyReference.Assembly,
-    Project.Modules.Portfolio.Application.AssemblyReference.Assembly];
+    Project.Modules.Portfolio.Application.AssemblyReference.Assembly,
+    Project.Modules.Recommendations.Application.AssemblyReference.Assembly];
 
 builder.Services.AddApplication(moduleApplicationAssemblies);
 
@@ -65,6 +67,8 @@ builder.Services.AddUsersModule(builder.Configuration);
 builder.Services.AddNotificationsModule(builder.Configuration);
 
 builder.Services.AddPortfolioModule(builder.Configuration);
+
+builder.Services.AddRecommendationsModule(builder.Configuration);
 
 WebApplication app = builder.Build();
 

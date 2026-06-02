@@ -31,4 +31,12 @@
     <Project Path="src/Modules/Users/Project.Modules.Users.Presentation/Project.Modules.Users.Presentation.csproj" />
     <Project Path="src/Modules/Users/Project.Modules.Users.PublicApi/Project.Modules.Users.PublicApi.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Recommendations/">
+    <Project Path="src/Modules/Recommendations/Project.Modules.Recommendations.Application/Project.Modules.Recommendations.Application.csproj" />
+    <Project Path="src/Modules/Recommendations/Project.Modules.Recommendations.Domain/Project.Modules.Recommendations.Domain.csproj" />
+    <Project Path="src/Modules/Recommendations/Project.Modules.Recommendations.Infrastructure/Project.Modules.Recommendations.Infrastructure.csproj" />
+    <Project Path="src/Modules/Recommendations/Project.Modules.Recommendations.IntegrationEvents/Project.Modules.Recommendations.IntegrationEvents.csproj" />
+    <Project Path="src/Modules/Recommendations/Project.Modules.Recommendations.Presentation/Project.Modules.Recommendations.Presentation.csproj" />
+    <Project Path="src/Modules/Recommendations/Project.Modules.Recommendations.PublicApi/Project.Modules.Recommendations.PublicApi.csproj" />
+  </Folder>
 </Solution>

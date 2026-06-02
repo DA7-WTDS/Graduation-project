@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Project.Modules.Recommendations.IntegrationEvents\Project.Modules.Recommendations.IntegrationEvents.csproj" />
+    <ProjectReference Include="..\..\..\Common\Project.Common.Application\Project.Common.Application.csproj" />
+    <ProjectReference Include="..\..\..\Common\Project.Common.Domain\Project.Common.Domain.csproj" />
+    <ProjectReference Include="..\Project.Modules.Recommendations.Domain\Project.Modules.Recommendations.Domain.csproj" />
+    <ProjectReference Include="..\..\Portfolio\Project.Modules.Portfolio.PublicApi\Project.Modules.Portfolio.PublicApi.csproj" />
+  </ItemGroup>
+
+</Project>

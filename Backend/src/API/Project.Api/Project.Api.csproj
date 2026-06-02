@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>97b3bf0a-f47f-4fe8-a269-c68962abdeb7</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -34,6 +35,9 @@
     <ProjectReference Include="..\..\Modules\Portfolio\Project.Modules.Portfolio.Application\Project.Modules.Portfolio.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Portfolio\Project.Modules.Portfolio.Infrastructure\Project.Modules.Portfolio.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Portfolio\Project.Modules.Portfolio.Presentation\Project.Modules.Portfolio.Presentation.csproj" />
+    <ProjectReference Include="..\..\Modules\Recommendations\Project.Modules.Recommendations.Application\Project.Modules.Recommendations.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Recommendations\Project.Modules.Recommendations.Infrastructure\Project.Modules.Recommendations.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Recommendations\Project.Modules.Recommendations.Presentation\Project.Modules.Recommendations.Presentation.csproj" />
   </ItemGroup>
 
 </Project>
