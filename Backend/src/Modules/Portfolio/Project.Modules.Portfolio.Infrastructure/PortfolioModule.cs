@@ -4,12 +4,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Project.Common.Infrastructure;
+using Project.Common.Application.Messaging;
+using Project.Common.Infrastructure.Outbox;
+using Project.Common.Infrastructure.Inbox;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.PublicApi;
+using Project.Modules.Portfolio.Infrastructure.Outbox;
+using Project.Modules.Portfolio.Infrastructure.Inbox;
 using Project.Modules.Portfolio.PublicApi;
+using MassTransit;
 
 namespace Project.Modules.Portfolio.Infrastructure;
 
@@ -19,16 +25,28 @@ public static class PortfolioModule
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Register endpoints from the Presentation layer
-        services.AddModuleEndpoints(Presentation.AssemblyReference.Assembly);
+        services
+            .AddDomainEventHandlers(typeof(IdempotentDomainEventHandler<>), Application.AssemblyReference.Assembly)
+            .AddIntegrationEventHandlers(typeof(IdempotentIntegrationEventHandler<>), Presentation.AssemblyReference.Assembly)
+            .AddModuleEndpoints(Presentation.AssemblyReference.Assembly);
 
-        // Register DbContext
+        services.AddInfrastructure(configuration);
+
+        return services;
+    }
+
+    private static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // Register DbContext with Outbox Interceptor
         services.AddDbContextPool<PortfolioDbContext>((sp, options) =>
             options
                 .UseNpgsql(
                     sp.GetRequiredService<NpgsqlDataSource>(),
                     npgsqlOptions => npgsqlOptions
                         .MigrationsHistoryTable(HistoryRepository.DefaultTableName, Schemas.Portfolio))
+                .AddInterceptors(sp.GetRequiredService<InsertOutboxMessagesInterceptor>())
                 .UseSnakeCaseNamingConvention());
 
         // Register Unit of Work
@@ -40,7 +58,21 @@ public static class PortfolioModule
         // Register Public API
         services.AddScoped<IPortfolioApi, PortfolioApi>();
 
+        // Configure Outbox & Inbox options
+        services.Configure<OutboxOptions>(configuration.GetSection("Portfolio:Outbox"));
+        services.Configure<InboxOptions>(configuration.GetSection("Portfolio:Inbox"));
+
+        // Register Quartz Jobs
+        services.ConfigureOptions<ConfigureProcessOutboxJob>();
+        services.ConfigureOptions<ConfigureProcessInboxJob>();
+
         return services;
     }
+
+    public static void ConfigureConsumers(IRegistrationConfigurator registrationConfigurator)
+    {
+        // Add consumers for any integration events consumed by this module in the future
+    }
 }
+
 

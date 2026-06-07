@@ -54,7 +54,8 @@ builder.Services.AddHealthChecks()
 
 Action<IRegistrationConfigurator>[] configureConsumersActions = [
     UsersModule.ConfigureConsumers,
-    NotificationsModule.ConfigureConsumers];
+    NotificationsModule.ConfigureConsumers,
+    PortfolioModule.ConfigureConsumers];
 
 InfrastructureOptions infrastructureOptions = builder.Configuration.BuildInfrastructureOptions(
     builder.Logging,
