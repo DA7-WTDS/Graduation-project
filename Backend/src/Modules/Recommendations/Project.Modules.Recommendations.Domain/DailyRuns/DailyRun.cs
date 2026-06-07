@@ -31,6 +31,9 @@ public sealed class DailyRun : Entity
         run._predictions.AddRange(predictions);
         run.Count = run._predictions.Count;
 
+        run.Raise(new DailyRunIngestedDomainEvent(Guid.NewGuid(), DateTime.UtcNow, run.Id, run.GeneratedAt));
+
         return run;
     }
+
 }
