@@ -1,4 +1,21 @@
 services:
+  pipeline:
+    build:
+      context: ./Pipeline
+    image: quantwise-pipeline:latest
+    container_name: quantwise-pipeline
+    restart: unless-stopped
+    env_file:
+      - ./Pipeline/.env
+    environment:
+      - YF_CACHE_DIR=/opt/yf-cache
+    ports:
+      - "8000:8000"          # .NET FetchDailyPipelineJob calls localhost:8000/api/score
+    volumes:
+      - yf_cache_pipeline:/opt/yf-cache
+    networks:
+      - project-network
+
   postgres:
     image: postgres:18
     container_name: postgres-project
@@ -70,6 +87,7 @@ volumes:
   redis_data:
   pgadmin_data:
   rabbitmq_data:
+  yf_cache_pipeline:
 
 
 networks:
