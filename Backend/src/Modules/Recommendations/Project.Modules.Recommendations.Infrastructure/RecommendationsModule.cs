@@ -17,6 +17,7 @@ using Project.Modules.Recommendations.Infrastructure.Database;
 using Project.Modules.Recommendations.Infrastructure.Llm;
 using Project.Modules.Recommendations.Infrastructure.Outbox;
 using Project.Modules.Recommendations.Infrastructure.Inbox;
+using Project.Modules.Recommendations.Infrastructure.Pipeline;
 using Project.Modules.Recommendations.Infrastructure.PublicApi;
 using Project.Modules.Recommendations.PublicApi;
 using MassTransit;
@@ -70,6 +71,16 @@ public static class RecommendationsModule
         // Register Quartz Jobs
         services.ConfigureOptions<ConfigureProcessOutboxJob>();
         services.ConfigureOptions<ConfigureProcessInboxJob>();
+        services.ConfigureOptions<ConfigureFetchDailyPipelineJob>();
+
+        // Pipeline HTTP client — typed client for FetchDailyPipelineJob
+        services.Configure<PipelineOptions>(configuration.GetSection("Recommendations:Pipeline"));
+        services.AddHttpClient<FetchDailyPipelineJob>((sp, client) =>
+        {
+            PipelineOptions o = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
+            client.BaseAddress = new Uri(o.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+        });
 
         services.AddHttpClient<ILlmClient, GeminiLlmClient>((sp, client) =>
         {
