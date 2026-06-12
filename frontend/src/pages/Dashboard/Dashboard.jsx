@@ -2,96 +2,57 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { notificationService } from '../../services/notificationService'
+import { getMyPortfolio } from '../../services/portfolioService'
+import { getRecommendations } from '../../services/recommendationService'
 import './Dashboard.css'
-
-// MOCK DATA - Replace with API calls to your backend
-const MOCK_DATA = {
-    portfolio: {
-        totalValue: 127482.50,
-        dailyChange: 1247.35,
-        dailyChangePercent: 2.4,
-        totalReturn: 24482.50,
-        totalReturnPercent: 23.7
-    },
-    quickStats: [
-        { label: 'Today\'s Gain', value: '$1,247', change: '+2.4%', positive: true },
-        { label: 'Total Return', value: '$24,482', change: '+23.7%', positive: true },
-        { label: 'Cash Available', value: '$2,450', change: null, positive: null }
-    ],
-    allocation: [
-        { label: 'Stocks', value: 40, color: 'var(--color-primary-purple)', amount: '$50,993' },
-        { label: 'Bonds', value: 35, color: 'var(--color-primary-teal)', amount: '$44,619' },
-        { label: 'ETFs', value: 20, color: 'var(--color-primary-navy)', amount: '$25,496' },
-        { label: 'Cash', value: 5, color: 'var(--color-gray-300)', amount: '$6,374' }
-    ],
-    holdings: [
-        { symbol: 'AAPL', name: 'Apple Inc.', shares: 50, price: 182.45, value: 9122.50, todayChange: 2.3, totalReturn: 15.2 },
-        { symbol: 'MSFT', name: 'Microsoft Corp.', shares: 30, price: 420.12, value: 12603.60, todayChange: 1.8, totalReturn: 22.4 },
-        { symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 25, price: 142.85, value: 3571.25, todayChange: -0.5, totalReturn: 8.3 },
-        { symbol: 'AMZN', name: 'Amazon.com Inc.', shares: 15, price: 178.32, value: 2674.80, todayChange: 3.1, totalReturn: 31.5 },
-        { symbol: 'TSLA', name: 'Tesla Inc.', shares: 20, price: 248.50, value: 4970.00, todayChange: 5.2, totalReturn: -4.7 }
-    ],
-    recommendations: [
-        {
-            id: 1,
-            type: 'Rebalance Advisory',
-            confidence: 'High',
-            text: 'Your stock allocation is now 42% vs target 40%. Our AI suggests reducing tech exposure by $2,500 to maintain your target allocation.',
-            actions: ['View Details', 'Dismiss']
-        },
-        {
-            id: 2,
-            type: 'Buy Opportunity',
-            confidence: 'Medium',
-            text: 'GOOGL is down 3% today and approaching your target buy price of $140. Consider reviewing this opportunity with your broker.',
-            actions: ['View Details', 'Dismiss']
-        }
-    ],
-    activities: [
-        { icon: '📊', title: 'Portfolio Analysis', description: 'AI completed your weekly portfolio health check', time: '2 hours ago' },
-        { icon: '📈', title: 'AI Recommendation', description: 'New rebalancing suggestion available for review', time: '1 day ago' },
-        { icon: '🎯', title: 'Goal Progress', description: 'Retirement goal: 32% complete', time: '2 days ago' },
-        { icon: '🔔', title: 'Market Alert', description: 'TSLA volatility spike detected — review your exposure', time: '3 days ago' },
-        { icon: '📋', title: 'Report Ready', description: 'Your monthly portfolio report is ready to view', time: '1 week ago' }
-    ]
-}
 
 const Dashboard = () => {
     const { user } = useAuth()
+
+    // Notifications state
     const [notifications, setNotifications] = useState([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [showNotifications, setShowNotifications] = useState(false)
     const notificationRef = useRef(null)
 
-    const { portfolio, quickStats, allocation, holdings, recommendations, activities } = MOCK_DATA
+    // Portfolio state
+    const [portfolio, setPortfolio] = useState(null)
+    const [portfolioLoading, setPortfolioLoading] = useState(true)
+    const [portfolioError, setPortfolioError] = useState(null)
+
+    // Recommendations state
+    const [recommendations, setRecommendations] = useState(null)
+    const [recsLoading, setRecsLoading] = useState(true)
+    const [recsError, setRecsError] = useState(null)
+
     const initials = user ? `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}` : '?'
 
     useEffect(() => {
-        // Expose test function to window for the user to call easily from console
+        // Expose test function to window for console debugging
         window.triggerTestNotification = async () => {
             try {
-                await notificationService.createTestNotification();
-                console.log('Test notification triggered!');
-                fetchNotifications(); // Refresh the counts
+                await notificationService.createTestNotification()
+                console.log('Test notification triggered!')
+                fetchNotifications()
             } catch (err) {
-                console.error('Failed to trigger test notification:', err);
+                console.error('Failed to trigger test notification:', err)
             }
-        };
+        }
 
         if (user) {
             fetchNotifications()
+            fetchPortfolio()
+            fetchRecommendations()
         }
 
-        // Close dropdown when clicking outside
         const handleClickOutside = (event) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
                 setShowNotifications(false)
             }
         }
-
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
+    }, [user])
 
     const fetchNotifications = async () => {
         try {
@@ -99,11 +60,46 @@ const Dashboard = () => {
                 notificationService.getNotifications(1, 10),
                 notificationService.getUnreadCount()
             ])
-
             if (notifsResponse && Array.isArray(notifsResponse)) setNotifications(notifsResponse)
             if (typeof countResponse === 'number') setUnreadCount(countResponse)
         } catch (error) {
             console.error('Error fetching notifications:', error)
+        }
+    }
+
+    const fetchPortfolio = async () => {
+        setPortfolioLoading(true)
+        setPortfolioError(null)
+        try {
+            const data = await getMyPortfolio()
+            setPortfolio(data)
+        } catch (err) {
+            // 404 means no portfolio yet (user hasn't completed onboarding)
+            if (err.message?.includes('404') || err.message?.includes('not found')) {
+                setPortfolio(null)
+            } else {
+                setPortfolioError('Failed to load portfolio')
+            }
+        } finally {
+            setPortfolioLoading(false)
+        }
+    }
+
+    const fetchRecommendations = async () => {
+        setRecsLoading(true)
+        setRecsError(null)
+        try {
+            const data = await getRecommendations()
+            setRecommendations(data)
+        } catch (err) {
+            // 404 = no run yet; other errors = real error
+            if (err.message?.includes('404') || err.message?.includes('not found')) {
+                setRecommendations(null)
+            } else {
+                setRecsError('Recommendations unavailable')
+            }
+        } finally {
+            setRecsLoading(false)
         }
     }
 
@@ -131,11 +127,28 @@ const Dashboard = () => {
         const date = new Date(dateString)
         const now = new Date()
         const diffInSeconds = Math.floor((now - date) / 1000)
-
         if (diffInSeconds < 60) return 'Just now'
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
         return date.toLocaleDateString()
+    }
+
+    // Build allocation array from portfolio data
+    const allocationData = portfolio ? [
+        { label: 'Stocks',  value: portfolio.stocksPercentage,  color: 'var(--color-primary-purple)' },
+        { label: 'Bonds',   value: portfolio.bondsPercentage,   color: 'var(--color-primary-teal)' },
+        { label: 'ETFs',    value: portfolio.etfsPercentage,    color: 'var(--color-primary-navy)' },
+        { label: 'Cash',    value: portfolio.cashPercentage,    color: 'var(--color-gray-300)' },
+    ].filter(a => a.value > 0) : []
+
+    // Action label colours
+    const actionColor = (action) => {
+        switch (action?.toUpperCase()) {
+            case 'BUY':     return 'var(--color-primary-teal)'
+            case 'SELL':    return '#ef4444'
+            case 'HOLD':    return 'var(--color-gray-300)'
+            default:        return 'var(--color-primary-purple)'
+        }
     }
 
     return (
@@ -218,179 +231,210 @@ const Dashboard = () => {
             {/* Main Content */}
             <div className="dashboard-content">
                 <div className="dashboard-grid">
+
                     {/* Portfolio Overview */}
                     <div className="dashboard-card portfolio-overview">
-                        <div className="card-title" style={{ opacity: 0.9, marginBottom: 'var(--space-md)' }}>
-                            TOTAL PORTFOLIO VALUE
-                        </div>
-                        <div className="portfolio-value">
-                            ${portfolio.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                        <div className="portfolio-change">
-                            <span className={portfolio.dailyChange >= 0 ? 'change-positive' : 'change-negative'}>
-                                {portfolio.dailyChange >= 0 ? '▲' : '▼'} ${Math.abs(portfolio.dailyChange).toLocaleString()}
-                                ({portfolio.dailyChangePercent >= 0 ? '+' : ''}{portfolio.dailyChangePercent}%)
-                            </span>
-                            <span style={{ opacity: 0.8, fontSize: 'var(--font-size-base)' }}>Today</span>
-                        </div>
-                        <div className="portfolio-actions">
-                            <button className="portfolio-action-btn">View Report</button>
-                            <button className="portfolio-action-btn">AI Insights</button>
-                            <button className="portfolio-action-btn">Set Goals</button>
-                        </div>
-                    </div>
-
-                    {/* Quick Stats */}
-                    {quickStats.map((stat, index) => (
-                        <div key={index} className="dashboard-card">
-                            <div className="card-title">{stat.label}</div>
-                            <div className="stat-value-large">{stat.value}</div>
-                            {stat.change && (
-                                <div className={`stat-change ${stat.positive ? 'change-positive' : 'change-negative'}`}>
-                                    {stat.change}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-
-                    {/* Performance Chart */}
-                    <div className="dashboard-card chart-container">
-                        <div className="card-header">
-                            <div className="card-title">Performance</div>
-                            <div className="card-action">1Y</div>
-                        </div>
-                        <div className="chart-placeholder">
-                            <div className="chart-line">
-                                <svg viewBox="0 0 400 120" preserveAspectRatio="none">
-                                    <defs>
-                                        <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <stop offset="0%" stopColor="#6C63FF" />
-                                            <stop offset="100%" stopColor="#00C9A7" />
-                                        </linearGradient>
-                                        <linearGradient id="chartFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                                            <stop offset="0%" stopColor="rgba(108, 99, 255, 0.2)" />
-                                            <stop offset="100%" stopColor="rgba(108, 99, 255, 0)" />
-                                        </linearGradient>
-                                    </defs>
-                                    <polyline
-                                        points="0,80 40,75 80,70 120,60 160,65 200,50 240,55 280,40 320,35 360,25 400,20"
-                                        fill="url(#chartFill)"
-                                        stroke="url(#chartGradient)"
-                                        strokeWidth="3"
-                                    />
-                                </svg>
+                        {portfolioLoading ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', opacity: 0.7 }}>
+                                <div className="loading-spinner" style={{ width: 20, height: 20 }}></div>
+                                <span>Loading portfolio…</span>
                             </div>
-                        </div>
+                        ) : portfolioError ? (
+                            <div style={{ color: '#ef4444' }}>{portfolioError}</div>
+                        ) : portfolio ? (
+                            <>
+                                <div className="card-title" style={{ opacity: 0.9, marginBottom: 'var(--space-md)' }}>
+                                    RISK PROFILE
+                                </div>
+                                <div className="portfolio-value" style={{ fontSize: '2rem' }}>
+                                    {portfolio.riskProfile}
+                                </div>
+                                <div style={{ marginTop: 'var(--space-sm)', opacity: 0.75, fontSize: '0.9rem' }}>
+                                    {portfolio.primaryGoal} · {portfolio.timeHorizon}
+                                </div>
+                                <div className="portfolio-actions" style={{ marginTop: 'var(--space-md)' }}>
+                                    <button className="portfolio-action-btn" onClick={() => window.location.href = '/portfolios'}>Edit Profile</button>
+                                    <button className="portfolio-action-btn" onClick={fetchRecommendations}>Refresh AI</button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="card-title" style={{ opacity: 0.9, marginBottom: 'var(--space-md)' }}>
+                                    NO PORTFOLIO YET
+                                </div>
+                                <div style={{ opacity: 0.7, marginBottom: 'var(--space-md)' }}>
+                                    Complete the onboarding questionnaire to get started.
+                                </div>
+                                <div className="portfolio-actions">
+                                    <button className="portfolio-action-btn" onClick={() => window.location.href = '/onboarding'}>
+                                        Start Onboarding
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
+
+                    {/* Quick Stats — derived from portfolio */}
+                    {portfolio && (
+                        <>
+                            <div className="dashboard-card">
+                                <div className="card-title">Risk Tolerance</div>
+                                <div className="stat-value-large">{portfolio.riskTolerance}%</div>
+                            </div>
+                            <div className="dashboard-card">
+                                <div className="card-title">Time Horizon</div>
+                                <div className="stat-value-large" style={{ fontSize: '1.4rem' }}>{portfolio.timeHorizon}</div>
+                            </div>
+                            <div className="dashboard-card">
+                                <div className="card-title">Experience</div>
+                                <div className="stat-value-large" style={{ fontSize: '1.2rem' }}>{portfolio.investmentExperience}</div>
+                            </div>
+                        </>
+                    )}
 
                     {/* Asset Allocation */}
                     <div className="dashboard-card">
                         <div className="card-header">
                             <div className="card-title">Asset Allocation</div>
-                            <div className="card-action">Details</div>
+                            <div className="card-action">Target Mix</div>
                         </div>
-                        <div className="allocation-visual">
-                            <div className="allocation-pie"></div>
-                            <div className="allocation-legend">
-                                {allocation.map((item, index) => (
-                                    <div key={index} className="legend-item">
-                                        <div className="legend-label">
-                                            <span className="legend-dot" style={{ background: item.color }}></span>
-                                            {item.label}
+                        {portfolioLoading ? (
+                            <div style={{ opacity: 0.6 }}>Loading…</div>
+                        ) : allocationData.length > 0 ? (
+                            <div className="allocation-visual">
+                                <div className="allocation-pie"></div>
+                                <div className="allocation-legend">
+                                    {allocationData.map((item, index) => (
+                                        <div key={index} className="legend-item">
+                                            <div className="legend-label">
+                                                <span className="legend-dot" style={{ background: item.color }}></span>
+                                                {item.label}
+                                            </div>
+                                            <div className="legend-value">{item.value}%</div>
                                         </div>
-                                        <div className="legend-value">{item.value}%</div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div style={{ opacity: 0.6, fontSize: '0.9rem' }}>
+                                Complete onboarding to see your target allocation.
+                            </div>
+                        )}
                     </div>
 
                     {/* AI Recommendations */}
                     <div className="dashboard-card ai-recommendations">
                         <div className="card-header">
                             <div className="card-title">🤖 AI Recommendations</div>
-                            <div className="card-action">View All</div>
+                            <div className="card-action" onClick={fetchRecommendations} style={{ cursor: 'pointer' }}>Refresh</div>
                         </div>
-                        {recommendations.map((rec) => (
-                            <div key={rec.id} className="recommendation-card">
-                                <div className="recommendation-header">
-                                    <div>
-                                        <span className="recommendation-badge">
-                                            ⚡ {rec.confidence} Confidence
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="recommendation-text">{rec.text}</div>
-                                <div className="recommendation-actions">
-                                    {rec.actions.map((action, idx) => (
-                                        <button
-                                            key={idx}
-                                            className={`rec-btn ${idx === 0 ? 'rec-btn-primary' : 'rec-btn-secondary'}`}
-                                        >
-                                            {action}
-                                        </button>
-                                    ))}
-                                </div>
+
+                        {recsLoading ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.7 }}>
+                                <div className="loading-spinner" style={{ width: 18, height: 18 }}></div>
+                                <span>Generating recommendations…</span>
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Holdings Table */}
-                    <div className="dashboard-card holdings-table-container">
-                        <div className="card-header">
-                            <div className="card-title">Holdings</div>
-                            <div className="card-action">View All</div>
-                        </div>
-                        <table className="holdings-table">
-                            <thead>
-                                <tr>
-                                    <th>Symbol</th>
-                                    <th>Shares</th>
-                                    <th>Price</th>
-                                    <th>Value</th>
-                                    <th>Today</th>
-                                    <th>Total Return</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {holdings.map((holding) => (
-                                    <tr key={holding.symbol}>
-                                        <td>
-                                            <div className="holding-symbol">{holding.symbol}</div>
-                                            <div className="holding-name">{holding.name}</div>
-                                        </td>
-                                        <td>{holding.shares}</td>
-                                        <td>${holding.price.toFixed(2)}</td>
-                                        <td>${holding.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                        <td className={holding.todayChange >= 0 ? 'change-positive' : 'change-negative'}>
-                                            {holding.todayChange >= 0 ? '+' : ''}{holding.todayChange}%
-                                        </td>
-                                        <td className={holding.totalReturn >= 0 ? 'change-positive' : 'change-negative'}>
-                                            {holding.totalReturn >= 0 ? '+' : ''}{holding.totalReturn}%
-                                        </td>
-                                    </tr>
+                        ) : recsError ? (
+                            <div style={{ color: '#ef4444', fontSize: '0.9rem' }}>{recsError}</div>
+                        ) : recommendations ? (
+                            <>
+                                {recommendations.summary && (
+                                    <div style={{
+                                        background: 'rgba(108,99,255,0.1)',
+                                        border: '1px solid rgba(108,99,255,0.2)',
+                                        borderRadius: '8px',
+                                        padding: '12px 14px',
+                                        fontSize: '0.875rem',
+                                        lineHeight: 1.6,
+                                        marginBottom: '16px',
+                                        opacity: 0.9
+                                    }}>
+                                        {recommendations.summary}
+                                    </div>
+                                )}
+                                {recommendations.picks?.map((pick, idx) => (
+                                    <div key={idx} className="recommendation-card">
+                                        <div className="recommendation-header">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{
+                                                    fontWeight: 700,
+                                                    fontSize: '1rem',
+                                                    color: 'var(--color-primary-purple)'
+                                                }}>
+                                                    {pick.ticker}
+                                                </span>
+                                                <span className="recommendation-badge" style={{
+                                                    background: `${actionColor(pick.action)}22`,
+                                                    color: actionColor(pick.action),
+                                                    border: `1px solid ${actionColor(pick.action)}44`
+                                                }}>
+                                                    {pick.action}
+                                                </span>
+                                                {pick.allocation_pct > 0 && (
+                                                    <span style={{ opacity: 0.6, fontSize: '0.8rem' }}>
+                                                        {pick.allocation_pct}% allocation
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="recommendation-text">{pick.reason}</div>
+                                        {pick.risk_note && (
+                                            <div style={{
+                                                fontSize: '0.8rem',
+                                                opacity: 0.65,
+                                                marginTop: '6px',
+                                                fontStyle: 'italic'
+                                            }}>
+                                                ⚠ {pick.risk_note}
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                                <div style={{ fontSize: '0.75rem', opacity: 0.45, marginTop: '12px' }}>
+                                    Generated {new Date(recommendations.generated_at).toLocaleString()}
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ opacity: 0.6, fontSize: '0.9rem' }}>
+                                No recommendations available yet. The pipeline runs daily — check back later.
+                            </div>
+                        )}
                     </div>
 
-                    {/* Recent Activity */}
+                    {/* Recent Activity — from real notifications */}
                     <div className="dashboard-card activity-feed">
                         <div className="card-header">
                             <div className="card-title">Recent Activity</div>
                             <div className="card-action">View All</div>
                         </div>
-                        {activities.map((activity, index) => (
-                            <div key={index} className="activity-item">
-                                <div className="activity-icon">{activity.icon}</div>
-                                <div className="activity-content">
-                                    <div className="activity-title">{activity.title}</div>
-                                    <div className="activity-description">{activity.description}</div>
-                                    <div className="activity-time">{activity.time}</div>
+                        {notifications.length > 0 ? (
+                            notifications.slice(0, 5).map((n, index) => (
+                                <div
+                                    key={n.id || index}
+                                    className="activity-item"
+                                    style={{ cursor: !n.isRead ? 'pointer' : 'default' }}
+                                    onClick={() => !n.isRead && handleMarkAsRead(n.id)}
+                                >
+                                    <div className="activity-icon">
+                                        {n.type === 'Recommendation' ? '🤖'
+                                            : n.type === 'Alert' ? '🔔'
+                                            : n.type === 'System' ? '⚙️'
+                                            : '📋'}
+                                    </div>
+                                    <div className="activity-content">
+                                        <div className="activity-title" style={{ fontWeight: n.isRead ? 400 : 600 }}>
+                                            {n.title}
+                                        </div>
+                                        <div className="activity-description">{n.message}</div>
+                                        <div className="activity-time">{formatDate(n.createdAt)}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <div style={{ opacity: 0.55, fontSize: '0.9rem' }}>No recent activity.</div>
+                        )}
                     </div>
+
                 </div>
             </div>
         </div>

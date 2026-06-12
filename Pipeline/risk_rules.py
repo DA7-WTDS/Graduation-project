@@ -21,7 +21,7 @@ POS_THRESHOLD: float      = 0.15   # consistent with the sentiment service
 
 # Guard: abort the whole run if fewer than this many records survive the merge.
 # Mirrors the MIN_RECORDS guard in n8n_code_node.js (was 50).
-MIN_RECORDS: int = 50
+MIN_RECORDS: int = 25
 
 
 # ── Direction / sentiment agreement ───────────────────────────────────────────
