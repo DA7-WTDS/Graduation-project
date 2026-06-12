@@ -29,7 +29,7 @@ import torch.nn as nn
 import xgboost as xgb
 import yfinance as yf
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 from risk_rules import apply_risk_rules
 
@@ -67,10 +67,8 @@ LSTM_PARAMS  = CONFIG["lstm_params"]
 MIN_RAW_ROWS = 120
 
 # yfinance fetch settings
-FETCH_PERIOD     = "6mo"
-FETCH_INTERVAL   = "1d"
-FETCH_BATCH_SIZE = 10
-FETCH_MIN_ROWS   = 80
+FETCH_PERIOD   = "6mo"
+FETCH_INTERVAL = "1d"
 
 
 MC_SAMPLES   = 30
@@ -670,7 +668,7 @@ def _finnhub_raw_headlines(ticker: str):
         return None
     try:
         _finnhub_throttle()
-        to_d   = datetime.utcnow().date()
+        to_d   = datetime.now(timezone.utc).date()
         from_d = to_d - timedelta(days=FINNHUB_NEWS_DAYS)
         resp = requests.get(
             f"{FINNHUB_BASE}/company-news",
@@ -745,7 +743,7 @@ def _gather_ticker(ticker: str) -> dict | None:
     """Network I/O phase (runs in thread pool): fetch analyst data + news headlines."""
     try:
         tk  = yf.Ticker(ticker)
-        now = pd.Timestamp(datetime.utcnow())
+        now = pd.Timestamp(datetime.now(timezone.utc)).tz_localize(None)
         name = _finnhub_profile_name(ticker)
         avg, rating_label, n_analysts = _consensus(tk, ticker)
         action_score, latest_action, latest_firm, win_count, days_since = _recent_actions(tk, now)
