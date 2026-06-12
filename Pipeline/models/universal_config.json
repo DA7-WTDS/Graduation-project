@@ -1,0 +1,1 @@
+{"look_back": 60, "lstm_params": {"input_dim": 5, "hidden_dim": 64, "layers": 2}, "feature_cols": ["Volume_Ratio", "Return", "RSI", "MACD", "MACD_signal"], "tech_cols": ["SMA_5_Ratio", "SMA_10_Ratio", "SMA_15_Ratio", "SMA_30_Ratio", "EMA_9_Ratio", "RSI", "MACD", "MACD_signal", "MACD_hist", "Volatility_20", "Momentum_10", "Momentum_21", "Volume_Change", "Volume_Ratio"]}

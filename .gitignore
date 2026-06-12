@@ -463,3 +463,7 @@ rabbitmq_data
 # Package manager lock files (uncomment if you want to ignore them)
 # package-lock.json
 # yarn.lock
+
+# Pipeline — training notebooks and old backup artifacts (use separate storage)
+Pipeline/models/Hybrid_Model.ipynb
+Pipeline/models/_backup_old_model/

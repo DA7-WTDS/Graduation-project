@@ -1,25 +1,10 @@
-"""
-QuantWise ΓÇö Unified Pipeline Service
-
-Single FastAPI service that chains the full daily scoring pipeline:
-  1. Fetch top ~100 US large-cap tickers
-  2. Predict 30-day return (hybrid LSTM + XGBoost)
-  3. Score sentiment (analyst consensus + FinBERT news)
-  4. Apply risk rules (merge + enrich)
-  5. Expose POST /api/score for the .NET Quartz job to consume
-
-The .NET backend (FetchDailyPipelineJob) calls POST /api/score once per day.
-No n8n, no scheduling inside Python ΓÇö the .NET Quartz job is the scheduler.
-
-Ports:
-  8000 ΓÇö this service
-
-CRITICAL: torch.backends.mkldnn.enabled = False
-  nn.LSTM's oneDNN/MKLDNN CPU kernel returns nondeterministic garbage when
-  executed off the main thread (uvicorn serves sync endpoints from a worker
-  thread). Disabling MKLDNN forces the native, thread-safe RNN path.
-  Keep this line ΓÇö removing it produces wildly unstable predictions.
-"""
+# QuantWise — Unified Pipeline Service
+# FastAPI service: fetch tickers → LSTM+XGBoost prediction → FinBERT sentiment → risk rules.
+# Exposes POST /api/score, called once per day by the .NET FetchDailyPipelineJob Quartz job.
+#
+# IMPORTANT: torch.backends.mkldnn.enabled = False must stay.
+# nn.LSTM's oneDNN kernel is non-deterministic off the main thread; disabling it
+# forces the thread-safe native RNN path.
 
 import json
 import logging
@@ -31,8 +16,10 @@ import time
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -48,7 +35,6 @@ from risk_rules import apply_risk_rules
 
 warnings.filterwarnings("ignore")
 
-# ΓöÇΓöÇ MKLDNN fix (see module docstring) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 torch.backends.mkldnn.enabled = False
 
 logging.basicConfig(
@@ -57,10 +43,6 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-# CONFIG ΓÇö Paths
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 BASE_DIR   = Path(__file__).parent
 MODEL_DIR  = BASE_DIR / "models"
@@ -91,7 +73,6 @@ FETCH_BATCH_SIZE = 10
 FETCH_MIN_ROWS   = 80
 
 
-# ΓöÇΓöÇ Confidence metric tuning ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 MC_SAMPLES   = 30
 MC_SEED      = 1234
 Z_REF        = 1.0
@@ -101,7 +82,6 @@ MC_STD_REF   = 0.015
 _model_lock = threading.Lock()
 
 
-# ΓöÇΓöÇ yfinance hardening ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 yf.config.network.retries = int(os.getenv("YF_RETRIES", "3"))
 _YF_PROXY = os.getenv("YF_PROXY") or os.getenv("HTTPS_PROXY")
 if _YF_PROXY:
@@ -117,7 +97,7 @@ if _YF_CACHE_DIR:
 
 YF_MIN_INTERVAL   = float(os.getenv("YF_MIN_INTERVAL", "0.3"))
 _yf_throttle_lock = threading.Lock()
-_yf_last_call     = [0.0]
+_yf_last_call     = [0.0]   # list used as a mutable float container; guarded by _yf_throttle_lock
 
 def _yf_throttle():
     """Space out Yahoo calls so bursts don't trip rate limits / IP bans."""
@@ -130,7 +110,6 @@ def _yf_throttle():
         _yf_last_call[0] = time.time()
 
 
-# ΓöÇΓöÇ Finnhub (sentiment) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 FINNHUB_API_KEY   = os.getenv("FINNHUB_API_KEY", "").strip()
 FINNHUB_BASE      = "https://finnhub.io/api/v1"
 FINNHUB_NEWS_DAYS = 14
@@ -150,13 +129,17 @@ def _finnhub_throttle():
         _finnhub_last[0] = time.time()
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # PYDANTIC SCHEMAS
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+Direction    = Literal["UP", "DOWN"]
+SignalLabel  = Literal["POSITIVE", "NEGATIVE", "NEUTRAL"]
+Agreement    = Literal["CONFIRMED", "CONTRADICT", "NEUTRAL"]
+RiskLevel    = Literal["LOW", "MEDIUM", "HIGH"]
+
 
 class TickerPrediction(BaseModel):
     ticker:       str
-    direction:    str
+    direction:    Direction
     change_pct:   float
     confidence:   float
     predicted_at: str
@@ -165,7 +148,7 @@ class TickerPrediction(BaseModel):
 class TickerSentiment(BaseModel):
     ticker:               str
     sentiment_score:      float
-    signal:               str
+    signal:               SignalLabel
     analyst_rating:       float | None
     rating_label:         str | None
     ratings_count:        int
@@ -184,19 +167,19 @@ class TickerSentiment(BaseModel):
 
 
 class ScoreRecord(BaseModel):
-    """One record in the /api/score response ΓÇö matches PredictionRecordDto exactly."""
+    """One record in the /api/score response — matches PredictionRecordDto exactly."""
     ticker:           str
-    direction:        str
+    direction:        Direction
     change_pct:       float
     confidence:       float
     sentiment_score:  float
-    signal:           str
+    signal:           SignalLabel
     analyst_rating:   float | None
     rating_label:     str | None
     pt_upside_pct:    float | None
     news_score:       float | None
-    agreement:        str
-    risk_level:       str
+    agreement:        Agreement
+    risk_level:       RiskLevel
     conviction_score: float
     risk_flags:       list[str]
     rationale:        str
@@ -208,9 +191,7 @@ class ScoreResponse(BaseModel):
     records:      list[ScoreRecord]
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # LSTM DEFINITION  (must match training notebook exactly)
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 class LSTMBackbone(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int, num_layers: int):
@@ -235,9 +216,7 @@ class LSTMBackbone(nn.Module):
         return prediction, features
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # MODEL LOADER
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def _load_models():
     log.info("Loading LSTM + XGBoost models...")
@@ -271,28 +250,28 @@ def _load_models():
 
 def _load_finbert():
     """Load FinBERT text-classification pipeline (CPU). ~440MB, baked into image."""
-    global _finbert
     try:
         from transformers import pipeline as hf_pipeline
-        _finbert = hf_pipeline("text-classification", model="ProsusAI/finbert", top_k=None)
+        _state.finbert = hf_pipeline("text-classification", model="ProsusAI/finbert", top_k=None)
         log.info("FinBERT loaded.")
     except Exception as e:
-        log.error(f"FinBERT failed to load ΓÇö news component disabled. ({e})")
-        _finbert = None
+        log.error(f"FinBERT failed to load — news component disabled. ({e})")
+        _state.finbert = None
 
 
-# ΓöÇΓöÇ App-global model state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-_lstm           = None
-_xgb_model      = None
-_feature_scaler = None
-_tech_scaler    = None
-_target_stats   = None
-_finbert        = None
+@dataclass
+class _AppState:
+    lstm:           Any = None
+    xgb_model:      Any = None
+    feature_scaler: Any = None
+    tech_scaler:    Any = None
+    target_stats:   dict = field(default_factory=lambda: {"mean": 0.0, "std": 1.0})
+    finbert:        Any = None
+
+_state = _AppState()
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # FEATURE ENGINEERING  (must match training notebook exactly)
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def _compute_rsi(series: pd.Series, period: int = 14) -> pd.Series:
     delta    = series.diff()
@@ -300,8 +279,10 @@ def _compute_rsi(series: pd.Series, period: int = 14) -> pd.Series:
     loss     = (-delta).where(delta < 0, 0.0)
     avg_gain = gain.rolling(period).mean()
     avg_loss = loss.rolling(period).mean()
+    # Guard against all-up windows (avg_loss == 0 → rs = inf → NaN)
+    avg_loss = avg_loss.replace(0, np.nan)
     rs       = avg_gain / avg_loss
-    return 100.0 - (100.0 / (1.0 + rs))
+    return (100.0 - (100.0 / (1.0 + rs))).fillna(100.0)
 
 
 def _compute_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -321,8 +302,9 @@ def _compute_features(df: pd.DataFrame) -> pd.DataFrame:
     df["MACD_hist"]    = df["MACD"] - df["MACD_signal"]
 
     for window in [5, 10, 15, 30]:
-        df[f"SMA_{window}_Ratio"] = (close.rolling(window).mean().shift() / close).fillna(1.0)
-    df["EMA_9_Ratio"]   = (close.ewm(span=9).mean().shift() / close).fillna(1.0)
+        # shift(1) prevents look-ahead bias — yesterday's SMA vs today's close
+        df[f"SMA_{window}_Ratio"] = (close.rolling(window).mean().shift(1) / close).fillna(1.0)
+    df["EMA_9_Ratio"]   = (close.ewm(span=9).mean().shift(1) / close).fillna(1.0)
     df["Volatility_20"] = close.pct_change().rolling(20).std()
     df["Momentum_10"]   = close.pct_change(periods=10)
     df["Momentum_21"]   = close.pct_change(periods=21)
@@ -334,9 +316,7 @@ def _compute_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # TICKER UNIVERSE
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 _FOREIGN_ADR_DENYLIST = {
     "HSBC", "AZN", "NVS", "SHEL", "BHP", "RIO", "TTE", "BUD", "UBS",
@@ -346,7 +326,7 @@ _FOREIGN_ADR_DENYLIST = {
 
 _FALLBACK_TICKERS = [
     "AAPL", "NVDA", "MSFT", "AMZN", "GOOGL", "GOOG", "META", "TSLA",
-    "AVGO", "TSM", "BRK-B", "JPM", "V", "MA", "BAC", "WFC", "GS", "MS",
+    "AVGO", "BRK-B", "JPM", "V", "MA", "BAC", "WFC", "GS", "MS",
     "AXP", "BLK", "LLY", "UNH", "JNJ", "ABBV", "MRK", "TMO", "ABT", "DHR",
     "ISRG", "PFE", "WMT", "COST", "PG", "KO", "PEP", "MCD", "NKE", "SBUX",
     "TGT", "HD", "XOM", "CVX", "COP", "SLB", "EOG", "MPC", "PSX", "VLO",
@@ -354,7 +334,7 @@ _FALLBACK_TICKERS = [
     "BA", "FDX", "AMD", "INTC", "QCOM", "TXN", "MU", "AMAT", "LRCX", "KLAC",
     "MRVL", "ARM", "CRM", "ORCL", "NOW", "ADBE", "INTU", "PANW", "SNOW",
     "PLTR", "UBER", "ABNB", "NFLX", "DIS", "CMCSA", "T", "VZ", "TMUS",
-    "CHTR", "WBD", "PSKY", "FOX", "PYPL", "XYZ", "SHOP", "COIN", "MSTR",
+    "CHTR", "WBD", "FOX", "PYPL", "SHOP", "COIN", "MSTR",
     "AMT", "PLD", "SPG", "O", "WELL",
 ]
 
@@ -403,23 +383,10 @@ def _get_top_100_tickers() -> list[str]:
         return _FALLBACK_TICKERS
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # PREDICTION ΓÇö LSTM + XGBoost
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPrediction | None:
-    """Run LSTM+XGBoost inference for a single ticker.
-
-    Parameters
-    ----------
-    ticker : str
-        The stock ticker symbol.
-    raw : pd.DataFrame | None
-        Pre-downloaded OHLCV data supplied by the caller's bulk batch
-        download. If None, the function returns None immediately.
-
-    Returns None on any failure.
-    """
+    """Run LSTM+XGBoost inference for a single ticker. Returns None on any failure."""
     try:
         if raw is None or raw.empty:
             log.warning(f"{ticker}: no price data (likely delisted/renamed). Skipping.")
@@ -449,45 +416,44 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
             log.warning(f"{ticker}: only {len(df)} rows after features, need {LOOK_BACK}. Skipping.")
             return None
 
-        feature_scaled = _feature_scaler.transform(df[FEATURE_COLS].values)
-        tech_scaled    = _tech_scaler.transform(df[TECH_COLS].values)
+        feature_scaled = _state.feature_scaler.transform(df[FEATURE_COLS].values)
+        tech_scaled    = _state.tech_scaler.transform(df[TECH_COLS].values)
 
         lstm_window = feature_scaled[-LOOK_BACK:]
         lstm_input  = torch.tensor(lstm_window, dtype=torch.float32).unsqueeze(0)
         tech_last   = tech_scaled[-1].reshape(1, -1)
 
         def _z_from(hidden_np):
-            return float(_xgb_model.predict(np.concatenate([hidden_np, tech_last], axis=1))[0])
+            return float(_state.xgb_model.predict(np.concatenate([hidden_np, tech_last], axis=1))[0])
 
         with torch.no_grad():
-            _, hidden = _lstm(lstm_input)
+            _, hidden = _state.lstm(lstm_input)
         z_pred   = _z_from(hidden.numpy())
-        raw_pred = z_pred * _target_stats["std"] + _target_stats["mean"]
+        raw_pred = z_pred * _state.target_stats["std"] + _state.target_stats["mean"]
 
         direction  = "UP" if raw_pred > 0 else "DOWN"
         change_pct = round(raw_pred * 100, 4)
 
         signal_strength = min(abs(z_pred) / Z_REF, 1.0)
 
-        # -- Vectorized MC-Dropout ----------------------------------------
-        # Replicate the input tensor MC_SAMPLES times along the batch dim
-        # and run all 30 stochastic passes in a single batched forward call.
-        # This reduces MC-dropout compute time by ~95% vs. a for-loop.
         mc = []
         with _model_lock:
             torch.manual_seed(MC_SEED)
-            _lstm.train()
+            _state.lstm.train()
             try:
                 lstm_input_batched = lstm_input.repeat(MC_SAMPLES, 1, 1)   # [30, 60, 5]
                 with torch.no_grad():
-                    _, hiddens = _lstm(lstm_input_batched)                  # single batched pass
+                    _, hiddens = _state.lstm(lstm_input_batched)            # single batched pass
                 tech_lasts = np.repeat(tech_last, MC_SAMPLES, axis=0)
                 xgb_inputs = np.concatenate([hiddens.numpy(), tech_lasts], axis=1)
-                preds_z    = _xgb_model.predict(xgb_inputs)
-                mc = (preds_z * _target_stats["std"] + _target_stats["mean"]).tolist()
+                preds_z    = _state.xgb_model.predict(xgb_inputs)
+                mc = (preds_z * _state.target_stats["std"] + _state.target_stats["mean"]).tolist()
             finally:
-                _lstm.eval()
+                _state.lstm.eval()
         mc_std    = float(np.std(mc)) if mc else 0.0
+        if mc_std < 1e-6:
+            # MC-dropout is a no-op for single-layer LSTM (dropout=0.0 on 1 layer)
+            log.debug(f"{ticker}: MC samples are identical (single-layer LSTM, dropout inactive). Stability fixed at 1.0.")
         stability = float(np.exp(-mc_std / MC_STD_REF))
 
         data_quality = float(
@@ -501,7 +467,7 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
             direction    = direction,
             change_pct   = change_pct,
             confidence   = confidence,
-            predicted_at = datetime.utcnow().isoformat(),
+            predicted_at = datetime.now(timezone.utc).isoformat(),
         )
 
     except Exception as e:
@@ -509,9 +475,7 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
         return None
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # SENTIMENT ΓÇö FinBERT + Finnhub + yfinance
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 SENTIMENT_WINDOW_DAYS = 30
 NEWS_LIMIT            = 25
@@ -604,9 +568,12 @@ def _consensus(tk, ticker: str) -> tuple[float | None, str | None, int]:
     rec = None
     try:
         _yf_throttle(); rec = tk.get_recommendations()
-    except Exception:
+    except Exception as e:
+        log.debug(f"get_recommendations() failed ({e}), trying .recommendations attribute.")
         try: rec = tk.recommendations
-        except Exception: rec = None
+        except Exception as e2: 
+            log.debug(f".recommendations also failed ({e2}).")
+            rec = None
     if rec is not None and len(rec):
         cols = list(rec.columns)
         if _find_col(cols, "strongBuy") is not None:
@@ -636,7 +603,7 @@ def _recent_actions(tk, now):
     ud.columns = [str(c).lower().replace(" ", "") for c in ud.columns]
     dcol = _find_col(ud.columns, "gradedate") or _find_col(ud.columns, "date") or ud.columns[0]
     try:
-        ud[dcol] = pd.to_datetime(ud[dcol], utc=True).dt.tz_localize(None)
+        ud[dcol] = pd.to_datetime(ud[dcol], utc=True).dt.tz_convert(None)
     except Exception:
         ud[dcol] = pd.to_datetime(ud[dcol], errors="coerce")
     ud = ud.dropna(subset=[dcol]).sort_values(dcol)
@@ -673,8 +640,8 @@ def _price_targets(tk):
             if cur and mean and float(cur) > 0:
                 up = (float(mean) - float(cur)) / float(cur) * 100
                 return float(cur), float(mean), round(up, 2)
-    except Exception:
-        pass
+    except Exception as e:
+        log.debug(f"get_analyst_price_targets() failed: {e}")
     return None, None, None
 
 
@@ -756,10 +723,10 @@ def _news_titles_for(tk, ticker: str, name: str) -> list[str]:
 
 
 def _news_sentiment(titles: list[str]):
-    if not titles or _finbert is None:
+    if not titles or _state.finbert is None:
         return None, None, len(titles) if titles else 0
     try:
-        outs = _finbert(titles, truncation=True, max_length=128, batch_size=8)
+        outs = _state.finbert(titles, truncation=True, max_length=128, batch_size=8)
     except Exception as e:
         log.warning(f"FinBERT inference failed: {e}")
         return None, None, len(titles)
@@ -835,21 +802,21 @@ def _score_gathered(g: dict) -> TickerSentiment | None:
             news_label           = news_label,
             news_count           = news_count,
             components           = parts,
-            analyzed_at          = datetime.utcnow().isoformat(),
+            analyzed_at          = datetime.now(timezone.utc).isoformat(),
         )
     except Exception as e:
         log.error(f"{g.get('ticker')}: scoring failed ΓÇö {e}")
         return None
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-# APP STARTUP
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _lstm, _xgb_model, _feature_scaler, _tech_scaler, _target_stats
-    _lstm, _xgb_model, _feature_scaler, _tech_scaler, _target_stats = _load_models()
+    lstm, xgb_model, feature_scaler, tech_scaler, target_stats = _load_models()
+    _state.lstm           = lstm
+    _state.xgb_model      = xgb_model
+    _state.feature_scaler = feature_scaler
+    _state.tech_scaler    = tech_scaler
+    _state.target_stats   = target_stats
     _load_finbert()
     log.info("QuantWise Pipeline service ready.")
     yield
@@ -868,50 +835,26 @@ app = FastAPI(
 )
 
 
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-# ENDPOINTS
-# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-
 @app.get("/health")
 def health():
     """Liveness check. Returns model + FinBERT status."""
     return {
         "status":   "ok",
-        "models":   "loaded" if _lstm is not None else "not loaded",
-        "finbert":  "loaded" if _finbert is not None else "not loaded (news disabled)",
+        "models":   "loaded" if _state.lstm is not None else "not loaded",
+        "finbert":  "loaded" if _state.finbert is not None else "not loaded (news disabled)",
         "finnhub":  "enabled" if FINNHUB_API_KEY else "disabled (set FINNHUB_API_KEY)",
-        "time":     datetime.utcnow().isoformat(),
+        "time":     datetime.now(timezone.utc).isoformat(),
     }
 
 
 @app.post("/api/score", response_model=ScoreResponse)
 def score():
-    """
-    Run the full daily scoring pipeline and return risk-graded stock records.
-
-    Called once per day by the .NET FetchDailyPipelineJob Quartz job.
-    No authentication required ΓÇö this endpoint is not internet-exposed;
-    it runs on localhost and the .NET Quartz job calls it over the same machine.
-
-    Flow:
-      1.   Fetch top ~100 US large-cap tickers
-      1.5  Batch download historical data (single yfinance round-trip)
-      2.   LSTM + XGBoost prediction with vectorized MC-Dropout
-      3.   Targeted FinBERT sentiment on top 35 candidates only
-      4.   Risk rules merge + enrich
-      5.   Return results (requires >= 25 records)
-    """
-    if _lstm is None:
+    if _state.lstm is None:
         raise HTTPException(status_code=503, detail="Models not loaded yet.")
 
-    # ΓöÇΓöÇ 1. Ticker universe ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     tickers = _get_top_100_tickers()
     log.info(f"Scoring {len(tickers)} tickers...")
 
-    # ΓöÇΓöÇ 2. Predictions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-    # -- 1.5 Batch download historical data ------------------------------
-    # One yfinance round-trip for all 100 tickers instead of 100 separate
-    # calls. Reduces historical data fetch latency from ~30 s to ~1.5 s.
     log.info("Batch downloading historical price data from yfinance...")
     all_data = None
     try:
@@ -927,18 +870,26 @@ def score():
         log.error(f"Batch historical data download failed: {e}")
 
     log.info("Running LSTM+XGBoost predictions...")
+    # Pre-build per-ticker frames from the batch download for efficiency
+    ticker_frames: dict[str, "pd.DataFrame | None"] = {}
+    if all_data is not None and not all_data.empty:
+        is_multi = hasattr(all_data.columns, "levels")
+        for t in tickers:
+            try:
+                if is_multi and t in all_data.columns.get_level_values(0):
+                    frame = all_data[t].dropna(how="all")
+                    ticker_frames[t] = frame if not frame.empty else None
+                elif not is_multi and t in all_data.columns:
+                    frame = all_data[t].dropna(how="all")
+                    ticker_frames[t] = frame if not frame.empty else None
+                else:
+                    ticker_frames[t] = None
+            except Exception as slice_err:
+                log.debug(f"{t}: failed to slice batch DataFrame: {slice_err}")
+                ticker_frames[t] = None
     predictions: list[TickerPrediction] = []
     for ticker in tickers:
-        raw = None
-        if all_data is not None and not all_data.empty:
-            try:
-                # Multi-ticker batch download returns MultiIndex columns [metric][ticker]
-                if hasattr(all_data.columns, "levels") and ticker in all_data.columns.levels[0]:
-                    raw = all_data[ticker].copy()
-                elif ticker in all_data.columns:
-                    raw = all_data[ticker].copy()
-            except Exception as slice_err:
-                log.debug(f"{ticker}: failed to slice batch DataFrame: {slice_err}")
+        raw = ticker_frames.get(ticker)
         result = _predict_one(ticker, raw)
         if result:
             predictions.append(result)
@@ -950,20 +901,13 @@ def score():
     if not predictions:
         raise HTTPException(status_code=500, detail="All predictions failed.")
 
-    # ΓöÇΓöÇ 3. Sentiment ΓÇö parallel network I/O, serial FinBERT ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
-    # -- 3. Targeted Sentiment Inference ---------------------------------
-    # Run FinBERT only on the top 35 candidates sorted by projected return
-    # then confidence. Stocks with negative projections will never appear
-    # in recommendations, so running transformer inference on them wastes
-    # ~65% of total CPU time. This reduces FinBERT load from 100 tickers
-    # to 35 without affecting recommendation quality.
+    # Run FinBERT only on top 35 candidates by projected return (skips ~65% of inference)
     sorted_preds = sorted(
         [p for p in predictions if p.change_pct > 0],
         key=lambda x: (x.change_pct, x.confidence),
         reverse=True,
     )
-    # Fallback: if fewer than 15 positive predictions, use top 35 overall
-    if len(sorted_preds) < 15:
+    if len(sorted_preds) < 15:  # fallback: use top 35 overall if few positive predictions
         sorted_preds = sorted(
             predictions,
             key=lambda x: (x.change_pct, x.confidence),
@@ -992,7 +936,6 @@ def score():
 
     log.info(f"Sentiment: {len(sentiments)}/{len(predicted_tickers)} succeeded.")
 
-    # ΓöÇΓöÇ 4. Risk rules ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     log.info("Applying risk rules...")
     pred_dicts = [p.model_dump() for p in predictions]
     sent_dicts = [s.model_dump() for s in sentiments]
@@ -1000,13 +943,11 @@ def score():
     try:
         enriched = apply_risk_rules(pred_dicts, sent_dicts)
     except ValueError as e:
-        # apply_risk_rules raises ValueError when < MIN_RECORDS survive
         log.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
     log.info(f"Risk rules complete: {len(enriched)} records.")
 
-    # ΓöÇΓöÇ 5. Build response (only the 15 PredictionRecordDto fields) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     records = [
         ScoreRecord(
             ticker           = r["ticker"],
@@ -1029,7 +970,7 @@ def score():
     ]
 
     return ScoreResponse(
-        generated_at = datetime.utcnow().isoformat(),
+        generated_at = datetime.now(timezone.utc).isoformat(),
         count        = len(records),
         records      = records,
     )
