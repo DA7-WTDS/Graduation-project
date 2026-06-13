@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { NotificationBell } from '@/features/notifications/NotificationBell'
+import { Backdrop } from '@/shared/visuals'
 import type { UserProfile } from '@/types/api'
 import './AppShell.css'
 
@@ -22,6 +23,8 @@ export default function AppShell() {
 
     return (
         <div className="app-shell">
+            <Backdrop fixed surface />
+
             <header className="app-nav">
                 <Link to="/dashboard" className="app-wordmark">
                     QUANTWISE

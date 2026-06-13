@@ -1,0 +1,41 @@
+.qw-backdrop {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+.qw-backdrop--fixed {
+    position: fixed;
+}
+
+.qw-backdrop-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--qw-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--qw-grid) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 78%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 78%);
+}
+
+.qw-backdrop-glow {
+    position: absolute;
+    top: -14%;
+    left: 50%;
+    width: 920px;
+    max-width: 120vw;
+    height: 620px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, var(--qw-amber-glow), transparent 70%);
+}
+
+.qw-backdrop-surface {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 46%;
+    opacity: 0.4;
+}

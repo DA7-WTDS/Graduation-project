@@ -1,6 +1,7 @@
 .dashboard {
     min-height: 100vh;
-    background: var(--color-background-light);
+    /* transparent so the AppShell's atmospheric backdrop (grid/glow/risk-surface) shows through */
+    background: transparent;
 }
 
 /* Dashboard Header */
