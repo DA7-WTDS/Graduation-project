@@ -15,7 +15,7 @@ internal sealed class CreatePortfolio : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/portfolios", async (ISender sender, CreatePortfolioRequest request, ClaimsPrincipal claimsPrincipal) =>
+        app.MapPost("/api/portfolios", async (ISender sender, CreatePortfolioRequest request, ClaimsPrincipal claimsPrincipal) =>
         {
             Result<Guid> result = await sender.Send(new CreatePortfolioCommand(
                 claimsPrincipal.GetUserId(),
@@ -32,7 +32,7 @@ internal sealed class CreatePortfolio : IEndpoint
             ));
 
             return result.Match(
-                portfolioId => Results.Created($"/portfolios/{portfolioId}", new { Id = portfolioId }),
+                portfolioId => Results.Created($"/api/portfolios/{portfolioId}", new { Id = portfolioId }),
                 ApiResults.Problem);
         })
         .RequireAuthorization()

@@ -17,7 +17,7 @@ internal sealed class GetNotifications : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/notifications", async (
+        app.MapGet("/api/notifications", async (
             ISender sender,
             ClaimsPrincipal claimsPrincipal,
             int page = 1,

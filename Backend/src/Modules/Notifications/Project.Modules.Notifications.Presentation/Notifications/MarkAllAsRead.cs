@@ -15,7 +15,7 @@ internal sealed class MarkAllAsRead : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPut("/notifications/read-all", async (
+        app.MapPut("/api/notifications/read-all", async (
             ISender sender,
             ClaimsPrincipal claimsPrincipal) =>
         {

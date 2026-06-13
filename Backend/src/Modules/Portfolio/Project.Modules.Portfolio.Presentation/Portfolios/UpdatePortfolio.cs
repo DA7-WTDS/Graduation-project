@@ -13,7 +13,7 @@ internal sealed class UpdatePortfolio : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPut("/portfolios/{id}", async (ISender sender, Guid id, UpdatePortfolioRequest request) =>
+        app.MapPut("/api/portfolios/{id}", async (ISender sender, Guid id, UpdatePortfolioRequest request) =>
         {
             Result result = await sender.Send(new UpdatePortfolioCommand(
                 id,
