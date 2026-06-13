@@ -27,7 +27,7 @@
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-display);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 
@@ -50,7 +50,7 @@
 .about-text h3 {
     font-size: var(--font-size-h3);
     font-weight: var(--font-weight-semibold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-lg);
 }
 
@@ -62,7 +62,8 @@
 }
 
 .about-visual {
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-2xl);
     padding: var(--space-3xl);
     box-shadow: var(--shadow-lg);
@@ -82,7 +83,8 @@
 }
 
 .stat-card {
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-xl);
     padding: var(--space-xl);
     text-align: center;
@@ -112,7 +114,8 @@
 }
 
 .about-mission {
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-2xl);
     padding: var(--space-3xl);
     margin-top: var(--space-4xl);
@@ -123,7 +126,7 @@
 .about-mission h3 {
     font-size: var(--font-size-h2);
     font-weight: var(--font-weight-bold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-lg);
 }
 

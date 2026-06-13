@@ -21,7 +21,7 @@
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-display);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 
@@ -42,7 +42,8 @@
 }
 
 .feature-card {
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-xl);
     padding: var(--space-2xl);
     box-shadow: var(--shadow-md);
@@ -70,7 +71,7 @@
 .feature-title {
     font-size: var(--font-size-h4);
     font-weight: var(--font-weight-semibold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 

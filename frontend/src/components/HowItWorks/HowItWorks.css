@@ -1,5 +1,5 @@
 .how-it-works {
-    background-color: var(--color-white);
+    background-color: transparent;
     padding: var(--space-5xl) 0;
 }
 
@@ -21,7 +21,7 @@
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-display);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 
@@ -65,7 +65,7 @@
 .step-title {
     font-size: var(--font-size-h3);
     font-weight: var(--font-weight-semibold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 
