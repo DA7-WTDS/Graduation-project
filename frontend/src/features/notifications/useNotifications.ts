@@ -1,57 +1,57 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { notificationService } from '@/services/notificationService'
 import type { AppNotification } from '@/types/api'
 
 const POLL_MS = 30_000
 
 /**
- * Phase 1 notifications hook (plain fetch + polling).
- * Phase 2 will swap the internals to TanStack Query without changing this surface.
+ * Notifications via TanStack Query (polling). The list + unread count share the
+ * query cache, so the AppShell bell and the Dashboard "Recent Activity" stay in
+ * sync and mark-as-read invalidates both. Surface is unchanged from Phase 1.
  */
 export function useNotifications() {
-    const [notifications, setNotifications] = useState<AppNotification[]>([])
-    const [unreadCount, setUnreadCount] = useState(0)
+    const qc = useQueryClient()
 
-    const refetch = useCallback(async () => {
-        try {
-            const [list, count] = await Promise.all([
-                notificationService.getNotifications(1, 10),
-                notificationService.getUnreadCount(),
-            ])
-            if (Array.isArray(list)) setNotifications(list as AppNotification[])
-            if (typeof count === 'number') setUnreadCount(count)
-        } catch {
-            /* transient — keep last good state */
-        }
-    }, [])
+    const listQuery = useQuery({
+        queryKey: ['notifications', 'list'],
+        queryFn: async (): Promise<AppNotification[]> => {
+            const res = await notificationService.getNotifications(1, 10)
+            return Array.isArray(res) ? (res as AppNotification[]) : []
+        },
+        refetchInterval: POLL_MS,
+    })
 
-    useEffect(() => {
-        refetch()
-        const id = window.setInterval(refetch, POLL_MS)
-        return () => window.clearInterval(id)
-    }, [refetch])
+    const countQuery = useQuery({
+        queryKey: ['notifications', 'unread'],
+        queryFn: async (): Promise<number> => {
+            const res = await notificationService.getUnreadCount()
+            return typeof res === 'number' ? res : 0
+        },
+        refetchInterval: POLL_MS,
+    })
 
-    const markAsRead = useCallback(async (id: string) => {
-        try {
-            await notificationService.markAsRead(id)
-        } catch {
-            return
-        }
-        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)))
-        setUnreadCount((c) => Math.max(0, c - 1))
-    }, [])
+    const invalidate = () => qc.invalidateQueries({ queryKey: ['notifications'] })
 
-    const markAllAsRead = useCallback(async () => {
-        try {
-            await notificationService.markAllAsRead()
-        } catch {
-            return
-        }
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-        setUnreadCount(0)
-    }, [])
+    const markAsReadMutation = useMutation({
+        mutationFn: (id: string) => notificationService.markAsRead(id),
+        onSuccess: invalidate,
+    })
 
-    return { notifications, unreadCount, markAsRead, markAllAsRead, refetch }
+    const markAllAsReadMutation = useMutation({
+        mutationFn: () => notificationService.markAllAsRead(),
+        onSuccess: invalidate,
+    })
+
+    return {
+        notifications: listQuery.data ?? [],
+        unreadCount: countQuery.data ?? 0,
+        markAsRead: (id: string) => markAsReadMutation.mutate(id),
+        markAllAsRead: () => markAllAsReadMutation.mutate(),
+        refetch: () => {
+            listQuery.refetch()
+            countQuery.refetch()
+        },
+    }
 }
 
 /** Relative-time formatter shared by notification surfaces. */

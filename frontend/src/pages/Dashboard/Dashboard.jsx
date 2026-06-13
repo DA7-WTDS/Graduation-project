@@ -1,121 +1,20 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../../context/AuthContext'
-import { notificationService } from '../../services/notificationService'
-import { getMyPortfolio } from '../../services/portfolioService'
-import { getRecommendations } from '../../services/recommendationService'
+import React from 'react'
+import { usePortfolio } from '@/features/portfolio/usePortfolio'
+import { useNotifications, formatRelativeTime } from '@/features/notifications/useNotifications'
+import { RecommendationsPanel } from '@/features/recommendations/RecommendationsPanel'
 import './Dashboard.css'
 
 const Dashboard = () => {
-    const { user } = useAuth()
-
-    // Notifications feed the "Recent Activity" card; the bell now lives in AppShell.
-    const [notifications, setNotifications] = useState([])
-    const [unreadCount, setUnreadCount] = useState(0)
-
-    // Portfolio state
-    const [portfolio, setPortfolio] = useState(null)
-    const [portfolioLoading, setPortfolioLoading] = useState(true)
-    const [portfolioError, setPortfolioError] = useState(null)
-
-    // Recommendations state
-    const [recommendations, setRecommendations] = useState(null)
-    const [recsLoading, setRecsLoading] = useState(true)
-    const [recsError, setRecsError] = useState(null)
-
-    useEffect(() => {
-        if (user) {
-            fetchNotifications()
-            fetchPortfolio()
-            fetchRecommendations()
-        }
-    }, [user])
-
-    const fetchNotifications = async () => {
-        try {
-            const [notifsResponse, countResponse] = await Promise.all([
-                notificationService.getNotifications(1, 10),
-                notificationService.getUnreadCount()
-            ])
-            if (notifsResponse && Array.isArray(notifsResponse)) setNotifications(notifsResponse)
-            if (typeof countResponse === 'number') setUnreadCount(countResponse)
-        } catch (error) {
-            console.error('Error fetching notifications:', error)
-        }
-    }
-
-    const fetchPortfolio = async () => {
-        setPortfolioLoading(true)
-        setPortfolioError(null)
-        try {
-            const data = await getMyPortfolio()
-            setPortfolio(data)
-        } catch (err) {
-            // 404 means no portfolio yet (user hasn't completed onboarding)
-            if (err.status === 404) {
-                setPortfolio(null)
-            } else {
-                setPortfolioError('Failed to load portfolio')
-            }
-        } finally {
-            setPortfolioLoading(false)
-        }
-    }
-
-    const fetchRecommendations = async () => {
-        setRecsLoading(true)
-        setRecsError(null)
-        try {
-            const data = await getRecommendations()
-            setRecommendations(data)
-        } catch (err) {
-            // 404 = no run yet; other errors = real error
-            if (err.status === 404) {
-                setRecommendations(null)
-            } else {
-                setRecsError('Recommendations unavailable')
-            }
-        } finally {
-            setRecsLoading(false)
-        }
-    }
-
-    const handleMarkAsRead = async (id) => {
-        try {
-            await notificationService.markAsRead(id)
-            setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n))
-            setUnreadCount(prev => Math.max(0, prev - 1))
-        } catch (error) {
-            console.error('Error marking notification as read:', error)
-        }
-    }
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diffInSeconds = Math.floor((now - date) / 1000)
-        if (diffInSeconds < 60) return 'Just now'
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
-        return date.toLocaleDateString()
-    }
+    const { data: portfolio, isLoading: portfolioLoading, isError: portfolioError } = usePortfolio()
+    const { notifications, markAsRead } = useNotifications()
 
     // Build allocation array from portfolio data
     const allocationData = portfolio ? [
-        { label: 'Stocks',  value: portfolio.stocksPercentage,  color: 'var(--color-primary-purple)' },
-        { label: 'Bonds',   value: portfolio.bondsPercentage,   color: 'var(--color-primary-teal)' },
-        { label: 'ETFs',    value: portfolio.etfsPercentage,    color: 'var(--color-primary-navy)' },
-        { label: 'Cash',    value: portfolio.cashPercentage,    color: 'var(--color-gray-300)' },
+        { label: 'Stocks',  value: portfolio.stocksPercentage,  color: 'var(--qw-amber)' },
+        { label: 'Bonds',   value: portfolio.bondsPercentage,   color: 'var(--qw-amber-dim)' },
+        { label: 'ETFs',    value: portfolio.etfsPercentage,    color: 'var(--qw-text-dim)' },
+        { label: 'Cash',    value: portfolio.cashPercentage,    color: 'var(--qw-text-faint)' },
     ].filter(a => a.value > 0) : []
-
-    // Action label colours
-    const actionColor = (action) => {
-        switch (action?.toUpperCase()) {
-            case 'BUY':     return 'var(--color-primary-teal)'
-            case 'SELL':    return '#ef4444'
-            case 'HOLD':    return 'var(--color-gray-300)'
-            default:        return 'var(--color-primary-purple)'
-        }
-    }
 
     return (
         <div className="dashboard">
@@ -131,7 +30,7 @@ const Dashboard = () => {
                                 <span>Loading portfolio…</span>
                             </div>
                         ) : portfolioError ? (
-                            <div style={{ color: '#ef4444' }}>{portfolioError}</div>
+                            <div style={{ color: 'var(--qw-sell)' }}>Failed to load portfolio.</div>
                         ) : portfolio ? (
                             <>
                                 <div className="card-title" style={{ opacity: 0.9, marginBottom: 'var(--space-md)' }}>
@@ -145,7 +44,6 @@ const Dashboard = () => {
                                 </div>
                                 <div className="portfolio-actions" style={{ marginTop: 'var(--space-md)' }}>
                                     <button className="portfolio-action-btn" onClick={() => window.location.href = '/portfolios'}>Edit Profile</button>
-                                    <button className="portfolio-action-btn" onClick={fetchRecommendations}>Refresh AI</button>
                                 </div>
                             </>
                         ) : (
@@ -213,83 +111,9 @@ const Dashboard = () => {
                         )}
                     </div>
 
-                    {/* AI Recommendations */}
+                    {/* AI Recommendations — the live product */}
                     <div className="dashboard-card ai-recommendations">
-                        <div className="card-header">
-                            <div className="card-title">🤖 AI Recommendations</div>
-                            <div className="card-action" onClick={fetchRecommendations} style={{ cursor: 'pointer' }}>Refresh</div>
-                        </div>
-
-                        {recsLoading ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.7 }}>
-                                <div className="loading-spinner" style={{ width: 18, height: 18 }}></div>
-                                <span>Generating recommendations…</span>
-                            </div>
-                        ) : recsError ? (
-                            <div style={{ color: '#ef4444', fontSize: '0.9rem' }}>{recsError}</div>
-                        ) : recommendations ? (
-                            <>
-                                {recommendations.summary && (
-                                    <div style={{
-                                        background: 'rgba(108,99,255,0.1)',
-                                        border: '1px solid rgba(108,99,255,0.2)',
-                                        borderRadius: '8px',
-                                        padding: '12px 14px',
-                                        fontSize: '0.875rem',
-                                        lineHeight: 1.6,
-                                        marginBottom: '16px',
-                                        opacity: 0.9
-                                    }}>
-                                        {recommendations.summary}
-                                    </div>
-                                )}
-                                {recommendations.picks?.map((pick, idx) => (
-                                    <div key={idx} className="recommendation-card">
-                                        <div className="recommendation-header">
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <span style={{
-                                                    fontWeight: 700,
-                                                    fontSize: '1rem',
-                                                    color: 'var(--color-primary-purple)'
-                                                }}>
-                                                    {pick.ticker}
-                                                </span>
-                                                <span className="recommendation-badge" style={{
-                                                    background: `${actionColor(pick.action)}22`,
-                                                    color: actionColor(pick.action),
-                                                    border: `1px solid ${actionColor(pick.action)}44`
-                                                }}>
-                                                    {pick.action}
-                                                </span>
-                                                {pick.allocation_pct > 0 && (
-                                                    <span style={{ opacity: 0.6, fontSize: '0.8rem' }}>
-                                                        {pick.allocation_pct}% allocation
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="recommendation-text">{pick.reason}</div>
-                                        {pick.risk_note && (
-                                            <div style={{
-                                                fontSize: '0.8rem',
-                                                opacity: 0.65,
-                                                marginTop: '6px',
-                                                fontStyle: 'italic'
-                                            }}>
-                                                ⚠ {pick.risk_note}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                                <div style={{ fontSize: '0.75rem', opacity: 0.45, marginTop: '12px' }}>
-                                    Generated {new Date(recommendations.generated_at).toLocaleString()}
-                                </div>
-                            </>
-                        ) : (
-                            <div style={{ opacity: 0.6, fontSize: '0.9rem' }}>
-                                No recommendations available yet. The pipeline runs daily — check back later.
-                            </div>
-                        )}
+                        <RecommendationsPanel />
                     </div>
 
                     {/* Recent Activity — from real notifications */}
@@ -304,7 +128,7 @@ const Dashboard = () => {
                                     key={n.id || index}
                                     className="activity-item"
                                     style={{ cursor: !n.isRead ? 'pointer' : 'default' }}
-                                    onClick={() => !n.isRead && handleMarkAsRead(n.id)}
+                                    onClick={() => !n.isRead && markAsRead(n.id)}
                                 >
                                     <div className="activity-icon">
                                         {n.type === 'Recommendation' ? '🤖'
@@ -317,7 +141,7 @@ const Dashboard = () => {
                                             {n.title}
                                         </div>
                                         <div className="activity-description">{n.message}</div>
-                                        <div className="activity-time">{formatDate(n.createdAt)}</div>
+                                        <div className="activity-time">{formatRelativeTime(n.createdAt)}</div>
                                     </div>
                                 </div>
                             ))
