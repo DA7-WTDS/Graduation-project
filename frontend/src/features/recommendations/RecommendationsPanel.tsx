@@ -1,5 +1,5 @@
 import { ApiError } from '@/shared/api/client'
-import { SignalPill, ConvictionBar, LoadingState, ErrorState, EmptyState } from '@/shared/ui'
+import { SignalPill, ConvictionBar, Skeleton, ErrorState, EmptyState } from '@/shared/ui'
 import { useRecommendations } from './useRecommendations'
 import './RecommendationsPanel.css'
 
@@ -26,7 +26,19 @@ export function RecommendationsPanel() {
             </div>
 
             {isLoading ? (
-                <LoadingState label="Generating recommendations…" />
+                <div className="recs-rows" aria-busy="true">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div className="recs-row" key={i}>
+                            <div className="recs-line">
+                                <Skeleton width={48} height={14} />
+                                <Skeleton width={48} height={18} radius="4px" />
+                                <Skeleton height={6} />
+                                <Skeleton width={28} height={12} />
+                            </div>
+                            <Skeleton width="75%" height={10} />
+                        </div>
+                    ))}
+                </div>
             ) : noRun ? (
                 <EmptyState
                     title="No run yet"

@@ -63,6 +63,19 @@
 }
 @keyframes qw-spin { to { transform: rotate(360deg); } }
 
+/* Skeleton */
+.qw-skeleton {
+    display: block;
+    background: linear-gradient(90deg, var(--qw-panel-2) 25%, #1e242b 50%, var(--qw-panel-2) 75%);
+    background-size: 200% 100%;
+    border-radius: var(--radius-sm);
+    animation: qw-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes qw-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
 .qw-empty, .qw-error {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     text-align: center; padding: var(--space-xl); color: var(--qw-text-dim);

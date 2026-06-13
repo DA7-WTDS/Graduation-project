@@ -22,7 +22,7 @@
     /* ---- Text ---- */
     --qw-text: #E8EAED;
     --qw-text-dim: #8A9099;
-    --qw-text-faint: #5A6068;
+    --qw-text-faint: #767D87; /* bumped for WCAG-AA legibility on ink */
 
     /* ---- Signal system: BUY / SELL / HOLD (drives recommendation pills) ---- */
     --qw-buy: #3DDC84;
