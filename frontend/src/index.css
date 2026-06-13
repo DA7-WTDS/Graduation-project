@@ -86,6 +86,21 @@ button {
     }
 }
 
+/* "Demo / Learning" badge for the mock-driven pages (Market, Simulator) */
+.demo-badge {
+    display: inline-block;
+    font-family: var(--qw-font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--qw-amber);
+    background: var(--qw-amber-glow);
+    border: 1px solid rgba(255, 176, 0, 0.3);
+    border-radius: var(--radius-full);
+    padding: 4px 12px;
+    margin-bottom: 14px;
+}
+
 /* Wordmark accent — amber phosphor (replaces the old purple→teal gradient).
    Kept as a utility because several headers still use .gradient-text /
    .logo-gradient until those pages are redesigned. */

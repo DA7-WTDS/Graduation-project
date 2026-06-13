@@ -4,10 +4,11 @@
 
 .profile-page {
     min-height: 100vh;
-    background: #0d1117;
+    background: transparent;
     position: relative;
     overflow: hidden;
-    font-family: var(--font-primary);
+    font-family: var(--qw-font-body);
+    padding-top: 16px;
 }
 
 /* Floating orb decorations */
@@ -22,7 +23,7 @@
 .profile-orb-1 {
     width: 500px;
     height: 500px;
-    background: radial-gradient(circle, rgba(108, 99, 255, 0.25) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 176, 0, 0.16) 0%, transparent 70%);
     top: -150px;
     right: -100px;
 }
@@ -30,7 +31,7 @@
 .profile-orb-2 {
     width: 400px;
     height: 400px;
-    background: radial-gradient(circle, rgba(0, 201, 167, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(181, 122, 0, 0.14) 0%, transparent 70%);
     bottom: -100px;
     left: -80px;
 }
@@ -110,8 +111,8 @@
 .profile-hero-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #0A2463 0%, #6C63FF 60%, #00C9A7 100%);
-    opacity: 0.9;
+    background: linear-gradient(135deg, #12161b 0%, #1f1808 60%, #2c1f05 100%);
+    opacity: 0.95;
 }
 
 .profile-hero-content {
@@ -129,7 +130,7 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, #6C63FF, #00C9A7, #6C63FF);
+    background: conic-gradient(from 0deg, var(--qw-amber), var(--qw-amber-dim), var(--qw-amber));
     padding: 3px;
     animation: spin-ring 6s linear infinite;
 }
@@ -144,7 +145,7 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: rgba(10, 36, 99, 0.85);
+    background: var(--qw-panel);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -274,8 +275,8 @@
 .profile-btn-secondary {
     padding: 12px 28px;
     background: transparent;
-    border: 1px solid rgba(108, 99, 255, 0.5);
-    color: rgba(108, 99, 255, 0.9);
+    border: 1px solid var(--qw-border-strong);
+    color: var(--qw-text);
     border-radius: var(--radius-lg);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
@@ -284,9 +285,9 @@
 }
 
 .profile-btn-secondary:hover {
-    background: rgba(108, 99, 255, 0.12);
-    border-color: var(--color-primary-purple);
-    color: white;
+    background: var(--qw-panel);
+    border-color: var(--qw-amber-dim);
+    color: var(--qw-amber);
     transform: translateY(-2px);
 }
 

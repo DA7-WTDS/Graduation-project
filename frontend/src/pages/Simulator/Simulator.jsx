@@ -69,6 +69,7 @@ const Simulator = () => {
 
                 <div className="simulator-content">
                     <div className="simulator-hero">
+                        <span className="demo-badge">Demo · learning mode</span>
                         <h1 className="gradient-text">Learning Environment</h1>
                         <p>Master investment strategies using risk-free historical simulations.</p>
                     </div>

@@ -17,6 +17,7 @@ const Market = () => {
         <div className="market-page">
             <div className="market-body">
                 <div className="market-hero">
+                    <span className="demo-badge">Demo · mock data</span>
                     <h1 className="gradient-text">Market Hub</h1>
                     <p>Track real-time performance and discover institutional-grade opportunities.</p>
                 </div>

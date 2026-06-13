@@ -1,6 +1,6 @@
 .onboarding-page {
     min-height: 100vh;
-    background: var(--color-background-light);
+    background: var(--qw-ink);
     padding: var(--space-2xl) var(--space-lg);
 }
 
@@ -11,7 +11,8 @@
 
 /* Progress Bar */
 .onboarding-progress {
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-2xl);
     padding: var(--space-2xl);
     margin-bottom: var(--space-2xl);
@@ -56,7 +57,8 @@
     width: 36px;
     height: 36px;
     border-radius: var(--radius-full);
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border: 3px solid var(--color-gray-300);
     display: flex;
     align-items: center;
@@ -95,7 +97,8 @@
 
 /* Onboarding Card */
 .onboarding-card {
-    background: var(--color-white);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-2xl);
     padding: var(--space-3xl);
     box-shadow: var(--shadow-md);
@@ -110,7 +113,7 @@
 .onboarding-title {
     font-size: var(--font-size-h2);
     font-weight: var(--font-weight-bold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-sm);
     font-family: var(--font-display);
 }
@@ -137,7 +140,7 @@
 .form-section-title {
     font-size: var(--font-size-h4);
     font-weight: var(--font-weight-semibold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-sm);
 }
 
@@ -156,23 +159,24 @@
 
 .option-card {
     padding: var(--space-lg);
-    border: 2px solid var(--color-gray-200);
+    border: 1px solid var(--qw-border);
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: all var(--transition-base);
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
+    background: var(--qw-panel-2);
 }
 
 .option-card:hover {
-    border-color: var(--color-primary-purple);
-    background: rgba(108, 99, 255, 0.05);
+    border-color: var(--qw-amber-dim);
+    background: #1e242b;
 }
 
 .option-card.selected {
-    border-color: var(--color-primary-purple);
-    background: rgba(108, 99, 255, 0.1);
+    border-color: var(--qw-amber);
+    background: var(--qw-amber-glow);
 }
 
 .option-card input[type="radio"],
@@ -188,7 +192,7 @@
 .option-title {
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
 }
 
 .option-description {
@@ -248,7 +252,7 @@
     text-align: center;
     font-size: var(--font-size-h4);
     font-weight: var(--font-weight-bold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-top: var(--space-md);
 }
 
