@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { notificationService } from '../../services/notificationService'
 import { getMyPortfolio } from '../../services/portfolioService'
@@ -9,11 +8,9 @@ import './Dashboard.css'
 const Dashboard = () => {
     const { user } = useAuth()
 
-    // Notifications state
+    // Notifications feed the "Recent Activity" card; the bell now lives in AppShell.
     const [notifications, setNotifications] = useState([])
     const [unreadCount, setUnreadCount] = useState(0)
-    const [showNotifications, setShowNotifications] = useState(false)
-    const notificationRef = useRef(null)
 
     // Portfolio state
     const [portfolio, setPortfolio] = useState(null)
@@ -25,33 +22,12 @@ const Dashboard = () => {
     const [recsLoading, setRecsLoading] = useState(true)
     const [recsError, setRecsError] = useState(null)
 
-    const initials = user ? `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}` : '?'
-
     useEffect(() => {
-        // Expose test function to window for console debugging
-        window.triggerTestNotification = async () => {
-            try {
-                await notificationService.createTestNotification()
-                console.log('Test notification triggered!')
-                fetchNotifications()
-            } catch (err) {
-                console.error('Failed to trigger test notification:', err)
-            }
-        }
-
         if (user) {
             fetchNotifications()
             fetchPortfolio()
             fetchRecommendations()
         }
-
-        const handleClickOutside = (event) => {
-            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-                setShowNotifications(false)
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [user])
 
     const fetchNotifications = async () => {
@@ -75,7 +51,7 @@ const Dashboard = () => {
             setPortfolio(data)
         } catch (err) {
             // 404 means no portfolio yet (user hasn't completed onboarding)
-            if (err.message?.includes('404') || err.message?.includes('not found')) {
+            if (err.status === 404) {
                 setPortfolio(null)
             } else {
                 setPortfolioError('Failed to load portfolio')
@@ -93,7 +69,7 @@ const Dashboard = () => {
             setRecommendations(data)
         } catch (err) {
             // 404 = no run yet; other errors = real error
-            if (err.message?.includes('404') || err.message?.includes('not found')) {
+            if (err.status === 404) {
                 setRecommendations(null)
             } else {
                 setRecsError('Recommendations unavailable')
@@ -110,16 +86,6 @@ const Dashboard = () => {
             setUnreadCount(prev => Math.max(0, prev - 1))
         } catch (error) {
             console.error('Error marking notification as read:', error)
-        }
-    }
-
-    const handleMarkAllAsRead = async () => {
-        try {
-            await notificationService.markAllAsRead()
-            setNotifications(notifications.map(n => ({ ...n, isRead: true })))
-            setUnreadCount(0)
-        } catch (error) {
-            console.error('Error marking all as read:', error)
         }
     }
 
@@ -153,81 +119,6 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard">
-            {/* Header */}
-            <div className="dashboard-header">
-                <div className="dashboard-header-content">
-                    <div className="dashboard-logo">
-                        <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <span className="gradient-text">SmartInvest</span> AI
-                        </Link>
-                    </div>
-
-                    <nav className="dashboard-nav">
-                        <NavLink to="/dashboard" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
-                            Dashboard
-                        </NavLink>
-                        <NavLink to="/portfolios" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
-                            Portfolios
-                        </NavLink>
-                        <NavLink to="/simulator" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
-                            Learning
-                        </NavLink>
-                        <NavLink to="/market" className={({ isActive }) => `dashboard-nav-link${isActive ? ' active' : ''}`}>
-                            Market
-                        </NavLink>
-                    </nav>
-
-                    <div className="dashboard-user">
-                        <div className="dashboard-notifications-wrapper" ref={notificationRef}>
-                            <div
-                                className="dashboard-notifications"
-                                onClick={() => setShowNotifications(!showNotifications)}
-                            >
-                                🔔
-                                {unreadCount > 0 && (
-                                    <span className="notification-badge">{unreadCount}</span>
-                                )}
-                            </div>
-
-                            {showNotifications && (
-                                <div className="notifications-dropdown">
-                                    <div className="notifications-header">
-                                        <h3>Notifications</h3>
-                                        {unreadCount > 0 && (
-                                            <button onClick={handleMarkAllAsRead}>Mark all as read</button>
-                                        )}
-                                    </div>
-                                    <div className="notifications-list">
-                                        {notifications.length > 0 ? (
-                                            notifications.map(notification => (
-                                                <div
-                                                    key={notification.id}
-                                                    className={`notification-item ${!notification.isRead ? 'unread' : ''}`}
-                                                    onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
-                                                >
-                                                    <div className="notification-dot"></div>
-                                                    <div className="notification-content">
-                                                        <div className="notification-title">{notification.title}</div>
-                                                        <div className="notification-message">{notification.message}</div>
-                                                        <div className="notification-time">{formatDate(notification.createdAt)}</div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="notifications-empty">No notifications yet</div>
-                                        )}
-                                    </div>
-                                    <div className="notifications-footer">
-                                        <button>View all activity</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <Link to="/profile" className="dashboard-avatar" title="View Profile">{initials}</Link>
-                    </div>
-                </div>
-            </div>
-
             {/* Main Content */}
             <div className="dashboard-content">
                 <div className="dashboard-grid">

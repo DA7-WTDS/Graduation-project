@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { getMyPortfolio } from '../../services/portfolioService'
 import './Portfolios.css'
 
@@ -29,7 +29,7 @@ const Portfolios = () => {
             const data = await getMyPortfolio()
             setPortfolio(data)
         } catch (err) {
-            if (err.message?.includes('404') || err.message?.includes('not found')) {
+            if (err.status === 404) {
                 setPortfolio(null)
             } else {
                 setError('Failed to load portfolio data.')
@@ -48,16 +48,6 @@ const Portfolios = () => {
 
     return (
         <div className="portfolios-page">
-            <header className="page-header">
-                <div className="header-content">
-                    <Link to="/dashboard" className="back-link">← Dashboard</Link>
-                    <div className="header-logo"><span className="gradient-text">SmartInvest</span> AI</div>
-                    <div className="header-actions">
-                        <span className="user-badge">Management</span>
-                    </div>
-                </div>
-            </header>
-
             <div className="portfolios-body">
                 <div className="portfolios-hero">
                     <h1 className="gradient-text">My Portfolio</h1>

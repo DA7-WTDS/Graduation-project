@@ -18,7 +18,7 @@ const About = () => {
                     <div className="about-text">
                         <h3>Our Story</h3>
                         <p>
-                            SmartInvest AI was born from a simple observation: institutional investors 
+                            QuantWise was born from a simple observation: institutional investors 
                             had access to powerful AI and data analytics, while individual investors 
                             were left behind.
                         </p>

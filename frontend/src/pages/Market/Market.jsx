@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AVAILABLE_ASSETS } from '../../utils/mockHistoricalData'
 import './Market.css'
 
@@ -16,16 +15,6 @@ const Market = () => {
 
     return (
         <div className="market-page">
-            <header className="page-header">
-                <div className="header-content">
-                    <Link to="/dashboard" className="back-link">← Dashboard</Link>
-                    <div className="header-logo"><span className="gradient-text">SmartInvest</span> AI</div>
-                    <div className="header-actions">
-                        <span className="user-badge">Market Insight</span>
-                    </div>
-                </div>
-            </header>
-
             <div className="market-body">
                 <div className="market-hero">
                     <h1 className="gradient-text">Market Hub</h1>

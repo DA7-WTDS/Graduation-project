@@ -1,0 +1,96 @@
+.qw-bell { position: relative; }
+
+.qw-bell-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    color: var(--qw-text-dim);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+.qw-bell-btn:hover { color: var(--qw-text); background: var(--qw-panel); }
+
+.qw-bell-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: var(--radius-full);
+    background: var(--qw-amber);
+    color: #0B0E11;
+    font-family: var(--qw-font-mono);
+    font-size: 10px;
+    line-height: 15px;
+    text-align: center;
+}
+
+.qw-bell-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    max-height: 420px;
+    display: flex;
+    flex-direction: column;
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    z-index: 60;
+}
+
+.qw-bell-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--qw-border);
+    font-size: var(--qw-fs-sm);
+    font-weight: 500;
+    color: var(--qw-text);
+}
+.qw-bell-mark {
+    font-family: var(--qw-font-mono);
+    font-size: 11px;
+    color: var(--qw-amber);
+}
+.qw-bell-mark:hover { color: #FFC23A; }
+
+.qw-bell-list { overflow-y: auto; }
+
+.qw-bell-item {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--qw-border);
+    transition: background var(--transition-fast);
+}
+.qw-bell-item:hover { background: var(--qw-panel-2); }
+.qw-bell-dot {
+    width: 7px;
+    height: 7px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: transparent;
+    flex-shrink: 0;
+}
+.qw-bell-item.unread .qw-bell-dot { background: var(--qw-amber); }
+.qw-bell-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.qw-bell-title { font-size: var(--qw-fs-sm); color: var(--qw-text); }
+.qw-bell-msg { font-size: 12px; color: var(--qw-text-dim); line-height: 1.4; }
+.qw-bell-time { font-family: var(--qw-font-mono); font-size: 10px; color: var(--qw-text-faint); margin-top: 2px; }
+
+.qw-bell-empty {
+    padding: 24px 14px;
+    text-align: center;
+    font-size: var(--qw-fs-sm);
+    color: var(--qw-text-faint);
+}

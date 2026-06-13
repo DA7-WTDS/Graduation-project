@@ -1,6 +1,6 @@
-import { apiCall } from './apiConfig';
+import { apiCall } from '@/shared/api/client';
 
-const NOTIFICATIONS_BASE_URL = '/notifications';
+const NOTIFICATIONS_BASE_URL = '/api/notifications';
 
 export const notificationService = {
     /**

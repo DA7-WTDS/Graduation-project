@@ -10,15 +10,19 @@ import Portfolios from './pages/Portfolios/Portfolios'
 import Simulator from './pages/Simulator/Simulator'
 import Market from './pages/Market/Market'
 import PrivateRoute from './components/PrivateRoute'
+import AppShell from './app/AppShell'
 
 function App() {
     return (
         <Router>
             <div className="App">
                 <Routes>
+                    {/* Public */}
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
+
+                    {/* Authed, full-screen (no app shell) */}
                     <Route
                         path="/onboarding"
                         element={
@@ -27,46 +31,21 @@ function App() {
                             </PrivateRoute>
                         }
                     />
+
+                    {/* Authed, inside the shared AppShell layout */}
                     <Route
-                        path="/dashboard"
                         element={
                             <PrivateRoute>
-                                <Dashboard />
+                                <AppShell />
                             </PrivateRoute>
                         }
-                    />
-                    <Route
-                        path="/portfolios"
-                        element={
-                            <PrivateRoute>
-                                <Portfolios />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/simulator"
-                        element={
-                            <PrivateRoute>
-                                <Simulator />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/market"
-                        element={
-                            <PrivateRoute>
-                                <Market />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/profile"
-                        element={
-                            <PrivateRoute>
-                                <Profile />
-                            </PrivateRoute>
-                        }
-                    />
+                    >
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/portfolios" element={<Portfolios />} />
+                        <Route path="/simulator" element={<Simulator />} />
+                        <Route path="/market" element={<Market />} />
+                        <Route path="/profile" element={<Profile />} />
+                    </Route>
                 </Routes>
             </div>
         </Router>

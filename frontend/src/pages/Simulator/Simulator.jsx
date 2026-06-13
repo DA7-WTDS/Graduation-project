@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AVAILABLE_ASSETS } from '../../utils/mockHistoricalData'
 import { runSimulation } from '../../utils/simulatorEngine'
 import './Simulator.css'
@@ -65,17 +64,6 @@ const Simulator = () => {
 
     return (
         <div className="simulator-page">
-            {/* Standalone Header for stability during re-intro */}
-            <header className="page-header">
-                <div className="header-content">
-                    <Link to="/dashboard" className="back-link">← Dashboard</Link>
-                    <div className="header-logo"><span className="gradient-text">SmartInvest</span> AI</div>
-                    <div className="header-actions">
-                        <span className="user-badge">Learning Mode</span>
-                    </div>
-                </div>
-            </header>
-
             <div className="simulator-body">
                 <div className="simulator-glass-bg"></div>
 

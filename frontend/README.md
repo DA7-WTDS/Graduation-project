@@ -1,4 +1,4 @@
-# SmartInvest AI - Frontend
+# QuantWise - Frontend
 
 Modern React frontend for the AI-Driven Investment Portfolio Platform.
 

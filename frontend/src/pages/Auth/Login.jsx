@@ -67,7 +67,7 @@ const Login = () => {
                 <div className="auth-card">
                     <div className="auth-logo">
                         <div className="auth-logo-text">
-                            <span className="gradient-text">SmartInvest</span> AI
+                            <span className="gradient-text">QuantWise</span>
                         </div>
                     </div>
 

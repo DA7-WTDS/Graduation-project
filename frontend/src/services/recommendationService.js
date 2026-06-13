@@ -1,4 +1,4 @@
-import { apiCall } from './apiConfig'
+import { apiCall } from '@/shared/api/client'
 
 /**
  * Get LLM-generated recommendations for the current user.

@@ -32,7 +32,7 @@ const Navbar = () => {
         <nav className={`navbar ${isScrolled ? 'solid' : 'transparent'}`}>
             <div className="navbar-container">
                 <div className="navbar-logo">
-                    <span className="logo-gradient">SmartInvest</span> AI
+                    <span className="logo-gradient">QuantWise</span>
                 </div>
 
                 <ul className="navbar-links">

@@ -1,0 +1,73 @@
+/* Quant Terminal UI primitives — shared classes for shared/ui/* */
+
+/* Card */
+.qw-card {
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+/* Button */
+.qw-btn {
+    font-family: var(--qw-font-body);
+    font-size: var(--qw-fs-sm);
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.qw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.qw-btn-primary { background: var(--qw-amber); color: #0B0E11; }
+.qw-btn-primary:hover:not(:disabled) { background: #FFC23A; }
+.qw-btn-secondary { background: var(--qw-panel-2); color: var(--qw-text); border-color: var(--qw-border-strong); }
+.qw-btn-secondary:hover:not(:disabled) { background: #1E242B; }
+.qw-btn-ghost { background: transparent; color: var(--qw-text-dim); }
+.qw-btn-ghost:hover:not(:disabled) { color: var(--qw-text); background: var(--qw-panel); }
+
+/* SignalPill — BUY / SELL / HOLD */
+.qw-pill {
+    font-family: var(--qw-font-mono);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    display: inline-block;
+    min-width: 48px;
+}
+.qw-pill[data-signal='BUY'] { background: rgba(61, 220, 132, 0.12); border-color: rgba(61, 220, 132, 0.4); color: var(--qw-buy); }
+.qw-pill[data-signal='SELL'] { background: rgba(255, 82, 71, 0.12); border-color: rgba(255, 82, 71, 0.4); color: var(--qw-sell); }
+.qw-pill[data-signal='HOLD'] { background: rgba(255, 176, 0, 0.12); border-color: rgba(255, 176, 0, 0.4); color: var(--qw-hold); }
+
+/* ConvictionBar */
+.qw-bar { display: block; height: 6px; background: var(--qw-panel-2); border-radius: 3px; overflow: hidden; }
+.qw-bar-fill { display: block; height: 100%; border-radius: 3px; transition: width var(--transition-slow); }
+
+/* StatTile */
+.qw-tile { background: var(--qw-panel); border: 1px solid var(--qw-border); border-radius: var(--radius-md); padding: 11px 12px; }
+.qw-tile-label { font-family: var(--qw-font-mono); font-size: 11px; letter-spacing: 0.5px; color: var(--qw-text-faint); text-transform: uppercase; }
+.qw-tile-value { font-family: var(--qw-font-mono); font-size: var(--qw-fs-fig); color: var(--qw-text); margin-top: 4px; }
+
+/* Loading / Empty / Error states */
+.qw-state { display: flex; align-items: center; gap: 10px; color: var(--qw-text-dim); font-size: var(--qw-fs-sm); }
+.qw-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--qw-border-strong);
+    border-top-color: var(--qw-amber);
+    border-radius: 50%;
+    animation: qw-spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes qw-spin { to { transform: rotate(360deg); } }
+
+.qw-empty, .qw-error {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    text-align: center; padding: var(--space-xl); color: var(--qw-text-dim);
+}
+.qw-empty-title { color: var(--qw-text); font-size: var(--qw-fs-base); font-weight: 500; }
+.qw-empty-hint, .qw-error-msg { font-size: var(--qw-fs-sm); color: var(--qw-text-dim); max-width: 38ch; }
+.qw-error-icon { color: var(--qw-sell); font-size: 22px; }
+.qw-state-retry { margin-top: 4px; }
