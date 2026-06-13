@@ -92,19 +92,7 @@ const Signup = () => {
                         <p className="auth-subtitle">Start your investment journey today</p>
                     </div>
 
-                    {error && (
-                        <div style={{
-                            padding: '12px 16px',
-                            marginBottom: '16px',
-                            backgroundColor: '#fee',
-                            border: '1px solid #fcc',
-                            borderRadius: '8px',
-                            color: '#c33',
-                            fontSize: '14px'
-                        }}>
-                            {error}
-                        </div>
-                    )}
+                    {error && <div className="auth-error" role="alert">{error}</div>}
 
                     <form className="auth-form" onSubmit={handleSubmit}>
                         <div className="form-group">

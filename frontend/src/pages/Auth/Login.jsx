@@ -7,10 +7,11 @@ import './Auth.css'
 const Login = () => {
     const navigate = useNavigate()
     const { login } = useAuth()
+    const rememberedEmail = localStorage.getItem('qw_remember_email') || ''
     const [formData, setFormData] = useState({
-        email: '',
+        email: rememberedEmail,
         password: '',
-        rememberMe: false
+        rememberMe: !!rememberedEmail
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -32,6 +33,13 @@ const Login = () => {
 
         try {
             await login(formData.email, formData.password)
+
+            // Remember the email for next visit when "remember me" is checked
+            if (formData.rememberMe) {
+                localStorage.setItem('qw_remember_email', formData.email)
+            } else {
+                localStorage.removeItem('qw_remember_email')
+            }
 
             // Check if user has completed questionnaire
             const hasQuestionnaire = await hasCompletedQuestionnaire()
@@ -76,19 +84,7 @@ const Login = () => {
                         <p className="auth-subtitle">Log in to manage your portfolio</p>
                     </div>
 
-                    {error && (
-                        <div style={{
-                            padding: '12px 16px',
-                            marginBottom: '16px',
-                            backgroundColor: '#fee',
-                            border: '1px solid #fcc',
-                            borderRadius: '8px',
-                            color: '#c33',
-                            fontSize: '14px'
-                        }}>
-                            {error}
-                        </div>
-                    )}
+                    {error && <div className="auth-error" role="alert">{error}</div>}
 
                     <form className="auth-form" onSubmit={handleSubmit}>
                         <div className="form-group">
