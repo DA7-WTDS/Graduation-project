@@ -6,6 +6,7 @@ import HowItWorks from '../../components/HowItWorks/HowItWorks'
 import About from '../../components/About/About'
 import Footer from '../../components/Footer/Footer'
 import { Reveal } from '@/shared/motion/Reveal'
+import './LandingPage.css'
 
 const LandingPage = () => {
     return (

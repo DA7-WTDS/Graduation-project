@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { LineChart, Sparkles } from 'lucide-react'
 import { AVAILABLE_ASSETS } from '../../utils/mockHistoricalData'
 import { runSimulation } from '../../utils/simulatorEngine'
 import './Simulator.css'
@@ -192,7 +193,7 @@ const Simulator = () => {
                                     </div>
 
                                     <div className="ai-commentary">
-                                        <span className="ai-icon">🤖</span>
+                                        <span className="ai-icon"><Sparkles size={22} aria-hidden="true" /></span>
                                         <p>
                                             {results.stats.totalReturn > 0
                                                 ? "Your selection outperformed the benchmark! The crypto exposure provided significant alpha during this period."
@@ -202,7 +203,7 @@ const Simulator = () => {
                                 </div>
                             ) : (
                                 <div className="empty-results">
-                                    <div className="icon">📈</div>
+                                    <div className="icon"><LineChart size={56} strokeWidth={1.25} aria-hidden="true" /></div>
                                     <p>Ready to simulate. Enter your portfolio details and click run.</p>
                                 </div>
                             )}

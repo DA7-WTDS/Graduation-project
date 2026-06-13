@@ -1,5 +1,6 @@
 .how-it-works {
     background-color: transparent;
+    border-top: 1px solid var(--qw-border);
     padding: var(--space-5xl) 0;
 }
 
@@ -79,14 +80,14 @@
 .step-visual {
     width: 100%;
     height: 200px;
-    background: var(--color-background-light);
+    background: var(--qw-panel);
     border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 60px;
+    color: var(--qw-amber);
     margin-top: var(--space-lg);
-    border: 2px solid var(--color-gray-100);
+    border: 1px solid var(--qw-border);
 }
 
 /* Connecting line between steps */

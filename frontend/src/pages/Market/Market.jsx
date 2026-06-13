@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Search, Flame, Lightbulb } from 'lucide-react'
 import { AVAILABLE_ASSETS } from '../../utils/mockHistoricalData'
 import './Market.css'
 
@@ -24,7 +25,7 @@ const Market = () => {
 
                 <div className="market-controls">
                     <div className="search-bar">
-                        <span className="search-icon">🔍</span>
+                        <span className="search-icon"><Search size={18} aria-hidden="true" /></span>
                         <input
                             type="text"
                             placeholder="Search assets, symbols, or sectors..."
@@ -83,14 +84,14 @@ const Market = () => {
                     <h3>Trending Insights</h3>
                     <div className="insight-grid">
                         <div className="insight-card">
-                            <div className="insight-icon">🔥</div>
+                            <div className="insight-icon"><Flame size={24} aria-hidden="true" /></div>
                             <div className="insight-content">
                                 <h4>Tech Momentum</h4>
                                 <p>SaaS sector seeing 15% increase in capital allocation this week.</p>
                             </div>
                         </div>
                         <div className="insight-card">
-                            <div className="insight-icon">💡</div>
+                            <div className="insight-icon"><Lightbulb size={24} aria-hidden="true" /></div>
                             <div className="insight-content">
                                 <h4>AI Alpha</h4>
                                 <p>Our AI suggests AAPL is 12% undervalued relative to peer multiples.</p>

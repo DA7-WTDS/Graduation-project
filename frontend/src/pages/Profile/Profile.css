@@ -235,7 +235,8 @@
     width: 52px;
     height: 52px;
     border-radius: var(--radius-lg);
-    background: rgba(108, 99, 255, 0.12);
+    background: var(--qw-amber-glow);
+    color: var(--qw-amber);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -347,7 +348,7 @@
 }
 
 .error-icon {
-    font-size: 48px;
+    color: var(--qw-sell);
 }
 
 .retry-button {

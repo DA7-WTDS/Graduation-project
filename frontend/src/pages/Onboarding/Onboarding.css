@@ -185,7 +185,7 @@
 }
 
 .option-icon {
-    font-size: 32px;
+    color: var(--qw-amber);
     margin-bottom: var(--space-xs);
 }
 

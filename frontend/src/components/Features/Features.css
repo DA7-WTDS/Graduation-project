@@ -1,5 +1,6 @@
 .features {
-    background-color: var(--color-background-light);
+    background-color: transparent;
+    border-top: 1px solid var(--qw-border);
     padding: var(--space-5xl) 0;
 }
 
@@ -57,14 +58,15 @@
 }
 
 .feature-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-full);
-    background: var(--gradient-cta);
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-lg);
+    background: var(--qw-amber-glow);
+    border: 1px solid rgba(255, 176, 0, 0.3);
+    color: var(--qw-amber);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
     margin-bottom: var(--space-lg);
 }
 

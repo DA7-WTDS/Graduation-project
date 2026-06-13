@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FolderOpen, AlertTriangle } from 'lucide-react'
 import { getMyPortfolio } from '../../services/portfolioService'
 import './Portfolios.css'
 
@@ -61,7 +62,7 @@ const Portfolios = () => {
                     </div>
                 ) : error ? (
                     <div className="portfolios-error">
-                        <div className="icon">⚠️</div>
+                        <div className="icon"><AlertTriangle size={40} strokeWidth={1.5} aria-hidden="true" /></div>
                         <p>{error}</p>
                         <button onClick={fetchPortfolio} className="retry-btn">Try Again</button>
                     </div>
@@ -121,7 +122,7 @@ const Portfolios = () => {
                     </div>
                 ) : (
                     <div className="portfolios-placeholder">
-                        <div className="icon">📁</div>
+                        <div className="icon"><FolderOpen size={48} strokeWidth={1.25} aria-hidden="true" /></div>
                         <h3>No portfolio yet</h3>
                         <p>Complete the onboarding questionnaire to create your risk profile and target allocation.</p>
                         <button

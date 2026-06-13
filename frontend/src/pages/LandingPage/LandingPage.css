@@ -1,0 +1,29 @@
+.landing-page {
+    position: relative;
+    isolation: isolate;
+    background: var(--qw-ink);
+    overflow-x: hidden;
+}
+
+/* Continuous atmosphere behind the whole page: faint plotting grid + two soft,
+   slowly-drifting amber glows. Sits behind content (z-index -1); the Hero paints
+   its own atmosphere on top, the sections below are transparent so this shows. */
+.landing-page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        radial-gradient(55% 45% at 82% 26%, rgba(255, 176, 0, 0.08), transparent 70%),
+        radial-gradient(48% 42% at 12% 74%, rgba(181, 122, 0, 0.07), transparent 70%),
+        linear-gradient(var(--qw-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--qw-grid) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+    animation: landing-atmos-drift 20s ease-in-out infinite alternate;
+}
+
+@keyframes landing-atmos-drift {
+    from { background-position: 0 0, 0 0, 0 0, 0 0; }
+    to { background-position: -34px 22px, 28px -20px, 0 0, 0 0; }
+}

@@ -1,4 +1,5 @@
 import React from 'react'
+import { Rocket } from 'lucide-react'
 import './About.css'
 
 const About = () => {
@@ -30,7 +31,7 @@ const About = () => {
                     </div>
 
                     <div className="about-visual">
-                        <div className="about-visual-icon">🚀</div>
+                        <div className="about-visual-icon"><Rocket size={56} strokeWidth={1.25} aria-hidden="true" /></div>
                         <h3>Innovation Meets Simplicity</h3>
                         <p style={{ color: 'var(--color-gray-600)', marginTop: 'var(--space-md)' }}>
                             Advanced AI algorithms paired with an interface anyone can use

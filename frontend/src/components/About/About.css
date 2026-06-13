@@ -1,5 +1,6 @@
 .about {
-    background-color: var(--color-background-light);
+    background-color: transparent;
+    border-top: 1px solid var(--qw-border);
     padding: var(--space-5xl) 0;
 }
 
@@ -71,7 +72,9 @@
 }
 
 .about-visual-icon {
-    font-size: 80px;
+    color: var(--qw-amber);
+    display: flex;
+    justify-content: center;
     margin-bottom: var(--space-lg);
 }
 

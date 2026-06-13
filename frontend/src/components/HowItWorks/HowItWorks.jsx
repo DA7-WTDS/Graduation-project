@@ -1,4 +1,5 @@
 import React from 'react'
+import { ClipboardList, Sparkles, BarChart3 } from 'lucide-react'
 import './HowItWorks.css'
 
 const stepsData = [
@@ -6,19 +7,19 @@ const stepsData = [
         number: '1',
         title: 'Create Your Profile',
         description: 'Answer a few questions about your financial goals, risk tolerance, and investment preferences.',
-        icon: '📋'
+        Icon: ClipboardList
     },
     {
         number: '2',
         title: 'AI Builds Your Portfolio',
         description: 'Our machine learning engine analyzes thousands of assets to create a diversified portfolio tailored to you.',
-        icon: '🤖'
+        Icon: Sparkles
     },
     {
         number: '3',
         title: 'Track & Optimize',
         description: 'Monitor your performance in real-time and receive intelligent recommendations to maximize returns.',
-        icon: '📊'
+        Icon: BarChart3
     }
 ]
 
@@ -37,7 +38,9 @@ const HowItWorks = () => {
                         <div className="step-number">{step.number}</div>
                         <h3 className="step-title">{step.title}</h3>
                         <p className="step-description">{step.description}</p>
-                        <div className="step-visual">{step.icon}</div>
+                        <div className="step-visual">
+                            <step.Icon size={48} strokeWidth={1.25} aria-hidden="true" />
+                        </div>
                     </div>
                 ))}
             </div>

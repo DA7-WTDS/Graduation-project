@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { User, Mail, Calendar, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { getUserProfile } from '../../services/authService'
 import './Profile.css'
@@ -51,7 +52,7 @@ const Profile = () => {
                 <div className="profile-orb profile-orb-1"></div>
                 <div className="profile-orb profile-orb-2"></div>
                 <div className="profile-error-state">
-                    <div className="error-icon">⚠️</div>
+                    <div className="error-icon"><AlertTriangle size={40} strokeWidth={1.5} aria-hidden="true" /></div>
                     <p>{error}</p>
                     <button onClick={fetchProfile} className="retry-button">Try Again</button>
                 </div>
@@ -97,28 +98,28 @@ const Profile = () => {
                 {/* Info cards row */}
                 <div className="profile-info-grid">
                     <div className="profile-info-card">
-                        <div className="info-card-icon">👤</div>
+                        <div className="info-card-icon"><User size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>First Name</label>
                             <p>{displayUser?.firstName || '—'}</p>
                         </div>
                     </div>
                     <div className="profile-info-card">
-                        <div className="info-card-icon">👤</div>
+                        <div className="info-card-icon"><User size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>Last Name</label>
                             <p>{displayUser?.lastName || '—'}</p>
                         </div>
                     </div>
                     <div className="profile-info-card">
-                        <div className="info-card-icon">✉️</div>
+                        <div className="info-card-icon"><Mail size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>Email Address</label>
                             <p>{displayUser?.email || '—'}</p>
                         </div>
                     </div>
                     <div className="profile-info-card">
-                        <div className="info-card-icon">📅</div>
+                        <div className="info-card-icon"><Calendar size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>Member Since</label>
                             <p>{memberSince}</p>

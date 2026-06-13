@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Palmtree, Home, GraduationCap, Coins, Zap, CalendarDays, Target, Rocket, Scale, Shield } from 'lucide-react'
 import { createPortfolio } from '../../services/portfolioService'
 import './Onboarding.css'
 
@@ -204,16 +205,16 @@ const Onboarding = () => {
 // Step 1: Goals
 const Step1Goals = ({ formData, onChange }) => {
     const goals = [
-        { id: 'retirement', icon: '🏖️', title: 'Retirement', description: 'Build wealth for your golden years' },
-        { id: 'property', icon: '🏠', title: 'Buy Property', description: 'Save for a down payment' },
-        { id: 'education', icon: '🎓', title: 'Education', description: 'Fund education expenses' },
-        { id: 'wealth', icon: '💰', title: 'Build Wealth', description: 'Long-term wealth accumulation' }
+        { id: 'retirement', Icon: Palmtree, title: 'Retirement', description: 'Build wealth for your golden years' },
+        { id: 'property', Icon: Home, title: 'Buy Property', description: 'Save for a down payment' },
+        { id: 'education', Icon: GraduationCap, title: 'Education', description: 'Fund education expenses' },
+        { id: 'wealth', Icon: Coins, title: 'Build Wealth', description: 'Long-term wealth accumulation' }
     ]
 
     const timeHorizons = [
-        { id: 'short', icon: '⚡', title: '6 Months', description: 'Very short-term goals' },
-        { id: 'medium', icon: '📅', title: '1-2 Years', description: 'Medium-term planning' },
-        { id: 'long', icon: '🎯', title: '3+ Years', description: 'Long-term investing' }
+        { id: 'short', Icon: Zap, title: '6 Months', description: 'Very short-term goals' },
+        { id: 'medium', Icon: CalendarDays, title: '1-2 Years', description: 'Medium-term planning' },
+        { id: 'long', Icon: Target, title: '3+ Years', description: 'Long-term investing' }
     ]
 
     return (
@@ -235,7 +236,7 @@ const Step1Goals = ({ formData, onChange }) => {
                             onClick={() => onChange('primaryGoal', goal.id)}
                         >
                             <input type="radio" name="primaryGoal" value={goal.id} checked={formData.primaryGoal === goal.id} readOnly />
-                            <div className="option-icon">{goal.icon}</div>
+                            <div className="option-icon"><goal.Icon size={26} strokeWidth={1.5} aria-hidden="true" /></div>
                             <div className="option-title">{goal.title}</div>
                             <div className="option-description">{goal.description}</div>
                         </div>
@@ -253,7 +254,7 @@ const Step1Goals = ({ formData, onChange }) => {
                             onClick={() => onChange('timeHorizon', horizon.id)}
                         >
                             <input type="radio" name="timeHorizon" value={horizon.id} checked={formData.timeHorizon === horizon.id} readOnly />
-                            <div className="option-icon">{horizon.icon}</div>
+                            <div className="option-icon"><horizon.Icon size={26} strokeWidth={1.5} aria-hidden="true" /></div>
                             <div className="option-title">{horizon.title}</div>
                             <div className="option-description">{horizon.description}</div>
                         </div>
@@ -267,9 +268,9 @@ const Step1Goals = ({ formData, onChange }) => {
 // Step 2: Risk Assessment
 const Step2Risk = ({ formData, onChange }) => {
     const reactions = [
-        { id: 'aggressive', icon: '🚀', title: 'Hold & Buy More', description: 'I see it as a buying opportunity' },
-        { id: 'moderate', icon: '⚖️', title: 'Hold Steady', description: 'I stay calm and wait it out' },
-        { id: 'conservative', icon: '🛡️', title: 'Sell Some', description: 'I reduce my exposure to limit losses' }
+        { id: 'aggressive', Icon: Rocket, title: 'Hold & Buy More', description: 'I see it as a buying opportunity' },
+        { id: 'moderate', Icon: Scale, title: 'Hold Steady', description: 'I stay calm and wait it out' },
+        { id: 'conservative', Icon: Shield, title: 'Sell Some', description: 'I reduce my exposure to limit losses' }
     ]
 
     return (
@@ -311,7 +312,7 @@ const Step2Risk = ({ formData, onChange }) => {
                             onClick={() => onChange('marketReaction', reaction.id)}
                         >
                             <input type="radio" name="marketReaction" value={reaction.id} checked={formData.marketReaction === reaction.id} readOnly />
-                            <div className="option-icon">{reaction.icon}</div>
+                            <div className="option-icon"><reaction.Icon size={26} strokeWidth={1.5} aria-hidden="true" /></div>
                             <div className="option-title">{reaction.title}</div>
                             <div className="option-description">{reaction.description}</div>
                         </div>
