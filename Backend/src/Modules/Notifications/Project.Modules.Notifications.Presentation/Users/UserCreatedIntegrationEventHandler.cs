@@ -40,7 +40,7 @@ public sealed class UserCreatedIntegrationEventHandler(
         {
             Result<Guid> notificationResult = await sender.Send(new CreateNotificationCommand(
                 integrationEvent.UserId,
-                "Welcome to SmartInvest AI!",
+                "Welcome to QuantWise!",
                 $"Hi {integrationEvent.FirstName}, we're excited to have you on board! Start by completing your profile and setting up your first portfolio.",
                 NotificationType.Success), cancellationToken);
 

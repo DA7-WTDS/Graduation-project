@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { LineChart, Sparkles } from 'lucide-react'
 import { AVAILABLE_ASSETS } from '../../utils/mockHistoricalData'
 import { runSimulation } from '../../utils/simulatorEngine'
 import './Simulator.css'
@@ -65,22 +65,12 @@ const Simulator = () => {
 
     return (
         <div className="simulator-page">
-            {/* Standalone Header for stability during re-intro */}
-            <header className="page-header">
-                <div className="header-content">
-                    <Link to="/dashboard" className="back-link">← Dashboard</Link>
-                    <div className="header-logo"><span className="gradient-text">SmartInvest</span> AI</div>
-                    <div className="header-actions">
-                        <span className="user-badge">Learning Mode</span>
-                    </div>
-                </div>
-            </header>
-
             <div className="simulator-body">
                 <div className="simulator-glass-bg"></div>
 
                 <div className="simulator-content">
                     <div className="simulator-hero">
+                        <span className="demo-badge">Demo · learning mode</span>
                         <h1 className="gradient-text">Learning Environment</h1>
                         <p>Master investment strategies using risk-free historical simulations.</p>
                     </div>
@@ -203,7 +193,7 @@ const Simulator = () => {
                                     </div>
 
                                     <div className="ai-commentary">
-                                        <span className="ai-icon">🤖</span>
+                                        <span className="ai-icon"><Sparkles size={22} aria-hidden="true" /></span>
                                         <p>
                                             {results.stats.totalReturn > 0
                                                 ? "Your selection outperformed the benchmark! The crypto exposure provided significant alpha during this period."
@@ -213,7 +203,7 @@ const Simulator = () => {
                                 </div>
                             ) : (
                                 <div className="empty-results">
-                                    <div className="icon">📈</div>
+                                    <div className="icon"><LineChart size={56} strokeWidth={1.25} aria-hidden="true" /></div>
                                     <p>Ready to simulate. Enter your portfolio details and click run.</p>
                                 </div>
                             )}

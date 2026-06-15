@@ -1,34 +1,35 @@
 import React from 'react'
+import { BrainCircuit, RefreshCw, TrendingUp, ShieldCheck, Target, Lock } from 'lucide-react'
 import './Features.css'
 
 const featuresData = [
     {
-        icon: '🧠',
+        Icon: BrainCircuit,
         title: 'AI Portfolio Builder',
         description: 'Advanced algorithms analyze thousands of assets to build your personalized portfolio recommendation'
     },
     {
-        icon: '🔄',
+        Icon: RefreshCw,
         title: 'Rebalancing Insights',
         description: 'AI-powered analysis identifies when your portfolio drifts from target allocation and recommends corrective actions'
     },
     {
-        icon: '📈',
+        Icon: TrendingUp,
         title: 'Real-Time Insights',
         description: 'Live market data and AI-powered recommendations delivered instantly'
     },
     {
-        icon: '🛡️',
+        Icon: ShieldCheck,
         title: 'Risk Management',
         description: 'Dynamic risk assessment adapts to market conditions and your profile'
     },
     {
-        icon: '🎯',
+        Icon: Target,
         title: 'Goal Tracking',
         description: 'Set financial goals and watch AI optimize your path to achievement'
     },
     {
-        icon: '🔒',
+        Icon: Lock,
         title: 'Bank-Level Security',
         description: '256-bit encryption, 2FA, and SOC 2 compliance protect your data and privacy'
     }
@@ -46,7 +47,9 @@ const Features = () => {
             <div className="features-grid">
                 {featuresData.map((feature, index) => (
                     <div key={index} className="feature-card">
-                        <div className="feature-icon">{feature.icon}</div>
+                        <div className="feature-icon">
+                            <feature.Icon size={24} strokeWidth={1.75} aria-hidden="true" />
+                        </div>
                         <h3 className="feature-title">{feature.title}</h3>
                         <p className="feature-description">{feature.description}</p>
                     </div>

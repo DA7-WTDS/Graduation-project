@@ -13,7 +13,7 @@ internal sealed class GetPortfolioById : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/portfolios/{id}", async (ISender sender, Guid id) =>
+        app.MapGet("/api/portfolios/{id}", async (ISender sender, Guid id) =>
         {
             Result<PortfolioResponse> result = await sender.Send(new GetPortfolioQuery(id));
 

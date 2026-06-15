@@ -16,7 +16,7 @@ internal sealed class GetMyPortfolio : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/portfolios/me", async (ISender sender, ClaimsPrincipal claimsPrincipal) =>
+        app.MapGet("/api/portfolios/me", async (ISender sender, ClaimsPrincipal claimsPrincipal) =>
         {
             Result<PortfolioResponse> result = await sender.Send(
                 new GetPortfolioByUserIdQuery(claimsPrincipal.GetUserId()));

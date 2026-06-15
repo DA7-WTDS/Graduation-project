@@ -1,0 +1,36 @@
+.qw-rs {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.qw-rs-line {
+    stroke: var(--qw-amber);
+    stroke-width: 1.5;
+}
+
+/* Front ridge = a continuously flowing dashed "live signal". */
+.qw-rs-front {
+    stroke: var(--qw-amber);
+    stroke-width: 2;
+    opacity: 0.9;
+    stroke-dasharray: 16 11;
+    animation: qw-rs-flow 3s linear infinite;
+}
+
+/* The whole surface gently breathes (continuous multi-axis drift). */
+.qw-rs-group {
+    animation: qw-rs-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes qw-rs-flow {
+    to { stroke-dashoffset: -27; }
+}
+
+@keyframes qw-rs-drift {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-11px, 5px); }
+    50% { transform: translate(-22px, -4px); }
+    75% { transform: translate(-31px, 4px); }
+    100% { transform: translate(-40px, 0); }
+}

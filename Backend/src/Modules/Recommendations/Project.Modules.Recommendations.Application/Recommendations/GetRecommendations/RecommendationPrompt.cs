@@ -19,7 +19,7 @@ internal static class RecommendationPrompt
             "type": "object",
             "properties": {
               "ticker": { "type": "string" },
-              "action": { "type": "string", "enum": ["BUY", "WATCH", "AVOID"] },
+              "action": { "type": "string", "enum": ["BUY", "SELL", "HOLD"] },
               "allocation_pct": { "type": "number" },
               "reason": { "type": "string" },
               "risk_note": { "type": "string" },
@@ -47,7 +47,7 @@ internal static class RecommendationPrompt
         "for Conservative profiles, allow more concentration for Aggressive.\n" +
         "6. Output ONLY a JSON object of the exact shape:\n" +
         "{\"summary\": string, \"picks\": [{\"ticker\": string, \"action\": string, \"allocation_pct\": number, \"reason\": string, \"risk_note\": string, \"fit\": string}]}\n" +
-        "where action is one of BUY, WATCH, AVOID and allocation_pct is a number 0-100. Keep reason and risk_note to one sentence each. " +
+        "where action is one of BUY, SELL, HOLD and allocation_pct is a number 0-100. Keep reason and risk_note to one sentence each. " +
         "Include in the summary that this is informational only and not financial advice, and note that allocation_pct is the suggested split of the user's stock allocation.";
 
     public static string BuildUserPrompt(PortfolioResponse profile, IReadOnlyCollection<StockPrediction> predictions)

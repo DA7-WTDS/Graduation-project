@@ -14,4 +14,9 @@
     <ProjectReference Include="..\..\Portfolio\Project.Modules.Portfolio.PublicApi\Project.Modules.Portfolio.PublicApi.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Project.Modules.Recommendations.Application.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
 </Project>

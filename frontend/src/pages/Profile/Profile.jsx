@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, Link, NavLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { User, Mail, Calendar, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { getUserProfile } from '../../services/authService'
 import './Profile.css'
@@ -51,7 +52,7 @@ const Profile = () => {
                 <div className="profile-orb profile-orb-1"></div>
                 <div className="profile-orb profile-orb-2"></div>
                 <div className="profile-error-state">
-                    <div className="error-icon">⚠️</div>
+                    <div className="error-icon"><AlertTriangle size={40} strokeWidth={1.5} aria-hidden="true" /></div>
                     <p>{error}</p>
                     <button onClick={fetchProfile} className="retry-button">Try Again</button>
                 </div>
@@ -71,36 +72,6 @@ const Profile = () => {
             {/* Background decorations */}
             <div className="profile-orb profile-orb-1"></div>
             <div className="profile-orb profile-orb-2"></div>
-
-            {/* Top nav bar */}
-            <nav className="profile-nav">
-                <div className="profile-header-left">
-                    <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <span className="gradient-text">SmartInvest</span> AI
-                    </Link>
-                </div>
-
-                <div className="profile-nav-links">
-                    <NavLink to="/dashboard" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
-                        Dashboard
-                    </NavLink>
-                    <NavLink to="/portfolios" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
-                        Portfolios
-                    </NavLink>
-                    <NavLink to="/simulator" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
-                        Learning
-                    </NavLink>
-                    <NavLink to="/market" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
-                        Market
-                    </NavLink>
-                </div>
-
-                <div className="profile-header-right">
-                    <NavLink to="/profile" className={({ isActive }) => `profile-nav-link${isActive ? ' active' : ''}`}>
-                        Profile
-                    </NavLink>
-                </div>
-            </nav>
 
             <div className="profile-container">
                 {/* Hero card */}
@@ -127,28 +98,28 @@ const Profile = () => {
                 {/* Info cards row */}
                 <div className="profile-info-grid">
                     <div className="profile-info-card">
-                        <div className="info-card-icon">👤</div>
+                        <div className="info-card-icon"><User size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>First Name</label>
                             <p>{displayUser?.firstName || '—'}</p>
                         </div>
                     </div>
                     <div className="profile-info-card">
-                        <div className="info-card-icon">👤</div>
+                        <div className="info-card-icon"><User size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>Last Name</label>
                             <p>{displayUser?.lastName || '—'}</p>
                         </div>
                     </div>
                     <div className="profile-info-card">
-                        <div className="info-card-icon">✉️</div>
+                        <div className="info-card-icon"><Mail size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>Email Address</label>
                             <p>{displayUser?.email || '—'}</p>
                         </div>
                     </div>
                     <div className="profile-info-card">
-                        <div className="info-card-icon">📅</div>
+                        <div className="info-card-icon"><Calendar size={22} aria-hidden="true" /></div>
                         <div className="info-card-body">
                             <label>Member Since</label>
                             <p>{memberSince}</p>

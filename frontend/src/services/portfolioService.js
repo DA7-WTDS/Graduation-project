@@ -1,9 +1,9 @@
-import { apiCall } from './apiConfig'
+import { apiCall } from '@/shared/api/client'
 
 // Check if user has completed questionnaire/portfolio
 export const hasCompletedQuestionnaire = async () => {
     try {
-        const portfolio = await apiCall('/portfolios/me', {
+        const portfolio = await apiCall('/api/portfolios/me', {
             method: 'GET',
             requireAuth: true,
         })
@@ -11,7 +11,7 @@ export const hasCompletedQuestionnaire = async () => {
     } catch (error) {
         // 404 is expected for users who haven't completed questionnaire
         // Silently return false without logging
-        if (error.message?.includes('404') || error.message?.includes('not found')) {
+        if (error.status === 404) {
             return false
         }
         // Log other unexpected errors
@@ -33,7 +33,7 @@ export const createPortfolio = async ({
     cashPercentage,
     riskProfile,
 }) => {
-    return await apiCall('/portfolios', {
+    return await apiCall('/api/portfolios', {
         method: 'POST',
         requireAuth: true,
         body: JSON.stringify({
@@ -53,7 +53,7 @@ export const createPortfolio = async ({
 
 // Get the portfolio for the currently authenticated user
 export const getMyPortfolio = async () => {
-    return await apiCall('/portfolios/me', {
+    return await apiCall('/api/portfolios/me', {
         method: 'GET',
         requireAuth: true,
     })
@@ -61,7 +61,7 @@ export const getMyPortfolio = async () => {
 
 // Get a portfolio by its ID
 export const getPortfolioById = async (id) => {
-    return await apiCall(`/portfolios/${id}`, {
+    return await apiCall(`/api/portfolios/${id}`, {
         method: 'GET',
         requireAuth: true,
     })
@@ -80,7 +80,7 @@ export const updatePortfolio = async (id, {
     cashPercentage,
     riskProfile,
 }) => {
-    return await apiCall(`/portfolios/${id}`, {
+    return await apiCall(`/api/portfolios/${id}`, {
         method: 'PUT',
         requireAuth: true,
         body: JSON.stringify({

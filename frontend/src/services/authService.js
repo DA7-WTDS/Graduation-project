@@ -1,13 +1,11 @@
-import { apiCall } from './apiConfig'
+import { apiCall, getToken, setToken, removeToken } from '@/shared/api/client'
 
-// Token management
-export const getToken = () => localStorage.getItem('token')
-export const setToken = (token) => localStorage.setItem('token', token)
-export const removeToken = () => localStorage.removeItem('token')
+// Token management (re-exported from the shared client so existing imports keep working)
+export { getToken, setToken, removeToken }
 
 // Register a new user
 export const register = async (firstName, lastName, email, password) => {
-    const data = await apiCall('/users/register', {
+    const data = await apiCall('/api/users/register', {
         method: 'POST',
         body: JSON.stringify({
             firstName,
@@ -22,7 +20,7 @@ export const register = async (firstName, lastName, email, password) => {
 
 // Login user
 export const login = async (email, password) => {
-    const data = await apiCall('/users/login', {
+    const data = await apiCall('/api/users/login', {
         method: 'POST',
         body: JSON.stringify({
             email,
@@ -40,7 +38,7 @@ export const login = async (email, password) => {
 
 // Get current user profile
 export const getUserProfile = async () => {
-    const data = await apiCall('/users/profile', {
+    const data = await apiCall('/api/users/profile', {
         method: 'GET',
         requireAuth: true,
     })

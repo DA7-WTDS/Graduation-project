@@ -1,73 +1,69 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import LandingPage from './pages/LandingPage/LandingPage'
-import Login from './pages/Auth/Login'
-import Signup from './pages/Auth/Signup'
-import Onboarding from './pages/Onboarding/Onboarding'
-import Dashboard from './pages/Dashboard/Dashboard'
-import Profile from './pages/Profile/Profile'
-import Portfolios from './pages/Portfolios/Portfolios'
-import Simulator from './pages/Simulator/Simulator'
-import Market from './pages/Market/Market'
 import PrivateRoute from './components/PrivateRoute'
+import AppShell from './app/AppShell'
+import { LoadingState } from './shared/ui'
+
+// Route-level code-splitting: each page (and the Framer Motion it pulls in) loads on demand.
+const LandingPage = lazy(() => import('./pages/LandingPage/LandingPage'))
+const Login = lazy(() => import('./pages/Auth/Login'))
+const Signup = lazy(() => import('./pages/Auth/Signup'))
+const Onboarding = lazy(() => import('./pages/Onboarding/Onboarding'))
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'))
+const Profile = lazy(() => import('./pages/Profile/Profile'))
+const Portfolios = lazy(() => import('./pages/Portfolios/Portfolios'))
+const Simulator = lazy(() => import('./pages/Simulator/Simulator'))
+const Market = lazy(() => import('./pages/Market/Market'))
+
+const PageLoader = () => (
+    <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--qw-ink)'
+    }}>
+        <LoadingState label="Loading…" />
+    </div>
+)
 
 function App() {
     return (
         <Router>
             <div className="App">
-                <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route
-                        path="/onboarding"
-                        element={
-                            <PrivateRoute>
-                                <Onboarding />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <PrivateRoute>
-                                <Dashboard />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/portfolios"
-                        element={
-                            <PrivateRoute>
-                                <Portfolios />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/simulator"
-                        element={
-                            <PrivateRoute>
-                                <Simulator />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/market"
-                        element={
-                            <PrivateRoute>
-                                <Market />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/profile"
-                        element={
-                            <PrivateRoute>
-                                <Profile />
-                            </PrivateRoute>
-                        }
-                    />
-                </Routes>
+                <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                        {/* Public */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Signup />} />
+
+                        {/* Authed, full-screen (no app shell) */}
+                        <Route
+                            path="/onboarding"
+                            element={
+                                <PrivateRoute>
+                                    <Onboarding />
+                                </PrivateRoute>
+                            }
+                        />
+
+                        {/* Authed, inside the shared AppShell layout */}
+                        <Route
+                            element={
+                                <PrivateRoute>
+                                    <AppShell />
+                                </PrivateRoute>
+                            }
+                        >
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/portfolios" element={<Portfolios />} />
+                            <Route path="/simulator" element={<Simulator />} />
+                            <Route path="/market" element={<Market />} />
+                            <Route path="/profile" element={<Profile />} />
+                        </Route>
+                    </Routes>
+                </Suspense>
             </div>
         </Router>
     )

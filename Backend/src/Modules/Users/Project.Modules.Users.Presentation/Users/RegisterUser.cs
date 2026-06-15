@@ -14,7 +14,7 @@ internal sealed class RegisterUser : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/users/register", async (ISender sender, RegisterUserRequest request, LinkGenerator linkGenerator, HttpContext httpContext) =>
+        app.MapPost("/api/users/register", async (ISender sender, RegisterUserRequest request, LinkGenerator linkGenerator, HttpContext httpContext) =>
         {
             Result<Guid> result = await sender.Send(new CreateUserCommand(
                 request.FirstName,
@@ -24,7 +24,7 @@ internal sealed class RegisterUser : IEndpoint
             ));
 
             return result.Match(
-                userId => Results.Created($"/users/{userId}", new { Id = userId }),
+                userId => Results.Created($"/api/users/{userId}", new { Id = userId }),
                 ApiResults.Problem);
 
         })

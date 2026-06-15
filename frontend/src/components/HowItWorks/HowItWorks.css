@@ -1,5 +1,6 @@
 .how-it-works {
-    background-color: var(--color-white);
+    background-color: transparent;
+    border-top: 1px solid var(--qw-border);
     padding: var(--space-5xl) 0;
 }
 
@@ -21,7 +22,7 @@
     font-size: var(--font-size-h1);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-display);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 
@@ -65,7 +66,7 @@
 .step-title {
     font-size: var(--font-size-h3);
     font-weight: var(--font-weight-semibold);
-    color: var(--color-primary-navy);
+    color: var(--qw-text);
     margin-bottom: var(--space-md);
 }
 
@@ -79,14 +80,14 @@
 .step-visual {
     width: 100%;
     height: 200px;
-    background: var(--color-background-light);
+    background: var(--qw-panel);
     border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 60px;
+    color: var(--qw-amber);
     margin-top: var(--space-lg);
-    border: 2px solid var(--color-gray-100);
+    border: 1px solid var(--qw-border);
 }
 
 /* Connecting line between steps */

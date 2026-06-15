@@ -1,9 +1,10 @@
 .simulator-page {
     min-height: 100vh;
-    background: var(--color-background-light);
-    color: var(--color-primary-navy);
+    background: transparent;
+    color: var(--qw-text);
     position: relative;
     overflow-x: hidden;
+    padding-top: 16px;
 }
 
 /* Standalone Header */
@@ -99,12 +100,11 @@
 
 /* Cards */
 .simulator-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: var(--radius-2xl);
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border);
+    border-radius: var(--radius-lg);
     padding: var(--space-2xl);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-md);
 }
 
 /* Form Styles */
@@ -126,7 +126,7 @@
 .input-group {
     display: flex;
     align-items: center;
-    background: white;
+    background: var(--qw-panel-2);
     border: 1px solid var(--color-gray-200);
     border-radius: var(--radius-lg);
     padding: 0 12px;
@@ -141,11 +141,16 @@ input,
 select {
     width: 100%;
     padding: 12px;
-    border: 1px solid var(--color-gray-200);
-    border-radius: var(--radius-lg);
+    border: 1px solid var(--qw-border);
+    border-radius: var(--radius-md);
     outline: none;
-    background: white;
-    font-family: var(--font-mono);
+    background: var(--qw-panel-2);
+    color: var(--qw-text);
+    font-family: var(--qw-font-mono);
+}
+input:focus,
+select:focus {
+    border-color: var(--qw-amber);
 }
 
 .input-group input {
@@ -181,7 +186,7 @@ select {
 .weight-input {
     display: flex;
     align-items: center;
-    background: white;
+    background: var(--qw-panel-2);
     border: 1px solid var(--color-gray-200);
     border-radius: var(--radius-lg);
     padding-right: 8px;
@@ -264,7 +269,8 @@ select {
 }
 
 .stat-card {
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--qw-panel-2);
+    border: 1px solid var(--qw-border);
     padding: var(--space-lg);
     border-radius: var(--radius-xl);
     display: flex;

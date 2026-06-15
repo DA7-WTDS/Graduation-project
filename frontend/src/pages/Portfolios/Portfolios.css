@@ -1,7 +1,8 @@
 .portfolios-page {
     min-height: 100vh;
-    background: var(--color-background);
-    color: var(--color-text-primary);
+    background: transparent;
+    color: var(--qw-text);
+    padding-top: 16px;
 }
 
 /* ── Header ── */
@@ -132,7 +133,7 @@
 
 /* Risk profile card */
 .portfolio-profile-card {
-    background: var(--color-surface);
+    background: var(--qw-panel);
     border-radius: 16px;
     padding: var(--space-lg) var(--space-xl);
     border: 1px solid rgba(255,255,255,0.06);
@@ -175,7 +176,7 @@
 }
 
 .allocation-card {
-    background: var(--color-surface);
+    background: var(--qw-panel);
     border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.06);
     padding: var(--space-md);

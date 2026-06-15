@@ -16,7 +16,7 @@ internal sealed class CreateTestNotification : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/notifications/test", async (
+        app.MapPost("/api/notifications/test", async (
             ISender sender,
             ClaimsPrincipal claimsPrincipal) =>
         {

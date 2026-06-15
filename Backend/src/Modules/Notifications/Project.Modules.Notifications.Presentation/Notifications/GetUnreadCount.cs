@@ -15,7 +15,7 @@ internal sealed class GetUnreadCount : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/notifications/unread-count", async (
+        app.MapGet("/api/notifications/unread-count", async (
             ISender sender,
             ClaimsPrincipal claimsPrincipal) =>
         {

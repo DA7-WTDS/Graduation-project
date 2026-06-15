@@ -14,7 +14,7 @@ internal sealed class GetUsers : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/users", async (ISender sender) =>
+        app.MapGet("/api/users", async (ISender sender) =>
         {
             Result<IReadOnlyCollection<UserResponse>> result = await sender.Send(new GetUsersQuery());
 

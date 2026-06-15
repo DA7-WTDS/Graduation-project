@@ -1,4 +1,5 @@
 import React from 'react'
+import { Rocket } from 'lucide-react'
 import './About.css'
 
 const About = () => {
@@ -18,7 +19,7 @@ const About = () => {
                     <div className="about-text">
                         <h3>Our Story</h3>
                         <p>
-                            SmartInvest AI was born from a simple observation: institutional investors 
+                            QuantWise was born from a simple observation: institutional investors 
                             had access to powerful AI and data analytics, while individual investors 
                             were left behind.
                         </p>
@@ -30,7 +31,7 @@ const About = () => {
                     </div>
 
                     <div className="about-visual">
-                        <div className="about-visual-icon">🚀</div>
+                        <div className="about-visual-icon"><Rocket size={56} strokeWidth={1.25} aria-hidden="true" /></div>
                         <h3>Innovation Meets Simplicity</h3>
                         <p style={{ color: 'var(--color-gray-600)', marginTop: 'var(--space-md)' }}>
                             Advanced AI algorithms paired with an interface anyone can use
