@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { usePortfolio } from '@/features/portfolio/usePortfolio'
 import { useNotifications, formatRelativeTime } from '@/features/notifications/useNotifications'
@@ -8,6 +9,7 @@ import { staggerContainer, fadeInUp } from '@/shared/motion/variants'
 import './Dashboard.css'
 
 const Dashboard = () => {
+    const navigate = useNavigate()
     const { data: portfolio, isLoading, isError } = usePortfolio()
     const { notifications, markAsRead } = useNotifications()
 
@@ -42,7 +44,7 @@ const Dashboard = () => {
                             <p className="dash-onboard-copy">
                                 Complete the questionnaire to get personalized, risk-graded picks.
                             </p>
-                            <Button variant="primary" onClick={() => { window.location.href = '/onboarding' }}>
+                            <Button variant="primary" onClick={() => navigate('/onboarding')}>
                                 Start onboarding
                             </Button>
                         </Card>

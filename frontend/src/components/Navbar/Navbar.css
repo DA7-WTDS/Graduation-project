@@ -59,6 +59,26 @@
     color: var(--qw-text);
 }
 
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.navbar-login {
+    padding: 9px 18px;
+    border: 1px solid var(--qw-border-strong);
+    border-radius: var(--radius-md);
+    color: var(--qw-text-dim);
+    font-weight: 600;
+    font-size: var(--qw-fs-sm);
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.navbar-login:hover {
+    color: var(--qw-text);
+    border-color: var(--qw-amber);
+}
+
 .navbar-cta {
     padding: 9px 20px;
     background: var(--qw-amber);
@@ -75,17 +95,58 @@
 .navbar-mobile-toggle {
     display: none;
     flex-direction: column;
+    justify-content: center;
     gap: 5px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
     cursor: pointer;
 }
 .navbar-mobile-toggle span {
     width: 24px;
     height: 2px;
     background-color: var(--qw-text);
-    transition: all var(--transition-base);
+    transition: transform var(--transition-base), opacity var(--transition-base);
 }
+.navbar-mobile-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.navbar-mobile-toggle.open span:nth-child(2) { opacity: 0; }
+.navbar-mobile-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.navbar-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px var(--space-lg) 16px;
+    background: rgba(11, 14, 17, 0.97);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--qw-border);
+}
+.navbar-mobile-link {
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-size: var(--qw-fs-base);
+    color: var(--qw-text-dim);
+    cursor: pointer;
+}
+.navbar-mobile-link:hover { color: var(--qw-text); }
+.navbar-mobile-cta {
+    margin-top: 8px;
+    padding: 11px 20px;
+    text-align: center;
+    background: var(--qw-amber);
+    color: #0b0e11;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: var(--qw-fs-sm);
+}
+.navbar-mobile-cta:hover { background: #ffc23a; }
 
 @media (max-width: 768px) {
     .navbar-links { display: none; }
+    .navbar-actions { display: none; }
     .navbar-mobile-toggle { display: flex; }
 }

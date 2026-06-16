@@ -32,7 +32,10 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (firstName, lastName, email, password) => {
         const data = await authService.register(firstName, lastName, email, password)
-        // After registration, we might want to auto-login or just return success
+        // The register endpoint does not return a token, so log the user in
+        // right away. This keeps the post-signup flow (→ /onboarding, a
+        // PrivateRoute) from bouncing the brand-new user back to /login.
+        await login(email, password)
         return data
     }
 

@@ -64,12 +64,111 @@
     font-size: 11px;
     color: var(--qw-amber);
     text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
 }
+.app-avatar:hover { border-color: var(--qw-amber); }
+
+/* Hamburger — hidden on desktop, shown on narrow viewports. */
+.app-menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 2px;
+    border: 1px solid var(--qw-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--qw-text-dim);
+    cursor: pointer;
+}
+.app-menu-toggle:hover { color: var(--qw-text); border-color: var(--qw-border-strong); }
+
+/* Click-catcher that closes an open menu when the user taps elsewhere. */
+.app-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+}
+
+/* Account dropdown (avatar). */
+.app-account { position: relative; display: flex; }
+
+.app-account-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 60;
+    min-width: 220px;
+    padding: 6px;
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.app-account-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px 10px;
+    border-bottom: 1px solid var(--qw-border);
+    margin-bottom: 6px;
+}
+.app-account-name { font-size: 13px; font-weight: 600; color: var(--qw-text); }
+.app-account-email {
+    font-family: var(--qw-font-mono);
+    font-size: 11px;
+    color: var(--qw-text-dim);
+    word-break: break-all;
+}
+
+.app-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--qw-text-dim);
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+.app-menu-item:hover { color: var(--qw-text); background: var(--qw-panel-2); }
+.app-menu-item.danger:hover { color: var(--qw-sell); }
 
 .app-main { position: relative; z-index: 1; flex: 1; min-width: 0; }
 
+/* Mobile nav drop-down panel (only rendered when the hamburger is open). */
+.app-mobile-nav {
+    display: none;
+    position: sticky;
+    top: 56px;
+    z-index: 55;
+    flex-direction: column;
+    padding: 8px;
+    background: rgba(11, 14, 17, 0.97);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--qw-border);
+}
+.app-mobile-link {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--qw-text-dim);
+}
+.app-mobile-link:hover { color: var(--qw-text); background: var(--qw-panel); }
+.app-mobile-link.active { color: var(--qw-amber); }
+
 @media (max-width: 720px) {
     .app-nav { gap: 12px; padding: 0 14px; }
-    .app-nav-links { margin-left: 8px; gap: 0; }
-    .app-nav-link { padding: 6px 8px; font-size: 12px; }
+    .app-nav-links { display: none; }
+    .app-menu-toggle { display: inline-flex; }
+    .app-mobile-nav { display: flex; }
 }

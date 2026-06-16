@@ -1,0 +1,58 @@
+.qw-toast-viewport {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: min(360px, calc(100vw - 40px));
+    pointer-events: none;
+}
+
+.qw-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px 12px 14px;
+    background: var(--qw-panel);
+    border: 1px solid var(--qw-border-strong);
+    border-left-width: 3px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    color: var(--qw-text);
+    font-size: 13px;
+    pointer-events: auto;
+    animation: qw-toast-in 180ms ease-out;
+}
+
+@keyframes qw-toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.qw-toast-success { border-left-color: var(--qw-buy); }
+.qw-toast-success .qw-toast-icon { color: var(--qw-buy); }
+.qw-toast-error { border-left-color: var(--qw-sell); }
+.qw-toast-error .qw-toast-icon { color: var(--qw-sell); }
+.qw-toast-info { border-left-color: var(--qw-amber); }
+.qw-toast-info .qw-toast-icon { color: var(--qw-amber); }
+
+.qw-toast-icon { flex-shrink: 0; }
+.qw-toast-msg { flex: 1; line-height: 1.4; }
+
+.qw-toast-close {
+    display: flex;
+    flex-shrink: 0;
+    padding: 2px;
+    border: none;
+    background: transparent;
+    color: var(--qw-text-dim);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+.qw-toast-close:hover { color: var(--qw-text); }
+
+@media (prefers-reduced-motion: reduce) {
+    .qw-toast { animation: none; }
+}

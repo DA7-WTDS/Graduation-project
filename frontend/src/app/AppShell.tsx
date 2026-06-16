@@ -1,7 +1,10 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Menu, X, User, LogOut } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { Backdrop } from '@/shared/visuals'
+import { useToast } from '@/shared/ui'
 import type { UserProfile } from '@/types/api'
 import './AppShell.css'
 
@@ -18,14 +21,36 @@ const navItems = [
  * Replaces the 5× duplicated inline headers.
  */
 export default function AppShell() {
-    const { user } = useAuth() as { user: UserProfile | null }
+    const { user, logout } = useAuth() as { user: UserProfile | null; logout: () => void }
+    const navigate = useNavigate()
+    const toast = useToast()
     const initials = user ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}` : '?'
+
+    const [mobileNavOpen, setMobileNavOpen] = useState(false)
+    const [accountOpen, setAccountOpen] = useState(false)
+
+    const handleLogout = () => {
+        setAccountOpen(false)
+        logout()
+        toast.info('Signed out')
+        navigate('/')
+    }
 
     return (
         <div className="app-shell">
             <Backdrop fixed surface />
 
             <header className="app-nav">
+                <button
+                    type="button"
+                    className="app-menu-toggle"
+                    aria-label="Toggle navigation menu"
+                    aria-expanded={mobileNavOpen}
+                    onClick={() => setMobileNavOpen((v) => !v)}
+                >
+                    {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
+                </button>
+
                 <Link to="/dashboard" className="app-wordmark">
                     QUANTWISE
                 </Link>
@@ -44,11 +69,68 @@ export default function AppShell() {
 
                 <div className="app-nav-right">
                     <NotificationBell />
-                    <Link to="/profile" className="app-avatar" title="Profile">
-                        {initials || '?'}
-                    </Link>
+                    <div className="app-account">
+                        <button
+                            type="button"
+                            className="app-avatar"
+                            title="Account"
+                            aria-haspopup="menu"
+                            aria-expanded={accountOpen}
+                            onClick={() => setAccountOpen((v) => !v)}
+                        >
+                            {initials || '?'}
+                        </button>
+
+                        {accountOpen && (
+                            <>
+                                <div className="app-menu-overlay" onClick={() => setAccountOpen(false)} />
+                                <div className="app-account-menu" role="menu">
+                                    <div className="app-account-head">
+                                        <span className="app-account-name">
+                                            {user ? `${user.firstName} ${user.lastName}` : 'Account'}
+                                        </span>
+                                        {user?.email && <span className="app-account-email">{user.email}</span>}
+                                    </div>
+                                    <Link
+                                        to="/profile"
+                                        className="app-menu-item"
+                                        role="menuitem"
+                                        onClick={() => setAccountOpen(false)}
+                                    >
+                                        <User size={15} strokeWidth={1.75} /> Profile
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        className="app-menu-item danger"
+                                        role="menuitem"
+                                        onClick={handleLogout}
+                                    >
+                                        <LogOut size={15} strokeWidth={1.75} /> Log out
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </header>
+
+            {mobileNavOpen && (
+                <>
+                    <div className="app-menu-overlay" onClick={() => setMobileNavOpen(false)} />
+                    <nav className="app-mobile-nav">
+                        {navItems.map((item) => (
+                            <NavLink
+                                key={item.to}
+                                to={item.to}
+                                className={({ isActive }) => `app-mobile-link${isActive ? ' active' : ''}`}
+                                onClick={() => setMobileNavOpen(false)}
+                            >
+                                {item.label}
+                            </NavLink>
+                        ))}
+                    </nav>
+                </>
+            )}
 
             <main className="app-main">
                 <Outlet />

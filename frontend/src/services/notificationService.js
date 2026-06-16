@@ -42,15 +42,5 @@ export const notificationService = {
             method: 'PUT',
             requireAuth: true
         });
-    },
-
-    /**
-     * Create a test notification (DEBUG ONLY)
-     */
-    createTestNotification: () => {
-        return apiCall(`${NOTIFICATIONS_BASE_URL}/test`, {
-            method: 'POST',
-            requireAuth: true
-        });
     }
 };

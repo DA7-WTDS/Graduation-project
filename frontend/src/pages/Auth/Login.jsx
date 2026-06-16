@@ -117,24 +117,18 @@ const Login = () => {
                             />
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div className="form-checkbox-group">
-                                <input
-                                    type="checkbox"
-                                    id="rememberMe"
-                                    name="rememberMe"
-                                    className="form-checkbox"
-                                    checked={formData.rememberMe}
-                                    onChange={handleChange}
-                                />
-                                <label htmlFor="rememberMe" className="form-checkbox-label">
-                                    Remember me
-                                </label>
-                            </div>
-
-                            <Link to="/forgot-password" className="form-link" style={{ fontSize: 'var(--font-size-small)' }}>
-                                Forgot password?
-                            </Link>
+                        <div className="form-checkbox-group">
+                            <input
+                                type="checkbox"
+                                id="rememberMe"
+                                name="rememberMe"
+                                className="form-checkbox"
+                                checked={formData.rememberMe}
+                                onChange={handleChange}
+                            />
+                            <label htmlFor="rememberMe" className="form-checkbox-label">
+                                Remember me
+                            </label>
                         </div>
 
                         <button type="submit" className="auth-submit" disabled={loading}>

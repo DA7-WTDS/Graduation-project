@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import { useToast } from '@/shared/ui'
 import { useNotifications, formatRelativeTime } from './useNotifications'
 import './NotificationBell.css'
 
 export function NotificationBell() {
     const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
+    const toast = useToast()
     const [open, setOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
+
+    const handleMarkAllRead = () => {
+        markAllAsRead()
+        toast.info('All notifications marked as read')
+    }
 
     useEffect(() => {
         const onMouseDown = (e: MouseEvent) => {
@@ -35,7 +42,7 @@ export function NotificationBell() {
                     <div className="qw-bell-head">
                         <span>Notifications</span>
                         {unreadCount > 0 && (
-                            <button type="button" className="qw-bell-mark" onClick={markAllAsRead}>
+                            <button type="button" className="qw-bell-mark" onClick={handleMarkAllRead}>
                                 Mark all read
                             </button>
                         )}

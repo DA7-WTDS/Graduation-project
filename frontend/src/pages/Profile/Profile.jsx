@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { User, Mail, Calendar, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { getUserProfile } from '../../services/authService'
+import { useToast } from '@/shared/ui'
 import './Profile.css'
 
 const Profile = () => {
     const navigate = useNavigate()
+    const toast = useToast()
     const { user, logout, loading: authLoading } = useAuth()
     const [profileData, setProfileData] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -30,6 +32,7 @@ const Profile = () => {
 
     const handleLogout = () => {
         logout()
+        toast.info('Signed out')
         navigate('/')
     }
 
