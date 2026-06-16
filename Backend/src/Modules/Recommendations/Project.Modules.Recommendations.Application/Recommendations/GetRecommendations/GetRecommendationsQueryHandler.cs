@@ -5,14 +5,19 @@ using Project.Common.Application.Caching;
 using Project.Common.Application.Messaging;
 using Project.Modules.Portfolio.PublicApi;
 using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
+using Project.Modules.Recommendations.Application.Abstractions.Data;
+using Project.Modules.Recommendations.Application.Abstractions.Holdings;
 using Project.Modules.Recommendations.Application.Abstractions.Llm;
 using Project.Modules.Recommendations.Domain.DailyRuns;
+using Project.Modules.Recommendations.Domain.Holdings;
 using static Project.Modules.Recommendations.Domain.DailyRuns.RecommendationErrors;
 
 namespace Project.Modules.Recommendations.Application.Recommendations.GetRecommendations;
 
 internal sealed class GetRecommendationsQueryHandler(
     IDailyRunRepository dailyRunRepository,
+    IUserHoldingRepository holdingRepository,
+    IUnitOfWork unitOfWork,
     IPortfolioApi portfolioApi,
     ILlmClient llmClient,
     ICacheService cacheService,
@@ -43,7 +48,12 @@ internal sealed class GetRecommendationsQueryHandler(
             return Result.Ok(cached);
         }
 
-        string userPrompt = RecommendationPrompt.BuildUserPrompt(profile, run.Predictions);
+        // Treat the picks from the user's last (prior-run) recommendation as their
+        // current holdings, so the assistant can SELL/HOLD them, not just BUY anew.
+        IReadOnlyList<UserHolding> existingHoldings = await holdingRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        var priorHoldings = existingHoldings.Where(h => h.RunGeneratedAt < run.GeneratedAt).ToList();
+
+        string userPrompt = RecommendationPrompt.BuildUserPrompt(profile, run.Predictions, priorHoldings);
 
         // LLMs occasionally emit malformed JSON; regenerate a few times before giving up.
         LlmRecommendationResult? parsed = null;
@@ -75,6 +85,14 @@ internal sealed class GetRecommendationsQueryHandler(
 
         var response = new RecommendationResponse(parsed.Summary, parsed.Picks, run.GeneratedAt);
         await cacheService.SetAsync(cacheKey, response, TimeSpan.FromHours(12), cancellationToken);
+
+        // Persist this run's BUY/HOLD picks as the user's holdings for the next run.
+        var newHoldings = parsed.Picks
+            .Where(p => p.AllocationPct > 0 && !string.Equals(p.Action, "SELL", StringComparison.OrdinalIgnoreCase))
+            .Select(p => UserHolding.Create(request.UserId, p.Ticker, p.AllocationPct, run.GeneratedAt))
+            .ToList();
+        await holdingRepository.ReplaceForUserAsync(request.UserId, newHoldings, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Ok(response);
     }

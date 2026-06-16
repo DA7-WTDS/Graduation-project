@@ -5,9 +5,12 @@ using NSubstitute.ExceptionExtensions;
 using Project.Common.Application.Caching;
 using Project.Modules.Portfolio.PublicApi;
 using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
+using Project.Modules.Recommendations.Application.Abstractions.Data;
+using Project.Modules.Recommendations.Application.Abstractions.Holdings;
 using Project.Modules.Recommendations.Application.Abstractions.Llm;
 using Project.Modules.Recommendations.Application.Recommendations.GetRecommendations;
 using Project.Modules.Recommendations.Domain.DailyRuns;
+using Project.Modules.Recommendations.Domain.Holdings;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -19,6 +22,8 @@ namespace Project.Modules.Recommendations.Application.Tests.Recommendations.GetR
 public class GetRecommendationsQueryHandlerTests
 {
     private readonly IDailyRunRepository _dailyRunRepository;
+    private readonly IUserHoldingRepository _holdingRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPortfolioApi _portfolioApi;
     private readonly ILlmClient _llmClient;
     private readonly ICacheService _cacheService;
@@ -28,13 +33,20 @@ public class GetRecommendationsQueryHandlerTests
     public GetRecommendationsQueryHandlerTests()
     {
         _dailyRunRepository = Substitute.For<IDailyRunRepository>();
+        _holdingRepository = Substitute.For<IUserHoldingRepository>();
+        _unitOfWork = Substitute.For<IUnitOfWork>();
         _portfolioApi = Substitute.For<IPortfolioApi>();
         _llmClient = Substitute.For<ILlmClient>();
         _cacheService = Substitute.For<ICacheService>();
         _logger = Substitute.For<ILogger<GetRecommendationsQueryHandler>>();
 
+        _holdingRepository.GetByUserIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((IReadOnlyList<UserHolding>)new List<UserHolding>());
+
         _handler = new GetRecommendationsQueryHandler(
             _dailyRunRepository,
+            _holdingRepository,
+            _unitOfWork,
             _portfolioApi,
             _llmClient,
             _cacheService,

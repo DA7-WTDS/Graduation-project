@@ -10,10 +10,12 @@ using Project.Common.Infrastructure.Outbox;
 using Project.Common.Infrastructure.Inbox;
 using Project.Modules.Recommendations.Application.Abstractions.Data;
 using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
+using Project.Modules.Recommendations.Application.Abstractions.Holdings;
 using Project.Modules.Recommendations.Application.Abstractions.Llm;
 using Project.Modules.Recommendations.Application.Configuration;
 using Project.Modules.Recommendations.Infrastructure.DailyRuns;
 using Project.Modules.Recommendations.Infrastructure.Database;
+using Project.Modules.Recommendations.Infrastructure.Holdings;
 using Project.Modules.Recommendations.Infrastructure.Llm;
 using Project.Modules.Recommendations.Infrastructure.Outbox;
 using Project.Modules.Recommendations.Infrastructure.Inbox;
@@ -56,6 +58,7 @@ public static class RecommendationsModule
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<RecommendationsDbContext>());
         services.AddScoped<IDailyRunRepository, DailyRunRepository>();
+        services.AddScoped<IUserHoldingRepository, UserHoldingRepository>();
 
         // Register Public API
         services.AddScoped<IRecommendationsApi, RecommendationsApi>();
