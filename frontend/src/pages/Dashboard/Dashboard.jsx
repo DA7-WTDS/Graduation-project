@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { usePortfolio } from '@/features/portfolio/usePortfolio'
 import { useNotifications, formatRelativeTime } from '@/features/notifications/useNotifications'
 import { RecommendationsPanel } from '@/features/recommendations/RecommendationsPanel'
+import { TargetMix } from '@/features/recommendations/TargetMix'
 import { Card, StatTile, Button, LoadingState, ErrorState, EmptyState } from '@/shared/ui'
 import { staggerContainer, fadeInUp } from '@/shared/motion/variants'
 import './Dashboard.css'
@@ -12,13 +13,6 @@ const Dashboard = () => {
     const navigate = useNavigate()
     const { data: portfolio, isLoading, isError } = usePortfolio()
     const { notifications, markAsRead } = useNotifications()
-
-    const allocation = portfolio ? [
-        { label: 'Stocks', value: portfolio.stocksPercentage, color: 'var(--qw-amber)' },
-        { label: 'Bonds',  value: portfolio.bondsPercentage,  color: 'var(--qw-amber-dim)' },
-        { label: 'ETFs',   value: portfolio.etfsPercentage,   color: 'var(--qw-text-dim)' },
-        { label: 'Cash',   value: portfolio.cashPercentage,   color: 'var(--qw-text-faint)' },
-    ].filter(a => a.value > 0) : []
 
     return (
         <div className="dash">
@@ -60,22 +54,7 @@ const Dashboard = () => {
 
                         <motion.div variants={fadeInUp}>
                             <Card>
-                                <div className="dash-card-head">
-                                    <span className="dash-label">Target Mix</span>
-                                    <span className="dash-sub">{portfolio.primaryGoal} · {portfolio.timeHorizon}</span>
-                                </div>
-                                <div className="dash-alloc-bar">
-                                    {allocation.map(a => (
-                                        <span key={a.label} style={{ width: `${a.value}%`, background: a.color }} />
-                                    ))}
-                                </div>
-                                <div className="dash-alloc-legend">
-                                    {allocation.map(a => (
-                                        <span key={a.label} className="dash-alloc-item">
-                                            <i style={{ background: a.color }} />{a.label} {a.value}%
-                                        </span>
-                                    ))}
-                                </div>
+                                <TargetMix />
                             </Card>
                         </motion.div>
                     </>

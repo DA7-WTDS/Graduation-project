@@ -92,6 +92,11 @@
     border-radius: 2px;
     display: inline-block;
 }
+.dash-alloc-amt {
+    font-style: normal;
+    color: var(--qw-text-faint);
+    margin-left: 4px;
+}
 
 /* Main grid: recommendations + activity */
 .dash-grid {

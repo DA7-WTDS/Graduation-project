@@ -142,6 +142,13 @@
     gap: 12px;
 }
 
+.portfolio-mix-card {
+    background: var(--qw-panel);
+    border-radius: 16px;
+    padding: var(--space-lg) var(--space-xl);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
 .profile-badge {
     font-size: 1.6rem;
     font-weight: 800;

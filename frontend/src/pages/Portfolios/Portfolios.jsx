@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FolderOpen, AlertTriangle } from 'lucide-react'
 import { getMyPortfolio } from '../../services/portfolioService'
+import { TargetMix } from '@/features/recommendations/TargetMix'
 import './Portfolios.css'
 
 const riskColor = (profile) => {
@@ -40,19 +41,12 @@ const Portfolios = () => {
         }
     }
 
-    const allocation = portfolio ? [
-        { label: 'Stocks', value: portfolio.stocksPercentage, color: 'var(--color-primary-purple)' },
-        { label: 'Bonds',  value: portfolio.bondsPercentage,  color: 'var(--color-primary-teal)' },
-        { label: 'ETFs',   value: portfolio.etfsPercentage,   color: '#f59e0b' },
-        { label: 'Cash',   value: portfolio.cashPercentage,   color: 'var(--color-gray-300)' },
-    ] : []
-
     return (
         <div className="portfolios-page">
             <div className="portfolios-body">
                 <div className="portfolios-hero">
                     <h1 className="gradient-text">My Portfolio</h1>
-                    <p>Your risk profile and target asset allocation from onboarding.</p>
+                    <p>Your risk profile and target investment mix.</p>
                 </div>
 
                 {loading ? (
@@ -86,24 +80,9 @@ const Portfolios = () => {
                             </p>
                         </div>
 
-                        {/* Allocation grid */}
-                        <div className="allocation-grid">
-                            {allocation.map((item) => (
-                                <div key={item.label} className="allocation-card">
-                                    <div className="alloc-bar-wrap">
-                                        <div
-                                            className="alloc-bar-fill"
-                                            style={{
-                                                height: `${item.value}%`,
-                                                background: item.color,
-                                                minHeight: item.value > 0 ? '6px' : 0
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="alloc-value">{item.value}%</div>
-                                    <div className="alloc-label">{item.label}</div>
-                                </div>
-                            ))}
+                        {/* Target mix — same view as the dashboard */}
+                        <div className="portfolio-mix-card">
+                            <TargetMix />
                         </div>
 
                         {/* Metadata */}
