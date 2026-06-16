@@ -1,26 +1,79 @@
 import React, { useState } from 'react'
-import { Search, Flame, Lightbulb } from 'lucide-react'
-import { AVAILABLE_ASSETS } from '../../utils/mockHistoricalData'
+import { Search } from 'lucide-react'
+import { useDebounced, useSymbolSearch, useQuote } from '@/features/market/useMarket'
+import { LoadingState, EmptyState, ErrorState } from '@/shared/ui'
 import './Market.css'
+
+// Default watchlist shown when the search box is empty.
+const WATCHLIST = [
+    { symbol: 'AAPL', description: 'Apple Inc.' },
+    { symbol: 'MSFT', description: 'Microsoft Corp.' },
+    { symbol: 'GOOGL', description: 'Alphabet Inc.' },
+    { symbol: 'AMZN', description: 'Amazon.com Inc.' },
+    { symbol: 'NVDA', description: 'NVIDIA Corp.' },
+    { symbol: 'TSLA', description: 'Tesla Inc.' },
+    { symbol: 'META', description: 'Meta Platforms Inc.' },
+    { symbol: 'SPY', description: 'SPDR S&P 500 ETF' },
+]
+
+const fmtUSD = (n) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+
+const AssetCard = ({ symbol, description }) => {
+    const { data: quote, isLoading, isError } = useQuote(symbol)
+    const up = quote ? quote.change >= 0 : true
+
+    return (
+        <div className="asset-card">
+            <div className="asset-header">
+                <div className="asset-info">
+                    <span className="asset-symbol">{symbol}</span>
+                    <span className="asset-name">{description}</span>
+                </div>
+            </div>
+
+            {isLoading ? (
+                <div className="asset-quote-muted">Loading quote…</div>
+            ) : isError || !quote ? (
+                <div className="asset-quote-muted">Quote unavailable</div>
+            ) : (
+                <>
+                    <div className="asset-price-section">
+                        <div className="current-price">{fmtUSD(quote.current)}</div>
+                        <div className={`price-change ${up ? 'positive' : 'negative'}`}>
+                            {up ? '▲' : '▼'} {fmtUSD(Math.abs(quote.change))} ({quote.percentChange > 0 ? '+' : ''}{quote.percentChange.toFixed(2)}%)
+                        </div>
+                    </div>
+
+                    <div className="asset-stats">
+                        <div><span>Open</span><b>{fmtUSD(quote.open)}</b></div>
+                        <div><span>High</span><b>{fmtUSD(quote.high)}</b></div>
+                        <div><span>Low</span><b>{fmtUSD(quote.low)}</b></div>
+                        <div><span>Prev</span><b>{fmtUSD(quote.previousClose)}</b></div>
+                    </div>
+                </>
+            )}
+        </div>
+    )
+}
 
 const Market = () => {
     const [searchTerm, setSearchTerm] = useState('')
-    const [filter, setFilter] = useState('All')
+    const debounced = useDebounced(searchTerm.trim())
+    const isSearching = debounced.length >= 1
+    const search = useSymbolSearch(debounced)
 
-    const filteredAssets = AVAILABLE_ASSETS.filter(asset => {
-        const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            asset.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesFilter = filter === 'All' || asset.type === filter
-        return matchesSearch && matchesFilter
-    })
+    const assets = isSearching
+        ? (search.data ?? []).slice(0, 12).map((r) => ({ symbol: r.symbol, description: r.description }))
+        : WATCHLIST
 
     return (
         <div className="market-page">
             <div className="market-body">
                 <div className="market-hero">
-                    <span className="demo-badge">Demo · mock data</span>
+                    <span className="demo-badge">Live · Finnhub</span>
                     <h1 className="gradient-text">Market Hub</h1>
-                    <p>Track real-time performance and discover institutional-grade opportunities.</p>
+                    <p>Search any ticker or company for a live quote.</p>
                 </div>
 
                 <div className="market-controls">
@@ -28,77 +81,31 @@ const Market = () => {
                         <span className="search-icon"><Search size={18} aria-hidden="true" /></span>
                         <input
                             type="text"
-                            placeholder="Search assets, symbols, or sectors..."
+                            placeholder="Search ticker or company (e.g. AAPL, Tesla)…"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div className="filter-chips">
-                        {['All', 'Stock', 'Crypto', 'ETF'].map(t => (
-                            <button
-                                key={t}
-                                className={`chip ${filter === t ? 'active' : ''}`}
-                                onClick={() => setFilter(t)}
-                            >
-                                {t}
-                            </button>
-                        ))}
-                    </div>
                 </div>
 
-                <div className="market-grid">
-                    {filteredAssets.map(asset => (
-                        <div key={asset.symbol} className="asset-card">
-                            <div className="asset-header">
-                                <div className="asset-info">
-                                    <span className="asset-symbol">{asset.symbol}</span>
-                                    <span className="asset-name">{asset.name}</span>
-                                </div>
-                                <div className="asset-type-tag">{asset.type}</div>
-                            </div>
-
-                            <div className="asset-price-section">
-                                <div className="current-price">${asset.basePrice.toLocaleString()}</div>
-                                <div className="price-change-mock positive">+2.45%</div>
-                            </div>
-
-                            <div className="asset-mini-chart">
-                                <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-                                    <path
-                                        d="M0,35 L10,30 L20,32 L30,25 L40,28 L50,15 L60,18 L70,10 L80,12 L90,5 L100,8"
-                                        fill="none"
-                                        stroke="var(--color-primary-teal)"
-                                        strokeWidth="2"
-                                    />
-                                </svg>
-                            </div>
-
-                            <div className="asset-actions">
-                                <button className="primary-btn-sm" style={{ gridColumn: 'span 2' }}>Detailed Analysis</button>
-                            </div>
+                {isSearching && search.isLoading ? (
+                    <LoadingState label="Searching…" />
+                ) : isSearching && search.isError ? (
+                    <ErrorState message="Search failed. Please try again." onRetry={() => search.refetch()} />
+                ) : isSearching && assets.length === 0 ? (
+                    <EmptyState title="No matches" hint={`No symbols found for “${debounced}”.`} />
+                ) : (
+                    <>
+                        <div className="market-section-label">
+                            {isSearching ? `Results for “${debounced}”` : 'Watchlist'}
                         </div>
-                    ))}
-                </div>
-
-                <div className="trending-section">
-                    <h3>Trending Insights</h3>
-                    <div className="insight-grid">
-                        <div className="insight-card">
-                            <div className="insight-icon"><Flame size={24} aria-hidden="true" /></div>
-                            <div className="insight-content">
-                                <h4>Tech Momentum</h4>
-                                <p>SaaS sector seeing 15% increase in capital allocation this week.</p>
-                            </div>
+                        <div className="market-grid">
+                            {assets.map((a) => (
+                                <AssetCard key={a.symbol} symbol={a.symbol} description={a.description} />
+                            ))}
                         </div>
-                        <div className="insight-card">
-                            <div className="insight-icon"><Lightbulb size={24} aria-hidden="true" /></div>
-                            <div className="insight-content">
-                                <h4>AI Alpha</h4>
-                                <p>Our AI suggests AAPL is 12% undervalued relative to peer multiples.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    </>
+                )}
             </div>
         </div>
     )

@@ -72,6 +72,19 @@ builder.Services.AddPortfolioModule(builder.Configuration);
 
 builder.Services.AddRecommendationsModule(builder.Configuration);
 
+// Market data proxy (Finnhub). Key stays server-side; see appsettings "Finnhub".
+builder.Services.AddHttpClient<Project.Api.Market.FinnhubClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Finnhub:BaseUrl"] ?? "https://finnhub.io");
+    string? apiKey = builder.Configuration["Finnhub:ApiKey"];
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-Finnhub-Token", apiKey);
+    }
+});
+
+builder.Services.AddEndpoints(typeof(Program).Assembly);
+
 WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
