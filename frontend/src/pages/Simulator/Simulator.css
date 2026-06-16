@@ -260,6 +260,57 @@ select:focus {
     border-radius: var(--radius-full);
     font-weight: var(--font-weight-extrabold);
 }
+.stat-badge.positive { background: rgba(61, 220, 132, 0.12); color: var(--qw-buy); }
+.stat-badge.negative { background: rgba(255, 82, 71, 0.12); color: var(--qw-sell); }
+
+/* Per-asset projection breakdown */
+.projection-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: var(--space-2xl);
+}
+.projection-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.projection-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.projection-ticker {
+    font-family: var(--qw-font-mono);
+    font-weight: 600;
+    color: var(--qw-text);
+    min-width: 54px;
+}
+.projection-weight { font-size: var(--font-size-xs); color: var(--qw-text-faint); }
+.projection-change { font-family: var(--qw-font-mono); font-size: 12px; }
+.projection-change.up { color: var(--qw-buy); }
+.projection-change.down { color: var(--qw-sell); }
+.risk-tag {
+    margin-left: auto;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+.risk-low { background: rgba(61, 220, 132, 0.12); color: var(--qw-buy); }
+.risk-medium { background: rgba(255, 176, 0, 0.14); color: var(--qw-amber); }
+.risk-high { background: rgba(255, 82, 71, 0.14); color: var(--qw-sell); }
+.projection-bar-track {
+    height: 6px;
+    background: var(--qw-panel-2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.projection-bar { display: block; height: 100%; border-radius: 3px; }
+.projection-bar.up { background: var(--qw-buy); }
+.projection-bar.down { background: var(--qw-sell); }
+.projection-amount { font-family: var(--qw-font-mono); font-size: 11px; color: var(--qw-text-dim); }
 
 .stats-row {
     display: grid;
