@@ -13,6 +13,7 @@ public sealed record PortfolioResponse(
     int EtfsPercentage,
     int CashPercentage,
     string RiskProfile,
+    decimal InvestmentAmount,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

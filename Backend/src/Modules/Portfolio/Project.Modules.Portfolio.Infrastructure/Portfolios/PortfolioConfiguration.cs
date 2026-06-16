@@ -46,6 +46,10 @@ internal sealed class PortfolioConfiguration : IEntityTypeConfiguration<Domain.P
         builder.Property(p => p.RiskProfile)
             .IsRequired();
 
+        builder.Property(p => p.InvestmentAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(p => p.CreatedAt)
             .IsRequired();
 

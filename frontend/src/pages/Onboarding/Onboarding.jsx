@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Palmtree, Home, GraduationCap, Coins, Zap, CalendarDays, Target, Rocket, Scale, Shield } from 'lucide-react'
-import { createPortfolio } from '../../services/portfolioService'
+import { Palmtree, Home, GraduationCap, Coins, Zap, CalendarDays, Target, Rocket, Scale, Shield, Check } from 'lucide-react'
+import { usePortfolio } from '@/features/portfolio/usePortfolio'
+import { useSavePortfolio } from '@/features/portfolio/usePortfolioMutations'
+import { LoadingState, useToast } from '@/shared/ui'
 import './Onboarding.css'
 
 const steps = [
@@ -13,13 +15,21 @@ const steps = [
 
 const Onboarding = () => {
     const navigate = useNavigate()
+    const toast = useToast()
+    // Detect an existing portfolio so "Edit Profile" / "Retake Questionnaire"
+    // updates (PUT) instead of creating (POST → 409). 404 resolves to null.
+    const { data: existingPortfolio, isLoading: loadingExisting } = usePortfolio()
+    const savePortfolio = useSavePortfolio(existingPortfolio?.id)
+    const isEditing = !!existingPortfolio
+
     const [currentStep, setCurrentStep] = useState(1)
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [prefilled, setPrefilled] = useState(false)
     const [submitError, setSubmitError] = useState(null)
     const [formData, setFormData] = useState({
         // Step 1: Goals
         primaryGoal: '',
         timeHorizon: '',
+        investmentAmount: '',
 
         // Step 2: Risk Assessment
         riskTolerance: 50,
@@ -32,36 +42,43 @@ const Onboarding = () => {
         recommendedPortfolio: null
     })
 
-    const handleNext = async () => {
+    const handleNext = () => {
         if (currentStep < 4) {
             setCurrentStep(currentStep + 1)
-        } else {
-            // Step 4: Submit portfolio to backend then navigate
-            const portfolio = formData.recommendedPortfolio
-            if (!portfolio) return
-
-            setIsSubmitting(true)
-            setSubmitError(null)
-            try {
-                await createPortfolio({
-                    primaryGoal: formData.primaryGoal,
-                    timeHorizon: formData.timeHorizon,
-                    riskTolerance: formData.riskTolerance,
-                    marketReaction: formData.marketReaction,
-                    investmentExperience: formData.investmentExperience,
-                    stocksPercentage: portfolio.stocks,
-                    bondsPercentage: portfolio.bonds,
-                    etfsPercentage: portfolio.etfs,
-                    cashPercentage: portfolio.cash,
-                    riskProfile: portfolio.risk,
-                })
-                navigate('/dashboard')
-            } catch (err) {
-                setSubmitError(err.message || 'Failed to save your portfolio. Please try again.')
-            } finally {
-                setIsSubmitting(false)
-            }
+            return
         }
+
+        // Step 4: create or update the portfolio, then navigate.
+        const portfolio = formData.recommendedPortfolio
+        if (!portfolio) return
+
+        setSubmitError(null)
+        savePortfolio.mutate(
+            {
+                primaryGoal: formData.primaryGoal,
+                timeHorizon: formData.timeHorizon,
+                riskTolerance: formData.riskTolerance,
+                marketReaction: formData.marketReaction,
+                investmentExperience: formData.investmentExperience,
+                stocksPercentage: portfolio.stocks,
+                bondsPercentage: portfolio.bonds,
+                etfsPercentage: portfolio.etfs,
+                cashPercentage: portfolio.cash,
+                riskProfile: portfolio.risk,
+                investmentAmount: parseFloat(formData.investmentAmount) || 0,
+            },
+            {
+                onSuccess: () => {
+                    toast.success(isEditing ? 'Portfolio updated' : 'Portfolio created')
+                    navigate('/dashboard')
+                },
+                onError: (err) => {
+                    const message = err.message || 'Failed to save your portfolio. Please try again.'
+                    setSubmitError(message)
+                    toast.error(message)
+                },
+            }
+        )
     }
 
     const handleBack = () => {
@@ -108,6 +125,23 @@ const Onboarding = () => {
         return portfolio
     }
 
+    // Prefill the questionnaire from the existing portfolio (edit mode). Runs
+    // once when the portfolio first resolves so it never clobbers user edits.
+    React.useEffect(() => {
+        if (existingPortfolio && !prefilled) {
+            setFormData(prev => ({
+                ...prev,
+                primaryGoal: existingPortfolio.primaryGoal ?? '',
+                timeHorizon: existingPortfolio.timeHorizon ?? '',
+                investmentAmount: existingPortfolio.investmentAmount ? String(existingPortfolio.investmentAmount) : '',
+                riskTolerance: existingPortfolio.riskTolerance ?? 50,
+                marketReaction: existingPortfolio.marketReaction ?? '',
+                investmentExperience: existingPortfolio.investmentExperience ?? '',
+            }))
+            setPrefilled(true)
+        }
+    }, [existingPortfolio, prefilled])
+
     // Auto-generate portfolio when reaching step 4
     React.useEffect(() => {
         if (currentStep === 4 && !formData.recommendedPortfolio) {
@@ -119,7 +153,7 @@ const Onboarding = () => {
     const isStepComplete = () => {
         switch (currentStep) {
             case 1:
-                return formData.primaryGoal && formData.timeHorizon
+                return formData.primaryGoal && formData.timeHorizon && parseFloat(formData.investmentAmount) > 0
             case 2:
                 return formData.marketReaction
             case 3:
@@ -147,6 +181,16 @@ const Onboarding = () => {
     }
 
     const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100
+
+    // Wait for the existing-portfolio probe so edit mode prefills before the
+    // user starts answering (avoids a flash of empty selections).
+    if (loadingExisting) {
+        return (
+            <div className="onboarding-page">
+                <LoadingState label="Loading your profile…" />
+            </div>
+        )
+    }
 
     return (
         <div className="onboarding-page">
@@ -179,7 +223,7 @@ const Onboarding = () => {
                     {/* Navigation */}
                     <div className="onboarding-nav">
                         {currentStep > 1 && (
-                            <button className="nav-button secondary" onClick={handleBack} disabled={isSubmitting}>
+                            <button className="nav-button secondary" onClick={handleBack} disabled={savePortfolio.isPending}>
                                 Back
                             </button>
                         )}
@@ -191,9 +235,11 @@ const Onboarding = () => {
                         <button
                             className="nav-button primary"
                             onClick={handleNext}
-                            disabled={!isStepComplete() || isSubmitting}
+                            disabled={!isStepComplete() || savePortfolio.isPending}
                         >
-                            {currentStep === 4 ? (isSubmitting ? 'Saving...' : 'Complete Setup') : 'Continue'}
+                            {currentStep === 4
+                                ? (savePortfolio.isPending ? 'Saving…' : (isEditing ? 'Save Changes' : 'Complete Setup'))
+                                : 'Continue'}
                         </button>
                     </div>
                 </div>
@@ -241,6 +287,25 @@ const Step1Goals = ({ formData, onChange }) => {
                             <div className="option-description">{goal.description}</div>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            <div className="form-section">
+                <h3 className="form-section-title">How much are you planning to invest?</h3>
+                <p className="form-section-description">We'll use this to turn your AI recommendations into dollar amounts.</p>
+                <div className="invest-amount-field">
+                    <span className="invest-amount-prefix">$</span>
+                    <input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="100"
+                        placeholder="10,000"
+                        value={formData.investmentAmount}
+                        onChange={(e) => onChange('investmentAmount', e.target.value)}
+                        className="invest-amount-input"
+                        aria-label="Amount to invest in US dollars"
+                    />
                 </div>
             </div>
 
@@ -364,6 +429,21 @@ const Step3Preferences = ({ formData, onChange }) => {
 const Step4Portfolio = ({ formData }) => {
     const portfolio = formData.recommendedPortfolio || {}
 
+    // Same allocation palette as the Dashboard target-mix bar.
+    const allocation = [
+        { label: 'Stocks', value: portfolio.stocks, color: 'var(--qw-amber)' },
+        { label: 'Bonds', value: portfolio.bonds, color: 'var(--qw-amber-dim)' },
+        { label: 'ETFs', value: portfolio.etfs, color: 'var(--qw-text-dim)' },
+        { label: 'Cash', value: portfolio.cash, color: 'var(--qw-text-faint)' },
+    ].filter(a => a.value > 0)
+
+    const nextSteps = [
+        'Your portfolio is ready to go',
+        'AI will continuously monitor and optimize',
+        'Automatic rebalancing included',
+        'Real-time performance tracking',
+    ]
+
     return (
         <div className="onboarding-form">
             <div className="onboarding-header">
@@ -396,25 +476,33 @@ const Step4Portfolio = ({ formData }) => {
                         Asset Allocation
                     </div>
                     <div style={{ display: 'flex', height: '40px', borderRadius: '20px', overflow: 'hidden' }}>
-                        <div style={{ width: `${portfolio.stocks}%`, background: '#6C63FF' }}></div>
-                        <div style={{ width: `${portfolio.bonds}%`, background: '#00C9A7' }}></div>
-                        <div style={{ width: `${portfolio.etfs}%`, background: '#0A2463' }}></div>
-                        <div style={{ width: `${portfolio.cash}%`, background: 'rgba(255,255,255,0.3)' }}></div>
+                        {allocation.map(a => (
+                            <div key={a.label} style={{ width: `${a.value}%`, background: a.color }}></div>
+                        ))}
+                    </div>
+                    <div className="allocation-legend">
+                        {allocation.map(a => (
+                            <span key={a.label} className="allocation-legend-item">
+                                <i style={{ background: a.color }} />{a.label} {a.value}%
+                            </span>
+                        ))}
                     </div>
                 </div>
             </div>
 
             <div className="form-section">
                 <h3 className="form-section-title">What's Next?</h3>
-                <div style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-gray-700)', lineHeight: 1.7 }}>
-                    <p style={{ marginBottom: 'var(--space-md)' }}>
-                        ✓ Your portfolio is ready to go<br />
-                        ✓ AI will continuously monitor and optimize<br />
-                        ✓ Automatic rebalancing included<br />
-                        ✓ Real-time performance tracking
-                    </p>
-                    <p>Click "Complete Setup" to start investing with your personalized portfolio!</p>
-                </div>
+                <ul className="next-steps-list">
+                    {nextSteps.map(step => (
+                        <li key={step}>
+                            <Check size={16} strokeWidth={2} className="next-steps-check" aria-hidden="true" />
+                            {step}
+                        </li>
+                    ))}
+                </ul>
+                <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--color-gray-700)', lineHeight: 1.7 }}>
+                    Click "Complete Setup" to start investing with your personalized portfolio!
+                </p>
             </div>
         </div>
     )

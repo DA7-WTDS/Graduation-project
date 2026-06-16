@@ -20,6 +20,10 @@ public sealed class Portfolio : Entity
     public int CashPercentage { get; private set; }
     public RiskProfile RiskProfile { get; private set; }
 
+    /// <summary>The capital the user intends to invest, used to turn allocation
+    /// percentages into per-pick dollar amounts. Defaults to 0 until the user sets it.</summary>
+    public decimal InvestmentAmount { get; private set; }
+
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
@@ -34,7 +38,8 @@ public sealed class Portfolio : Entity
         int bondsPercentage,
         int etfsPercentage,
         int cashPercentage,
-        RiskProfile riskProfile)
+        RiskProfile riskProfile,
+        decimal investmentAmount = 0m)
     {
         var portfolio = new Portfolio
         {
@@ -50,6 +55,7 @@ public sealed class Portfolio : Entity
             EtfsPercentage = etfsPercentage,
             CashPercentage = cashPercentage,
             RiskProfile = riskProfile,
+            InvestmentAmount = investmentAmount,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -58,7 +64,7 @@ public sealed class Portfolio : Entity
         return portfolio;
     }
 
-    public void Update(string primaryGoal, string timeHorizon, int riskTolerance, string marketReaction, string investmentExperience, int stocksPercentage, int bondsPercentage, int etfsPercentage, int cashPercentage, RiskProfile riskProfile)
+    public void Update(string primaryGoal, string timeHorizon, int riskTolerance, string marketReaction, string investmentExperience, int stocksPercentage, int bondsPercentage, int etfsPercentage, int cashPercentage, RiskProfile riskProfile, decimal investmentAmount = 0m)
     {
         PrimaryGoal = primaryGoal;
         TimeHorizon = timeHorizon;
@@ -70,6 +76,7 @@ public sealed class Portfolio : Entity
         EtfsPercentage = etfsPercentage;
         CashPercentage = cashPercentage;
         RiskProfile = riskProfile;
+        InvestmentAmount = investmentAmount;
 
         UpdatedAt = DateTime.UtcNow;
     }

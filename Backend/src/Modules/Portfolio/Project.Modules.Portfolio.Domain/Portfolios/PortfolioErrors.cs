@@ -63,4 +63,9 @@ public static class PortfolioErrors
     public static Error InvalidRiskProfile =>
         new Error("Invalid risk profile. Must be Conservative, Moderate, or Aggressive.")
             .WithErrorType(ErrorType.Validation);
+
+    // Validation Errors - Investment Amount
+    public static Error InvalidInvestmentAmount(decimal value) =>
+        new Error($"Invalid investment amount '{value}'. Must be zero or greater.")
+            .WithErrorType(ErrorType.Validation);
 }

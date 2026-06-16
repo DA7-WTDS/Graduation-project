@@ -37,6 +37,7 @@ export interface Portfolio {
     etfsPercentage: number
     cashPercentage: number
     riskProfile: RiskProfile
+    investmentAmount: number
     createdAt: string
     updatedAt?: string | null
 }

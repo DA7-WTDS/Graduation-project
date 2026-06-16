@@ -28,7 +28,8 @@ internal sealed class CreatePortfolio : IEndpoint
                 request.BondsPercentage,
                 request.EtfsPercentage,
                 request.CashPercentage,
-                request.RiskProfile
+                request.RiskProfile,
+                request.InvestmentAmount
             ));
 
             return result.Match(
@@ -56,5 +57,6 @@ internal sealed class CreatePortfolio : IEndpoint
         int BondsPercentage,
         int EtfsPercentage,
         int CashPercentage,
-        string RiskProfile);
+        string RiskProfile,
+        decimal InvestmentAmount);
 }

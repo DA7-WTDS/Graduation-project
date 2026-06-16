@@ -31,7 +31,7 @@ public class UpdatePortfolioCommandHandlerTests
     {
         // Arrange
         var command = new UpdatePortfolioCommand(
-            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "Aggressive");
+            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "Aggressive", 10000m);
 
         _portfolioRepository.GetByIdAsync(command.Id, Arg.Any<CancellationToken>())
             .Returns((PortfolioEntity)null);
@@ -49,7 +49,7 @@ public class UpdatePortfolioCommandHandlerTests
     {
         // Arrange
         var command = new UpdatePortfolioCommand(
-            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "InvalidProfile");
+            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "InvalidProfile", 10000m);
 
         var existingPortfolio = PortfolioEntity.Create(
             Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, RiskProfile.Aggressive);
@@ -70,7 +70,7 @@ public class UpdatePortfolioCommandHandlerTests
     {
         // Arrange
         var command = new UpdatePortfolioCommand(
-            Guid.NewGuid(), "Value", "Short Term", 2, "Sell", "Beginner", 50, 30, 10, 10, "Conservative");
+            Guid.NewGuid(), "Value", "Short Term", 2, "Sell", "Beginner", 50, 30, 10, 10, "Conservative", 10000m);
 
         var existingPortfolio = PortfolioEntity.Create(
             Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, RiskProfile.Aggressive);

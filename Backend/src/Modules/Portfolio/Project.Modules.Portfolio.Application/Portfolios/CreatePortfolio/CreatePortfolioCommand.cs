@@ -13,4 +13,5 @@ public sealed record CreatePortfolioCommand(
     int BondsPercentage,
     int EtfsPercentage,
     int CashPercentage,
-    string RiskProfile) : ICommand<Guid>;
+    string RiskProfile,
+    decimal InvestmentAmount) : ICommand<Guid>;

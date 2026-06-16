@@ -31,7 +31,7 @@ public class CreatePortfolioCommandHandlerTests
     {
         // Arrange
         var command = new CreatePortfolioCommand(
-            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "Aggressive");
+            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "Aggressive", 10000m);
 
         var existingPortfolio = PortfolioEntity.Create(
             command.UserId, command.PrimaryGoal, command.TimeHorizon, command.RiskTolerance,
@@ -54,7 +54,7 @@ public class CreatePortfolioCommandHandlerTests
     {
         // Arrange
         var command = new CreatePortfolioCommand(
-            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "InvalidProfile");
+            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "InvalidProfile", 10000m);
 
         _portfolioRepository.GetByUserIdAsync(command.UserId, Arg.Any<CancellationToken>())
             .Returns((PortfolioEntity)null);
@@ -72,7 +72,7 @@ public class CreatePortfolioCommandHandlerTests
     {
         // Arrange
         var command = new CreatePortfolioCommand(
-            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "Aggressive");
+            Guid.NewGuid(), "Growth", "Long Term", 5, "Buy", "Expert", 80, 10, 5, 5, "Aggressive", 10000m);
 
         _portfolioRepository.GetByUserIdAsync(command.UserId, Arg.Any<CancellationToken>())
             .Returns((PortfolioEntity)null);

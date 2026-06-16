@@ -30,6 +30,7 @@ internal sealed class GetPortfolioQueryHandler(IPortfolioRepository portfolioRep
             portfolio.EtfsPercentage,
             portfolio.CashPercentage,
             portfolio.RiskProfile.ToString(),
+            portfolio.InvestmentAmount,
             portfolio.CreatedAt,
             portfolio.UpdatedAt
         ));

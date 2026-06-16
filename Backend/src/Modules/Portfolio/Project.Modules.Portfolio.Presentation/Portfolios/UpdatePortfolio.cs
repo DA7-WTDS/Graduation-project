@@ -26,7 +26,8 @@ internal sealed class UpdatePortfolio : IEndpoint
                 request.BondsPercentage,
                 request.EtfsPercentage,
                 request.CashPercentage,
-                request.RiskProfile
+                request.RiskProfile,
+                request.InvestmentAmount
             ));
 
             return result.Match(() => Results.NoContent(), ApiResults.Problem);
@@ -52,5 +53,6 @@ internal sealed class UpdatePortfolio : IEndpoint
         int BondsPercentage,
         int EtfsPercentage,
         int CashPercentage,
-        string RiskProfile);
+        string RiskProfile,
+        decimal InvestmentAmount);
 }

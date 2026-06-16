@@ -12,6 +12,7 @@ export interface PortfolioInput {
     etfsPercentage: number
     cashPercentage: number
     riskProfile: string
+    investmentAmount: number
 }
 
 /** GET /api/portfolios/me */

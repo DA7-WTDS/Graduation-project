@@ -24,7 +24,12 @@ internal sealed class UpdatePortfolioCommandHandler(
         {
             return Result.Fail(InvalidRiskProfile);
         }
-        
+
+        if (request.InvestmentAmount < 0)
+        {
+            return Result.Fail(InvalidInvestmentAmount(request.InvestmentAmount));
+        }
+
         portfolio.Update(
             request.PrimaryGoal,
             request.TimeHorizon,
@@ -35,7 +40,8 @@ internal sealed class UpdatePortfolioCommandHandler(
             request.BondsPercentage,
             request.EtfsPercentage,
             request.CashPercentage,
-            riskProfile
+            riskProfile,
+            request.InvestmentAmount
         );
         
         portfolioRepository.Update(portfolio, cancellationToken);

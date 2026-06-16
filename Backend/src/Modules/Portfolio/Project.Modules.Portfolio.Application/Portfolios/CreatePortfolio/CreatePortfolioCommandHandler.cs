@@ -25,6 +25,11 @@ internal sealed class CreatePortfolioCommandHandler(
             return Result.Fail(InvalidRiskProfile);
         }
 
+        if (request.InvestmentAmount < 0)
+        {
+            return Result.Fail(InvalidInvestmentAmount(request.InvestmentAmount));
+        }
+
         var portfolio = Domain.Portfolios.Portfolio.Create(
             request.UserId,
             request.PrimaryGoal,
@@ -36,7 +41,8 @@ internal sealed class CreatePortfolioCommandHandler(
             request.BondsPercentage,
             request.EtfsPercentage,
             request.CashPercentage,
-            riskProfile
+            riskProfile,
+            request.InvestmentAmount
         ); // All fields populated at creation — domain bug fixed
 
         await portfolioRepository.AddAsync(portfolio, cancellationToken);

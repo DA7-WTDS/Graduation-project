@@ -13,4 +13,5 @@ public sealed record UpdatePortfolioCommand(
     int BondsPercentage,
     int EtfsPercentage,
     int CashPercentage,
-    string RiskProfile) : ICommand;
+    string RiskProfile,
+    decimal InvestmentAmount) : ICommand;
