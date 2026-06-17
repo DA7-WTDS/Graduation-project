@@ -15,6 +15,8 @@ using Project.Common.Application.Messaging;
 using Project.Common.Infrastructure.Outbox;
 using Project.Common.Application.EventBus;
 using Project.Modules.Users.Infrastructure.Inbox;
+using Project.Modules.Users.Infrastructure.PublicApi;
+using Project.Modules.Users.PublicApi;
 using MassTransit;
 using Project.Common.Infrastructure;
 
@@ -56,6 +58,8 @@ public static class UsersModule
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<UsersDbContext>());
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        services.AddScoped<IUsersApi, UsersApi>();
 
         services.Configure<JwtSettings>(
             configuration.GetSection("Authentication"));

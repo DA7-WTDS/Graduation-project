@@ -24,4 +24,22 @@ internal sealed class PortfolioApi(PortfolioDbContext dbContext) : IPortfolioApi
             portfolio.CashPercentage
         );
     }
+
+    public async Task<IReadOnlyList<PortfolioResponse>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var portfolios = await dbContext.Portfolios
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return portfolios
+            .Select(p => new PortfolioResponse(
+                p.Id,
+                p.UserId,
+                p.RiskProfile.ToString(),
+                p.StocksPercentage,
+                p.BondsPercentage,
+                p.EtfsPercentage,
+                p.CashPercentage))
+            .ToList();
+    }
 }
