@@ -84,7 +84,7 @@ internal sealed class GetRecommendationsQueryHandler(
         }
 
         var response = new RecommendationResponse(parsed.Summary, parsed.Picks, run.GeneratedAt);
-        await cacheService.SetAsync(cacheKey, response, TimeSpan.FromHours(12), cancellationToken);
+        await cacheService.SetAsync(cacheKey, response, TimeSpan.FromHours(24), cancellationToken);
 
         // Persist this run's BUY/HOLD picks as the user's holdings for the next run.
         var newHoldings = parsed.Picks
