@@ -467,3 +467,6 @@ rabbitmq_data
 # Pipeline — training notebooks and old backup artifacts (use separate storage)
 Pipeline/models/Hybrid_Model.ipynb
 Pipeline/models/_backup_old_model/
+
+# Pipeline — runtime copy of the latest /api/score response (regenerated each run)
+Pipeline/last_score_output.json

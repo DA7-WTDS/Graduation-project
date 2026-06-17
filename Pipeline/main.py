@@ -967,8 +967,18 @@ def score():
         for r in enriched
     ]
 
-    return ScoreResponse(
+    response = ScoreResponse(
         generated_at = datetime.now(timezone.utc).isoformat(),
         count        = len(records),
         records      = records,
     )
+
+    # Persist a copy of the exact response JSON beside this file (overwritten each run).
+    try:
+        out_path = BASE_DIR / "last_score_output.json"
+        out_path.write_text(response.model_dump_json(indent=2), encoding="utf-8")
+        log.info(f"Wrote score output copy -> {out_path}")
+    except Exception as e:
+        log.warning(f"Failed to write score output copy: {e}")
+
+    return response
