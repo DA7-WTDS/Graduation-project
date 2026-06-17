@@ -15,7 +15,7 @@ const fmtUSD = (n: number) =>
  * allocation % into a dollar figure.
  */
 export function RecommendationsPanel() {
-    const { data, isLoading, isError, error, refetch, isFetching } = useRecommendations()
+    const { data, isLoading, isError, error, refetch } = useRecommendations()
     const { data: portfolio } = usePortfolio()
     const noRun = error instanceof ApiError && error.status === 404
 
@@ -25,14 +25,9 @@ export function RecommendationsPanel() {
         <div className="recs">
             <div className="recs-head">
                 <span className="recs-title">AI Recommendations</span>
-                <button
-                    type="button"
-                    className="recs-refresh"
-                    onClick={() => refetch()}
-                    disabled={isFetching}
-                >
-                    {isFetching ? 'Refreshing…' : 'Refresh'}
-                </button>
+                <span className="recs-cadence" title="Regenerated automatically each day from the latest model run">
+                    Updates daily
+                </span>
             </div>
 
             {isLoading ? (

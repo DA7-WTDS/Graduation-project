@@ -16,14 +16,13 @@
     text-transform: uppercase;
     color: var(--qw-text-faint);
 }
-.recs-refresh {
+.recs-cadence {
     font-family: var(--qw-font-mono);
     font-size: 11px;
-    color: var(--qw-amber);
-    transition: color var(--transition-fast);
+    letter-spacing: 0.5px;
+    color: var(--qw-text-faint);
+    cursor: default;
 }
-.recs-refresh:hover:not(:disabled) { color: #ffc23a; }
-.recs-refresh:disabled { color: var(--qw-text-faint); cursor: default; }
 
 .recs-summary {
     font-size: var(--qw-fs-sm);
