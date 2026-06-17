@@ -14,6 +14,11 @@ using HealthChecks.UI.Client;
 using MassTransit;
 using Project.Modules.Notifications.Infrastructure;
 
+// Load secrets from a local .env (searched up the directory tree) into the
+// process environment BEFORE configuration is built, so AddEnvironmentVariables
+// picks them up. No-op in environments that don't ship a .env (use real env vars).
+DotNetEnv.Env.TraversePath().Load();
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();

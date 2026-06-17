@@ -28,16 +28,14 @@ docker compose up -d postgres redis rabbitmq mailpit
 
 ## 2. Backend → http://localhost:5000  *(terminal 2)*
 
+**First-time setup:** copy `.env.example` to `.env` (repo root) and fill in the secrets — JWT key, Gemini, Finnhub, ingest key, DB/RabbitMQ. `appsettings.json` no longer contains any secrets; the backend loads `.env` at startup via DotNetEnv. Generate a JWT key with `openssl rand -base64 64`.
+
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = "Development"
 dotnet run --project Backend/src/API/Project.Api
 ```
 
-The Finnhub key (for the Market proxy) is read from the `Finnhub__ApiKey` environment variable — it is **not** stored in `appsettings.json`. A persistent user env var is set on the dev machine, so a fresh terminal picks it up automatically. If it doesn't, set it first:
-
-```powershell
-$env:Finnhub__ApiKey = "<your-finnhub-key>"
-```
+Run from the repo root so the `.env` is found (DotNetEnv searches up the tree). No need to set `Finnhub__ApiKey` or any other secret inline — they all come from `.env`.
 
 ---
 
