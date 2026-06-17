@@ -1,3 +1,0 @@
-namespace Project.Modules.Portfolio.Infrastructure.PublicApi;
-
-// TODO: Implement IPortfolioApi for cross-module communication
