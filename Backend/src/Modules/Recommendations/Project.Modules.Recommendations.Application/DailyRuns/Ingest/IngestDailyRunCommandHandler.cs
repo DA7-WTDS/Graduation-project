@@ -19,8 +19,18 @@ internal sealed class IngestDailyRunCommandHandler(
             return Result.Fail(InvalidIngestPayload("no records provided"));
         }
 
+        // The pipeline sends generated_at with an offset (e.g. +00:00), which
+        // deserializes as DateTimeKind.Local. PostgreSQL 'timestamp with time zone'
+        // requires UTC, so normalize before querying/persisting.
+        DateTime generatedAtUtc = request.GeneratedAt.Kind switch
+        {
+            DateTimeKind.Utc => request.GeneratedAt,
+            DateTimeKind.Local => request.GeneratedAt.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(request.GeneratedAt, DateTimeKind.Utc),
+        };
+
         // Idempotent: a retried run with the same timestamp returns the existing run.
-        DailyRun? existing = await dailyRunRepository.GetByGeneratedAtAsync(request.GeneratedAt, cancellationToken);
+        DailyRun? existing = await dailyRunRepository.GetByGeneratedAtAsync(generatedAtUtc, cancellationToken);
         if (existing is not null)
         {
             return Result.Ok(existing.Id);
@@ -43,7 +53,7 @@ internal sealed class IngestDailyRunCommandHandler(
             r.RiskFlags,
             r.Rationale));
 
-        DailyRun run = DailyRun.Create(request.GeneratedAt, predictions);
+        DailyRun run = DailyRun.Create(generatedAtUtc, predictions);
 
         await dailyRunRepository.AddAsync(run, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
