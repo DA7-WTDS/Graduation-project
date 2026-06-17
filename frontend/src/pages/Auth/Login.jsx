@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { hasCompletedQuestionnaire } from '../../services/portfolioService'
+import { fetchMyPortfolio } from '@/features/portfolio/portfolioApi'
+import { ApiError } from '@/shared/api/client'
 import './Auth.css'
 
 const Login = () => {
@@ -41,15 +42,18 @@ const Login = () => {
                 localStorage.removeItem('qw_remember_email')
             }
 
-            // Check if user has completed questionnaire
-            const hasQuestionnaire = await hasCompletedQuestionnaire()
-            
-            if (!hasQuestionnaire) {
-                // First-time user - redirect to onboarding
-                navigate('/onboarding')
-            } else {
-                // Existing user - redirect to dashboard
+            // Route by whether the user has a portfolio. Only a real 404
+            // ("no portfolio yet") sends them to onboarding; any other error
+            // shouldn't misroute an existing user, so fall through to dashboard.
+            try {
+                await fetchMyPortfolio()
                 navigate('/dashboard')
+            } catch (portfolioErr) {
+                if (portfolioErr instanceof ApiError && portfolioErr.status === 404) {
+                    navigate('/onboarding')
+                } else {
+                    navigate('/dashboard')
+                }
             }
         } catch (err) {
             console.error('Login error:', err)

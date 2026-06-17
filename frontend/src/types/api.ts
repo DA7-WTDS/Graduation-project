@@ -52,7 +52,7 @@ export interface UserProfile {
     createdAt?: string
 }
 
-export type NotificationKind = 'Info' | 'Alert' | 'System' | 'Recommendation' | (string & {})
+export type NotificationKind = 'Info' | 'Warning' | 'Success' | (string & {})
 
 /** GET /api/notifications */
 export interface AppNotification {

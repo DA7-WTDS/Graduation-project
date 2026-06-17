@@ -64,40 +64,6 @@
     color: var(--qw-text-dim);
 }
 
-/* Allocation strip */
-.dash-alloc-bar {
-    display: flex;
-    height: 14px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    background: var(--qw-panel-2);
-}
-.dash-alloc-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-top: 10px;
-}
-.dash-alloc-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--qw-font-mono);
-    font-size: 11px;
-    color: var(--qw-text-dim);
-}
-.dash-alloc-item i {
-    width: 9px;
-    height: 9px;
-    border-radius: 2px;
-    display: inline-block;
-}
-.dash-alloc-amt {
-    font-style: normal;
-    color: var(--qw-text-faint);
-    margin-left: 4px;
-}
-
 /* Main grid: recommendations + activity */
 .dash-grid {
     display: grid;

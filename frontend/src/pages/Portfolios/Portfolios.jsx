@@ -1,45 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FolderOpen, AlertTriangle } from 'lucide-react'
-import { getMyPortfolio } from '../../services/portfolioService'
+import { usePortfolio } from '@/features/portfolio/usePortfolio'
 import { TargetMix } from '@/features/recommendations/TargetMix'
 import './Portfolios.css'
 
 const riskColor = (profile) => {
     switch (profile?.toLowerCase()) {
-        case 'conservative': return 'var(--color-primary-teal)'
-        case 'moderate':     return '#f59e0b'
-        case 'aggressive':   return '#ef4444'
-        default:             return 'var(--color-primary-purple)'
+        case 'conservative': return 'var(--qw-buy)'
+        case 'moderate':     return 'var(--qw-amber)'
+        case 'aggressive':   return 'var(--qw-sell)'
+        default:             return 'var(--qw-text-dim)'
     }
 }
 
 const Portfolios = () => {
     const navigate = useNavigate()
-    const [portfolio, setPortfolio] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-
-    useEffect(() => {
-        fetchPortfolio()
-    }, [])
-
-    const fetchPortfolio = async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            const data = await getMyPortfolio()
-            setPortfolio(data)
-        } catch (err) {
-            if (err.status === 404) {
-                setPortfolio(null)
-            } else {
-                setError('Failed to load portfolio data.')
-            }
-        } finally {
-            setLoading(false)
-        }
-    }
+    // 404 ("no portfolio yet") resolves to null; isError is only a real failure.
+    const { data: portfolio, isLoading, isError, refetch } = usePortfolio()
 
     return (
         <div className="portfolios-page">
@@ -49,16 +27,16 @@ const Portfolios = () => {
                     <p>Your risk profile and target investment mix.</p>
                 </div>
 
-                {loading ? (
+                {isLoading ? (
                     <div className="portfolios-loading">
                         <div className="loading-spinner"></div>
                         <p>Loading your portfolio…</p>
                     </div>
-                ) : error ? (
+                ) : isError ? (
                     <div className="portfolios-error">
                         <div className="icon"><AlertTriangle size={40} strokeWidth={1.5} aria-hidden="true" /></div>
-                        <p>{error}</p>
-                        <button onClick={fetchPortfolio} className="retry-btn">Try Again</button>
+                        <p>Failed to load portfolio data.</p>
+                        <button onClick={() => refetch()} className="retry-btn">Try Again</button>
                     </div>
                 ) : portfolio ? (
                     <div className="portfolios-content">
