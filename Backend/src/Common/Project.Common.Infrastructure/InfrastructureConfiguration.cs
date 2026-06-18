@@ -104,26 +104,50 @@ public static class InfrastructureConfiguration
         ILoggingBuilder logging,
         InfrastructureOptions options)
     {
+        // The console exporters are a local-development aid. Emitting them in any other
+        // environment (production, or the integration-test host) just floods the output,
+        // so they are gated to the Development environment only.
+        bool emitToConsole = string.Equals(
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            "Development",
+            StringComparison.OrdinalIgnoreCase);
+
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
                 .AddService(
                     options.OpenTelemetryOptions.ServiceName,
                     serviceVersion: options.OpenTelemetryOptions.Version)
                 .AddAttributes(options.OpenTelemetryOptions.ServiceAttributes))
-            .WithTracing(traceProvider => traceProvider
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddSource(MassTransit.Logging.DiagnosticHeaders.DefaultListenerName)
-                .SetSampler(new TraceIdRatioBasedSampler(0.1))
-                .AddConsoleExporter())
-            .WithMetrics(meterProvider => meterProvider
-                .AddAspNetCoreInstrumentation()
-                .AddConsoleExporter());
+            .WithTracing(traceProvider =>
+            {
+                traceProvider
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddSource(MassTransit.Logging.DiagnosticHeaders.DefaultListenerName)
+                    .SetSampler(new TraceIdRatioBasedSampler(0.1));
+
+                if (emitToConsole)
+                {
+                    traceProvider.AddConsoleExporter();
+                }
+            })
+            .WithMetrics(meterProvider =>
+            {
+                meterProvider.AddAspNetCoreInstrumentation();
+
+                if (emitToConsole)
+                {
+                    meterProvider.AddConsoleExporter();
+                }
+            });
 
         logging.ClearProviders();
         logging.AddOpenTelemetry(o =>
         {
-            o.AddConsoleExporter();
+            if (emitToConsole)
+            {
+                o.AddConsoleExporter();
+            }
             o.IncludeScopes = true;
             o.IncludeFormattedMessage = true;
         });
