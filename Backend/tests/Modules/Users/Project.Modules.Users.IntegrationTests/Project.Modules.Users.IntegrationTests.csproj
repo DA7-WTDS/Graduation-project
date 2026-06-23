@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -24,8 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Modules\Users\Project.Modules.Users.Infrastructure\Project.Modules.Users.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\src\API\Project.Api\Project.Api.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Modules\Users\Project.Modules.Users.Infrastructure\Project.Modules.Users.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Modules\Portfolio\Project.Modules.Portfolio.Infrastructure\Project.Modules.Portfolio.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Modules\Recommendations\Project.Modules.Recommendations.Infrastructure\Project.Modules.Recommendations.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Modules\Notifications\Project.Modules.Notifications.Infrastructure\Project.Modules.Notifications.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
