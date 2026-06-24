@@ -585,6 +585,24 @@ layout: default
 layout: default
 ---
 
+<div class="qw-fig">
+  <div class="cap">Design · Use-Case Diagram</div>
+  <div class="imgwrap"><img src="/use-case.png" alt="QuantWise use-case diagram" /></div>
+</div>
+
+---
+layout: default
+---
+
+<div class="qw-fig">
+  <div class="cap">Design · Sequence — Login (JWT)</div>
+  <div class="imgwrap"><img src="/seq-login.png" alt="Login sequence diagram" /></div>
+</div>
+
+---
+layout: default
+---
+
 <div class="qw">
   <p class="qw-kicker">System Process · 1 / 4</p>
   <h1 class="qw-title">Phase 1 — Data Acquisition</h1>

@@ -390,3 +390,9 @@
 .qw-tc-table td { font-size: 12px; color: var(--qw-body); padding: 6px 10px; border-bottom: 1px solid #F1EEE8; }
 .qw-tc-table td.id { font-family: 'IBM Plex Mono', monospace; color: var(--qw-bronze); font-weight: 600; white-space: nowrap; }
 .qw-tc-pass { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 700; color: #1F8A4C; background: rgba(61,220,132,0.16); padding: 2px 8px; border-radius: 5px; }
+
+/* ===== raw figure slides (diagrams shown as-is, unstyled) ===== */
+.qw-fig { position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFFFFF; padding: 28px 36px 22px; }
+.qw-fig .cap { font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; color: var(--qw-bronze); margin-bottom: 14px; flex-shrink: 0; }
+.qw-fig .imgwrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.qw-fig .imgwrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
