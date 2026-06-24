@@ -27,7 +27,6 @@ left to right direction
 skinparam packageStyle rectangle
 
 actor "Retail User" as User
-actor "Administrator" as Admin
 actor "FastAPI Pipeline" as Pipeline
 actor "Google Gemini API" as Gemini
 
@@ -57,12 +56,6 @@ rectangle "QuantWise Platform" {
         usecase "Mark All Read" as UC_MarkAllRead
         usecase "Trigger Test Notification" as UC_TestNotification
     }
-    
-    package "Admin Services" {
-        usecase "Manage Users" as UC_ManageUsers
-        usecase "View Audit Logs" as UC_ViewAudit
-        usecase "Configure System Parameters" as UC_ConfigParams
-    }
 }
 
 User --> UC_Register
@@ -80,10 +73,6 @@ User --> UC_MarkRead
 User --> UC_MarkAllRead
 User --> UC_TestNotification
 
-Admin --> UC_ManageUsers
-Admin --> UC_ViewAudit
-Admin --> UC_ConfigParams
-
 UC_ViewRecs ..> UC_PersonalizeRecs : <<include>>
 UC_PersonalizeRecs ..> Gemini : <<use>>
 
@@ -96,7 +85,6 @@ Pipeline --> UC_IngestResults
 flowchart LR
     %% Actors
     User["  o  \n /|\\ \n / \\ \nUser"]
-    Admin["  o  \n /|\\ \n / \\ \nAdmin"]
     Pipeline["[FastAPI Pipeline]"]
     Gemini["[Google Gemini API]"]
 
@@ -128,12 +116,6 @@ flowchart LR
             UC_MarkAllRead(["Mark All Read"])
             UC_TestNotification(["Trigger Test Notification"])
         end
-
-        subgraph AdminModule["Admin Management Module"]
-            UC_ManageUsers(["Manage Users"])
-            UC_ViewAudit(["View Audit Logs"])
-            UC_ConfigParams(["Configure System Parameters"])
-        end
     end
 
     %% User associations
@@ -150,11 +132,6 @@ flowchart LR
     User --> UC_MarkAllRead
     User --> UC_TestNotification
 
-    %% Admin associations
-    Admin --> UC_ManageUsers
-    Admin --> UC_ViewAudit
-    Admin --> UC_ConfigParams
-
     %% System and Includes
     Pipeline --> UC_IngestResults
     UC_ViewRecs -.->|"<<include>>"| UC_PersonalizeRecs
@@ -165,8 +142,8 @@ flowchart LR
     classDef usecase fill:#181D24,stroke:#3DDC84,stroke-width:1.5px,color:#E8EAED;
     classDef boundary fill:#0B0E11,stroke:#64A0FF,stroke-width:2px,color:#E8EAED;
 
-    class User,Admin,Pipeline,Gemini actor;
-    class UC_Register,UC_Login,UC_Profile,UC_CreatePortfolio,UC_ViewPortfolio,UC_UpdatePortfolio,UC_ViewRecs,UC_PersonalizeRecs,UC_ViewPredictions,UC_IngestResults,UC_ViewNotifications,UC_MarkRead,UC_MarkAllRead,UC_TestNotification,UC_ManageUsers,UC_ViewAudit,UC_ConfigParams usecase;
+    class User,Pipeline,Gemini actor;
+    class UC_Register,UC_Login,UC_Profile,UC_CreatePortfolio,UC_ViewPortfolio,UC_UpdatePortfolio,UC_ViewRecs,UC_PersonalizeRecs,UC_ViewPredictions,UC_IngestResults,UC_ViewNotifications,UC_MarkRead,UC_MarkAllRead,UC_TestNotification usecase;
     class QuantWise boundary;
 ```
 

@@ -8,7 +8,6 @@ A UML Use Case Diagram mapping the actors, system boundary, and implemented use 
 flowchart LR
     %% Actors
     User["  o  \n /|\\ \n / \\ \nUser"]
-    Admin["  o  \n /|\\ \n / \\ \nAdmin"]
     Pipeline["[FastAPI Pipeline]"]
     Gemini["[Google Gemini API]"]
 
@@ -40,12 +39,6 @@ flowchart LR
             UC_MarkAllRead(["Mark All Read"])
             UC_TestNotification(["Trigger Test Notification"])
         end
-
-        subgraph AdminModule["Admin Management Module"]
-            UC_ManageUsers(["Manage Users"])
-            UC_ViewAudit(["View Audit Logs"])
-            UC_ConfigParams(["Configure System Parameters"])
-        end
     end
 
     %% User associations
@@ -62,11 +55,6 @@ flowchart LR
     User --> UC_MarkAllRead
     User --> UC_TestNotification
 
-    %% Admin associations
-    Admin --> UC_ManageUsers
-    Admin --> UC_ViewAudit
-    Admin --> UC_ConfigParams
-
     %% System and Includes
     Pipeline --> UC_IngestResults
     UC_ViewRecs -.->|"<<include>>"| UC_PersonalizeRecs
@@ -77,8 +65,8 @@ flowchart LR
     classDef usecase fill:#181D24,stroke:#3DDC84,stroke-width:1.5px,color:#E8EAED;
     classDef boundary fill:#0B0E11,stroke:#64A0FF,stroke-width:2px,color:#E8EAED;
 
-    class User,Admin,Pipeline,Gemini actor;
-    class UC_Register,UC_Login,UC_Profile,UC_CreatePortfolio,UC_ViewPortfolio,UC_UpdatePortfolio,UC_ViewRecs,UC_PersonalizeRecs,UC_ViewPredictions,UC_IngestResults,UC_ViewNotifications,UC_MarkRead,UC_MarkAllRead,UC_TestNotification,UC_ManageUsers,UC_ViewAudit,UC_ConfigParams usecase;
+    class User,Pipeline,Gemini actor;
+    class UC_Register,UC_Login,UC_Profile,UC_CreatePortfolio,UC_ViewPortfolio,UC_UpdatePortfolio,UC_ViewRecs,UC_PersonalizeRecs,UC_ViewPredictions,UC_IngestResults,UC_ViewNotifications,UC_MarkRead,UC_MarkAllRead,UC_TestNotification usecase;
     class QuantWise boundary;
 ```
 
@@ -88,7 +76,6 @@ flowchart LR
 
 ### Actors
 * **Retail User (Primary Actor)**: Individual investor utilizing the platform to onboarding, construct portfolios, and obtain daily risk-tailored buy/sell advisory.
-* **Administrator (Primary Actor)**: Backend manager handling user accounts, system configuration thresholds, and reviewing operational logs.
 * **FastAPI Pipeline (System Actor)**: Background ML processing system that executes price time-series scoring, sentiment NLP, and risk grading, pushing daily results to the API.
 * **Google Gemini API (System Actor)**: External generative language model serving as a constrained synthesizer to personalize output text signals based on user-specific portfolio criteria.
 
@@ -112,8 +99,3 @@ flowchart LR
 * **View Notifications**: Fetches user-specific inbox alerts.
 * **Mark Notification as Read / Mark All Read**: Updates target notification status properties.
 * **Trigger Test Notification**: Internal testing helper to verify transactional notification flows.
-
-### 5. Admin Management
-* **Manage Users**: Review, disable, or modify user profile scopes.
-* **View Audit Logs**: Inspect system activity and database logs.
-* **Configure System Parameters**: Fine-tune global threshold variables.
