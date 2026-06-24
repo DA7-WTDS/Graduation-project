@@ -191,19 +191,6 @@ const Signup = () => {
                         </button>
                     </form>
 
-                    <div className="auth-divider">
-                        <span className="auth-divider-text">or sign up with</span>
-                    </div>
-
-                    <div className="auth-social">
-                        <button className="auth-social-button">
-                            <span>G</span> Google
-                        </button>
-                        <button className="auth-social-button">
-                            <span>f</span> Facebook
-                        </button>
-                    </div>
-
                     <div className="auth-footer">
                         Already have an account? <Link to="/login" className="form-link">Sign in</Link>
                     </div>

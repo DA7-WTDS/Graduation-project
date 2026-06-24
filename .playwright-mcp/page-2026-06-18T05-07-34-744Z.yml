@@ -1,0 +1,61 @@
+- generic [ref=e2]:
+  - generic [ref=e8]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e9]:
+      - link "QUANTWISE" [ref=e10] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e11]:
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e13] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e14] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e15] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e16]:
+        - button "Notifications (1 unread)" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: "1"
+        - button "SD" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - heading "My Portfolio" [level=1] [ref=e29]
+          - paragraph [ref=e30]: Your risk profile and target investment mix.
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - generic [ref=e33]: Moderate
+            - generic [ref=e34]:
+              - generic [ref=e35]:
+                - text: "Goal:"
+                - strong [ref=e36]: wealth
+              - generic [ref=e37]:
+                - text: "Horizon:"
+                - strong [ref=e38]: long
+              - generic [ref=e39]:
+                - text: "Experience:"
+                - strong [ref=e40]: medium
+              - generic [ref=e41]:
+                - text: "Risk Tolerance:"
+                - strong [ref=e42]: 50%
+            - paragraph [ref=e43]:
+              - text: "Market dip reaction:"
+              - emphasis [ref=e44]: moderate
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]: Target Mix
+              - generic [ref=e49]: Investing $10,000
+            - generic [ref=e53]:
+              - generic [ref=e54]:
+                - text: AAPL 50%
+                - emphasis [ref=e56]: $5,000
+              - generic [ref=e57]:
+                - text: MSFT 50%
+                - emphasis [ref=e59]: $5,000
+          - generic [ref=e60]:
+            - generic [ref=e61]: Created June 18, 2026
+            - button "Retake Questionnaire" [ref=e62] [cursor=pointer]
+  - region "Notifications"

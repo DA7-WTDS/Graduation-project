@@ -1,0 +1,62 @@
+- generic [ref=e2]:
+  - generic [ref=e219]:
+    - generic [ref=e221]:
+      - generic [ref=e223]:
+        - generic [ref=e224]: "1"
+        - generic [ref=e225]: Goals
+      - generic [ref=e226]:
+        - generic [ref=e227]: "2"
+        - generic [ref=e228]: Risk
+      - generic [ref=e229]:
+        - generic [ref=e230]: "3"
+        - generic [ref=e231]: Preferences
+      - generic [ref=e232]:
+        - generic [ref=e233]: "4"
+        - generic [ref=e234]: Portfolio
+    - generic [ref=e235]:
+      - generic [ref=e236]:
+        - generic [ref=e237]:
+          - heading "Let's Start with Your Goals" [level=2] [ref=e238]
+          - paragraph [ref=e239]: Understanding your financial objectives helps us create the perfect portfolio for you
+        - generic [ref=e240]:
+          - heading "What's your primary investment goal?" [level=3] [ref=e241]
+          - generic [ref=e242]:
+            - generic [ref=e243] [cursor=pointer]:
+              - img [ref=e245]
+              - generic [ref=e250]: Retirement
+              - generic [ref=e251]: Build wealth for your golden years
+            - generic [ref=e252] [cursor=pointer]:
+              - img [ref=e254]
+              - generic [ref=e257]: Buy Property
+              - generic [ref=e258]: Save for a down payment
+            - generic [ref=e259] [cursor=pointer]:
+              - img [ref=e261]
+              - generic [ref=e264]: Education
+              - generic [ref=e265]: Fund education expenses
+            - generic [ref=e266] [cursor=pointer]:
+              - img [ref=e268]
+              - generic [ref=e273]: Build Wealth
+              - generic [ref=e274]: Long-term wealth accumulation
+        - generic [ref=e275]:
+          - heading "How much are you planning to invest?" [level=3] [ref=e276]
+          - paragraph [ref=e277]: We'll use this to turn your AI recommendations into dollar amounts.
+          - generic [ref=e278]:
+            - generic [ref=e279]: $
+            - spinbutton "Amount to invest in US dollars" [ref=e280]: "10000"
+        - generic [ref=e281]:
+          - heading "What's your investment timeline?" [level=3] [ref=e282]
+          - generic [ref=e283]:
+            - generic [ref=e284] [cursor=pointer]:
+              - img [ref=e286]
+              - generic [ref=e288]: 6 Months
+              - generic [ref=e289]: Very short-term goals
+            - generic [ref=e290] [cursor=pointer]:
+              - img [ref=e292]
+              - generic [ref=e294]: 1-2 Years
+              - generic [ref=e295]: Medium-term planning
+            - generic [ref=e296] [cursor=pointer]:
+              - img [ref=e298]
+              - generic [ref=e302]: 3+ Years
+              - generic [ref=e303]: Long-term investing
+      - button "Continue" [ref=e305] [cursor=pointer]
+  - region "Notifications"

@@ -1,0 +1,59 @@
+- generic [ref=e2]:
+  - generic [ref=e8]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e9]:
+      - link "QUANTWISE" [ref=e10] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e11]:
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e13] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e14] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e15] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e16]:
+        - button "Notifications (1 unread)" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: "1"
+        - button "SD" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - generic [ref=e29]: Live · Finnhub
+          - heading "Market Hub" [level=1] [ref=e30]
+          - paragraph [ref=e31]: Search any ticker or company for a live quote.
+        - generic [ref=e33]:
+          - img [ref=e35]
+          - textbox "Search ticker or company (e.g. AAPL, Tesla)…" [active] [ref=e38]: tesla
+        - generic [ref=e209]: Results for “tesla”
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - generic [ref=e213]:
+              - generic [ref=e214]: TSLA
+              - generic [ref=e215]: Tesla Inc
+            - generic [ref=e216]:
+              - generic [ref=e217]: $396.38
+              - generic [ref=e218]: ▼ $8.28 (-2.05%)
+            - generic [ref=e219]:
+              - generic [ref=e220]:
+                - generic [ref=e221]: Open
+                - generic [ref=e222]: $401.53
+              - generic [ref=e223]:
+                - generic [ref=e224]: High
+                - generic [ref=e225]: $405.94
+              - generic [ref=e226]:
+                - generic [ref=e227]: Low
+                - generic [ref=e228]: $393.76
+              - generic [ref=e229]:
+                - generic [ref=e230]: Prev
+                - generic [ref=e231]: $404.66
+          - generic [ref=e232]:
+            - generic [ref=e234]:
+              - generic [ref=e235]: TXLZF
+              - generic [ref=e236]: Tesla Exploration Ltd
+            - generic [ref=e237]: Quote unavailable
+  - region "Notifications"

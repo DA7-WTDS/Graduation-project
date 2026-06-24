@@ -1,0 +1,54 @@
+- generic [ref=e2]:
+  - generic [ref=e38]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e39]:
+      - link "QUANTWISE" [ref=e40] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e41]:
+        - link "Dashboard" [ref=e42] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e43] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e44] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e45] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e46]:
+        - button "Notifications" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+        - button "SD" [ref=e53] [cursor=pointer]
+    - main [ref=e54]:
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - generic [ref=e58]: Today's readout
+          - heading "Dashboard" [level=1] [ref=e59]
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic [ref=e62]: Risk Profile
+            - generic [ref=e63]: Moderate
+          - generic [ref=e64]:
+            - generic [ref=e65]: Risk Tolerance
+            - generic [ref=e66]: 50%
+          - generic [ref=e67]:
+            - generic [ref=e68]: Time Horizon
+            - generic [ref=e69]: long
+          - generic [ref=e70]:
+            - generic [ref=e71]: Experience
+            - generic [ref=e72]: medium
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - generic [ref=e77]: Target Mix
+            - generic [ref=e78]: Investing $10,000
+          - generic [ref=e81]: Loading your mix…
+        - generic [ref=e82]:
+          - generic [ref=e85]:
+            - generic [ref=e86]: AI Recommendations
+            - generic "Regenerated automatically each day from the latest model run" [ref=e87]: Updates daily
+          - generic [ref=e117]:
+            - generic [ref=e119]: Recent Activity
+            - generic [ref=e120]:
+              - generic [ref=e121]: No activity yet
+              - generic [ref=e122]: Notifications will appear here.
+  - region "Notifications"

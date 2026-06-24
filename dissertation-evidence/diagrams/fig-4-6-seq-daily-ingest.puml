@@ -1,0 +1,37 @@
+@startuml fig-4-6-seq-daily-ingest
+' QuantWise — Figure 4.6 Sequence: Daily ingest + notification fan-out
+skinparam shadowing false
+autonumber
+
+participant "Quartz\nFetchDailyPipelineJob" as Job
+participant "FastAPI Pipeline\n/api/score" as Pipe
+participant "Ingest Endpoint\n(API key)" as Ingest
+participant "IngestDailyRun\nCommandHandler" as H
+participant "PostgreSQL\n(Recommendations)" as DB
+participant "Outbox\nProcessor" as Outbox
+queue "RabbitMQ" as MQ
+participant "Notifications\nInbox Consumer" as Inbox
+participant "DailyRunIngested\nEventHandler" as Fan
+participant "Users / Portfolio\nPublicApi" as Pub
+database "PostgreSQL\n(notifications)" as NDB
+
+Job -> Pipe : POST /api/score
+Pipe --> Job : ScoreResponse (records, generated_at)
+Job -> Ingest : POST /api/recommendations/ingest
+Ingest -> H : IngestDailyRunCommand(records)
+H -> H : normalise GeneratedAt to UTC
+H -> DB : DailyRun.Create (+ StockPredictions)\nraises DailyRunIngestedDomainEvent
+note right of H : idempotent on GeneratedAt\n(re-ingest is a no-op)
+H -> DB : INSERT outbox message (same txn)
+Outbox -> DB : poll unprocessed
+Outbox -> MQ : publish DailyRunIngestedIntegrationEvent
+MQ -> Inbox : deliver
+Inbox -> NDB : INSERT inbox message (dedupe)
+Inbox -> Fan : Handle(event)
+Fan -> Pub : users with a portfolio
+Pub --> Fan : [userIds]
+loop each user
+  Fan -> NDB : Notification.Create("recommendations ready")
+end
+
+@enduml

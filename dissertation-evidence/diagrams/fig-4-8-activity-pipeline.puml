@@ -1,0 +1,44 @@
+@startuml fig-4-8-activity-pipeline
+' QuantWise — Figure 4.8 Activity: Daily pipeline scoring (POST /api/score)
+skinparam shadowing false
+
+start
+:Resolve top-100 US large-caps\n(yfinance EquityQuery screener);
+if (screener valid?\n>=80 tickers, >=60% overlap) then (no)
+  :Fall back to hardcoded\nlarge-cap list;
+else (yes)
+endif
+:Batch-download 6mo OHLCV (yfinance);
+
+partition "Per ticker" {
+  :Compute features\n(5 LSTM inputs + 14 tech indicators);
+  if (>= 120 raw rows\n& >= 60 after features?) then (no)
+    :Skip ticker;
+  else (yes)
+    :LSTM forward pass -> hidden state;
+    :XGBoost head -> z-score;
+    :Denormalise -> direction,\nchange_pct, confidence;
+  endif
+}
+
+:Select top 35 candidates\nby projected return;
+
+partition "Per candidate (8 threads)" {
+  :Fetch analyst consensus, price targets,\nupgrades/downgrades (Finnhub/yfinance);
+  :Fetch + filter news headlines;
+  :FinBERT sentiment on headlines;
+  :Weighted composite sentiment\n(consensus .40, news .25,\nPT .20, actions .15);
+}
+
+:Merge predictions + sentiment by ticker;
+:Apply risk rules\n(agreement, flags, risk_level,\nconviction_score);
+if (>= 25 records survive?) then (no)
+  :Raise error - abort,\nnothing ingested;
+  stop
+else (yes)
+  :Sort by conviction desc;
+  :Return ScoreResponse JSON\n(generated_at, count, records);
+  stop
+endif
+
+@enduml

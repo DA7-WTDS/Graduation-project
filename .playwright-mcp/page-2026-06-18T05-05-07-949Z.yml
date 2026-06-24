@@ -1,0 +1,59 @@
+- generic [ref=e2]:
+  - generic [ref=e219]:
+    - generic [ref=e221]:
+      - generic [ref=e223]:
+        - generic [ref=e224]: ✓
+        - generic [ref=e225]: Goals
+      - generic [ref=e226]:
+        - generic [ref=e227]: ✓
+        - generic [ref=e228]: Risk
+      - generic [ref=e229]:
+        - generic [ref=e230]: ✓
+        - generic [ref=e231]: Preferences
+      - generic [ref=e232]:
+        - generic [ref=e233]: "4"
+        - generic [ref=e234]: Portfolio
+    - generic [ref=e235]:
+      - generic [ref=e363]:
+        - generic [ref=e364]:
+          - heading "Your AI-Generated Portfolio" [level=2] [ref=e365]
+          - paragraph [ref=e366]: Based on your profile, we've created a personalized investment strategy
+        - generic [ref=e367]:
+          - generic [ref=e368]: "Recommended: Moderate Portfolio"
+          - generic [ref=e369]:
+            - generic [ref=e370]:
+              - generic [ref=e371]: 40%
+              - generic [ref=e372]: Stocks
+            - generic [ref=e373]:
+              - generic [ref=e374]: 35%
+              - generic [ref=e375]: Bonds
+            - generic [ref=e376]:
+              - generic [ref=e377]: 20%
+              - generic [ref=e378]: ETFs
+          - generic [ref=e379]:
+            - generic [ref=e380]: Asset Allocation
+            - generic [ref=e386]:
+              - generic [ref=e387]: Stocks 40%
+              - generic [ref=e389]: Bonds 35%
+              - generic [ref=e391]: ETFs 20%
+              - generic [ref=e393]: Cash 5%
+        - generic [ref=e395]:
+          - heading "What's Next?" [level=3] [ref=e396]
+          - list [ref=e397]:
+            - listitem [ref=e398]:
+              - img [ref=e399]
+              - text: Your portfolio is ready to go
+            - listitem [ref=e401]:
+              - img [ref=e402]
+              - text: AI will continuously monitor and optimize
+            - listitem [ref=e404]:
+              - img [ref=e405]
+              - text: Automatic rebalancing included
+            - listitem [ref=e407]:
+              - img [ref=e408]
+              - text: Real-time performance tracking
+          - paragraph [ref=e410]: Click "Complete Setup" to start investing with your personalized portfolio!
+      - generic [ref=e304]:
+        - button "Back" [ref=e346] [cursor=pointer]
+        - button "Complete Setup" [active] [ref=e411] [cursor=pointer]
+  - region "Notifications"

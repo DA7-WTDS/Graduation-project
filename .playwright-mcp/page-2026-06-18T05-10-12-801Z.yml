@@ -1,0 +1,55 @@
+- generic [ref=e2]:
+  - generic [ref=e8]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e9]:
+      - link "QUANTWISE" [ref=e10] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e11]:
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e13] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e14] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e15] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e16]:
+        - button "Notifications (1 unread)" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: "1"
+        - button "SD" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e27]:
+        - generic [ref=e30]:
+          - generic [ref=e33]: SD
+          - generic [ref=e34]:
+            - heading "Sara Demo" [level=1] [ref=e35]
+            - paragraph [ref=e36]: sara.demo.0618@quantwise.test
+            - generic [ref=e37]: User
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - img [ref=e41]
+            - generic [ref=e44]:
+              - generic [ref=e45]: First Name
+              - paragraph [ref=e46]: Sara
+          - generic [ref=e47]:
+            - img [ref=e49]
+            - generic [ref=e52]:
+              - generic [ref=e53]: Last Name
+              - paragraph [ref=e54]: Demo
+          - generic [ref=e55]:
+            - img [ref=e57]
+            - generic [ref=e60]:
+              - generic [ref=e61]: Email Address
+              - paragraph [ref=e62]: sara.demo.0618@quantwise.test
+          - generic [ref=e63]:
+            - img [ref=e65]
+            - generic [ref=e67]:
+              - generic [ref=e68]: Member Since
+              - paragraph [ref=e69]: June 2026
+        - generic [ref=e70]:
+          - button "← Go to Dashboard" [ref=e71] [cursor=pointer]
+          - button "Sign Out" [ref=e72] [cursor=pointer]
+  - region "Notifications"

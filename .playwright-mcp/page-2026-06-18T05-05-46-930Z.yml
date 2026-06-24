@@ -1,0 +1,57 @@
+- generic [ref=e2]:
+  - generic [ref=e412]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e413]:
+      - link "QUANTWISE" [ref=e414] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e415]:
+        - link "Dashboard" [ref=e416] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e417] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e418] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e419] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e420]:
+        - button "Notifications (1 unread)" [ref=e422] [cursor=pointer]:
+          - img [ref=e423]
+          - generic [ref=e426]: "1"
+        - button "SD" [ref=e428] [cursor=pointer]
+    - main [ref=e429]:
+      - generic [ref=e431]:
+        - generic [ref=e432]:
+          - generic [ref=e433]: Today's readout
+          - heading "Dashboard" [level=1] [ref=e434]
+        - generic [ref=e435]:
+          - generic [ref=e436]:
+            - generic [ref=e437]: Risk Profile
+            - generic [ref=e438]: Moderate
+          - generic [ref=e439]:
+            - generic [ref=e440]: Risk Tolerance
+            - generic [ref=e441]: 50%
+          - generic [ref=e442]:
+            - generic [ref=e443]: Time Horizon
+            - generic [ref=e444]: long
+          - generic [ref=e445]:
+            - generic [ref=e446]: Experience
+            - generic [ref=e447]: medium
+        - generic [ref=e450]:
+          - generic [ref=e451]:
+            - generic [ref=e452]: Target Mix
+            - generic [ref=e453]: Investing $10,000
+          - generic [ref=e456]: Loading your mix…
+        - generic [ref=e457]:
+          - generic [ref=e460]:
+            - generic [ref=e461]: AI Recommendations
+            - generic "Regenerated automatically each day from the latest model run" [ref=e462]: Updates daily
+          - generic [ref=e492]:
+            - generic [ref=e494]: Recent Activity
+            - button "Welcome to QuantWise! Hi Sara, we're excited to have you on board! Start by completing your profile and setting up your first portfolio. 3m ago" [ref=e496] [cursor=pointer]:
+              - generic [ref=e498]:
+                - generic [ref=e499]: Welcome to QuantWise!
+                - generic [ref=e500]: Hi Sara, we're excited to have you on board! Start by completing your profile and setting up your first portfolio.
+                - generic [ref=e501]: 3m ago
+  - region "Notifications"

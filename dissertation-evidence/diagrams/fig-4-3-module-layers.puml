@@ -1,0 +1,47 @@
+@startuml fig-4-3-module-layers
+' QuantWise — Figure 4.3 Backend Module / Layer Component View
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+package "API Host (Program.cs)" as Host {
+  [Endpoint mapping\n+ DI composition] as HostC
+}
+
+package "Common" as Common {
+  [Domain] as CDom
+  [Application\n(CQRS, MediatR)] as CApp
+  [Infrastructure\n(EF, Redis, MassTransit,\nQuartz, Auth, Outbox/Inbox)] as CInf
+  [Presentation\n(IEndpoint)] as CPres
+}
+
+package "Module (x4: Users, Portfolio,\nRecommendations, Notifications)" as Mod {
+  [Domain\n(entities, events)] as MDom
+  [Application\n(command/query handlers)] as MApp
+  [Infrastructure\n(DbContext, repos)] as MInf
+  [Presentation\n(endpoints)] as MPres
+  [IntegrationEvents] as MIE
+  [PublicApi\n(cross-module contract)] as MPub
+}
+
+HostC --> MPres
+HostC --> CPres
+MPres --> MApp
+MApp --> MDom
+MApp --> MInf
+MApp ..> MPub : calls other modules
+MInf --> CInf
+MApp --> CApp
+MDom --> CDom
+MInf ..> MIE : publishes via outbox
+MApp ..> MIE : consumes via inbox
+
+note bottom of Mod
+  Each module owns its own
+  PostgreSQL schema. Modules
+  talk only through PublicApi
+  contracts and integration
+  events, never direct DB access.
+end note
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml fig-4-2-deployment
+' QuantWise — Figure 4.2 Deployment / Docker Compose Topology
+skinparam shadowing false
+
+node "Developer / Single Host" {
+
+  node "frontend\n(nginx, :3000)" as FE
+  node "api\n(.NET 10, :5000)" as API
+  node "pipeline\n(FastAPI, :8000)" as PIPE
+
+  database "postgres\n(:5432)" as PG
+  database "redis\n(:6379)" as REDIS
+  queue "rabbitmq\n(:5672 / :15672)" as RMQ
+  node "mailpit\n(:1025 / :8025)" as MAIL
+}
+
+cloud "Internet" {
+  [Google Gemini] as G
+  [Finnhub] as F
+  [Yahoo Finance] as Y
+}
+
+FE --> API : /api proxy
+API --> PG
+API --> REDIS
+API --> RMQ
+API --> MAIL
+API --> PIPE : POST /api/score
+API --> G
+PIPE --> Y
+PIPE --> F
+FE ..> F : browser quotes
+
+note bottom of API
+  Secrets injected from .env
+  (gitignored): JWT key,
+  Gemini key, ingest API key,
+  DB password.
+end note
+
+@enduml

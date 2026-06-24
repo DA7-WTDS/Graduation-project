@@ -1,0 +1,38 @@
+@startuml fig-4-5-seq-recommendation
+' QuantWise — Figure 4.5 Sequence: Recommendation request (cache-miss -> Gemini)
+skinparam shadowing false
+autonumber
+
+actor User
+participant "React SPA" as Web
+participant "Recommendations\nEndpoint" as EP
+participant "GetRecommendations\nQueryHandler" as H
+participant "Redis\n(HybridCache)" as Cache
+participant "PostgreSQL" as DB
+participant "Portfolio\nPublicApi" as Port
+participant "GeminiLlmClient" as LLM
+
+User -> Web : open dashboard
+Web -> EP : GET /api/recommendations (JWT)
+EP -> H : GetRecommendationsQuery(userId)
+H -> Cache : get rec:{userId}
+
+alt cache hit
+  Cache --> H : cached picks
+else cache miss (24h expired)
+  Cache --> H : (none)
+  H -> DB : latest DailyRun + StockPredictions
+  H -> Port : GetRiskProfile(userId)
+  Port --> H : Conservative/Moderate/Aggressive
+  H -> DB : current UserHoldings(userId)
+  H -> LLM : build prompt + call gemini-2.5-flash
+  LLM --> H : ranked BUY/SELL/HOLD\n+ allocation + rationale
+  H -> DB : upsert UserHoldings (from picks)
+  H -> Cache : set rec:{userId} TTL 24h
+end
+
+H --> EP : Result<recommendations>
+EP --> Web : 200 OK (picks)
+Web --> User : render picks + dollar amounts
+
+@enduml

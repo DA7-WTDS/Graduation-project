@@ -1,0 +1,36 @@
+@startuml fig-4-9-activity-onboarding
+' QuantWise — Figure 4.9 Activity: Onboarding risk-profile calculation
+' Note: the risk score + allocation are computed client-side, then persisted.
+skinparam shadowing false
+
+|Investor (React SPA)|
+start
+:Answer Step 1 - primary goal;
+:Answer Step 2 - time horizon;
+:Answer Step 3 - risk tolerance\n+ market reaction;
+:Answer Step 4 - investment experience\n+ amount;
+:Compute weighted risk score (client-side);
+if (score band?) then (low)
+  :RiskProfile = Conservative;
+  :Allocation skewed to bonds/cash;
+elseif (mid) then
+  :RiskProfile = Moderate;
+  :Balanced allocation;
+else (high)
+  :RiskProfile = Aggressive;
+  :Allocation skewed to stocks/ETFs;
+endif
+:Show computed profile +\nstocks/bonds/ETFs/cash bars;
+:Submit POST /api/portfolios;
+
+|QuantWise API|
+:CreatePortfolioCommandHandler;
+:Portfolio.Create(...)\nraises PortfolioCreatedDomainEvent;
+:Persist (Portfolio schema);
+:Return 201 Created;
+
+|Investor (React SPA)|
+:Redirect to dashboard;
+stop
+
+@enduml

@@ -1,0 +1,107 @@
+- generic [ref=e2]:
+  - generic [ref=e412]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e413]:
+      - link "QUANTWISE" [ref=e414] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e415]:
+        - link "Dashboard" [ref=e416] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e417] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e418] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e419] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e420]:
+        - generic [ref=e421]:
+          - button "Notifications (1 unread)" [active] [ref=e422] [cursor=pointer]:
+            - img [ref=e423]
+            - generic [ref=e426]: "1"
+          - menu [ref=e546]:
+            - generic [ref=e547]:
+              - generic [ref=e548]: Notifications
+              - button "Mark all read" [ref=e549] [cursor=pointer]
+            - button "Welcome to QuantWise! Hi Sara, we're excited to have you on board! Start by completing your profile and setting up your first portfolio. 4m ago" [ref=e551] [cursor=pointer]:
+              - generic [ref=e553]:
+                - generic [ref=e554]: Welcome to QuantWise!
+                - generic [ref=e555]: Hi Sara, we're excited to have you on board! Start by completing your profile and setting up your first portfolio.
+                - generic [ref=e556]: 4m ago
+        - button "SD" [ref=e428] [cursor=pointer]
+    - main [ref=e429]:
+      - generic [ref=e431]:
+        - generic [ref=e432]:
+          - generic [ref=e433]: Today's readout
+          - heading "Dashboard" [level=1] [ref=e434]
+        - generic [ref=e435]:
+          - generic [ref=e436]:
+            - generic [ref=e437]: Risk Profile
+            - generic [ref=e438]: Moderate
+          - generic [ref=e439]:
+            - generic [ref=e440]: Risk Tolerance
+            - generic [ref=e441]: 50%
+          - generic [ref=e442]:
+            - generic [ref=e443]: Time Horizon
+            - generic [ref=e444]: long
+          - generic [ref=e445]:
+            - generic [ref=e446]: Experience
+            - generic [ref=e447]: medium
+        - generic [ref=e450]:
+          - generic [ref=e451]:
+            - generic [ref=e452]: Target Mix
+            - generic [ref=e453]: Investing $10,000
+          - generic [ref=e505]:
+            - generic [ref=e506]:
+              - text: AAPL 50%
+              - emphasis [ref=e508]: $5,000
+            - generic [ref=e509]:
+              - text: MSFT 50%
+              - emphasis [ref=e511]: $5,000
+        - generic [ref=e457]:
+          - generic [ref=e459]:
+            - generic [ref=e460]:
+              - generic [ref=e461]: AI Recommendations
+              - generic "Regenerated automatically each day from the latest model run" [ref=e462]: Updates daily
+            - paragraph [ref=e512]: This is an informational recommendation and not financial advice. The allocation_pct represents the suggested split of your stock allocation. Based on your Moderate risk profile and no current holdings, we recommend buying into these two strong candidates.
+            - generic [ref=e513]:
+              - generic [ref=e514]: Investing
+              - generic [ref=e515]: $10,000
+              - link "Change" [ref=e516] [cursor=pointer]:
+                - /url: /onboarding
+            - generic [ref=e517]:
+              - generic [ref=e518]:
+                - generic [ref=e519]:
+                  - generic [ref=e520]: AAPL
+                  - generic [ref=e521]: BUY
+                  - meter [ref=e522]
+                  - generic [ref=e524]:
+                    - generic [ref=e525]: $5,000
+                    - generic [ref=e526]: 50%
+                - paragraph [ref=e527]: AAPL shows a strong UP prediction with high conviction and confirmed positive sentiment, making it a compelling buy.
+                - paragraph [ref=e528]: This stock is graded as LOW risk, suitable for your Moderate risk profile.
+                - paragraph [ref=e529]: Excellent fit for a Moderate portfolio seeking growth with low risk.
+              - generic [ref=e530]:
+                - generic [ref=e531]:
+                  - generic [ref=e532]: MSFT
+                  - generic [ref=e533]: BUY
+                  - meter [ref=e534]
+                  - generic [ref=e536]:
+                    - generic [ref=e537]: $5,000
+                    - generic [ref=e538]: 50%
+                - paragraph [ref=e539]: MSFT has a solid UP prediction with high conviction and confirmed positive sentiment, indicating strong potential.
+                - paragraph [ref=e540]: This stock is graded as LOW risk, aligning well with your Moderate risk profile.
+                - paragraph [ref=e541]: Excellent fit for a Moderate portfolio looking for stable growth opportunities.
+            - generic [ref=e542]:
+              - generic [ref=e543]: Allocated across 2 picks
+              - generic [ref=e544]: $10,000
+            - paragraph [ref=e545]: Generated 6/18/2026, 7:54:23 AM · informational only, not financial advice
+          - generic [ref=e492]:
+            - generic [ref=e494]: Recent Activity
+            - button "Welcome to QuantWise! Hi Sara, we're excited to have you on board! Start by completing your profile and setting up your first portfolio. 3m ago" [ref=e496] [cursor=pointer]:
+              - generic [ref=e498]:
+                - generic [ref=e499]: Welcome to QuantWise!
+                - generic [ref=e500]: Hi Sara, we're excited to have you on board! Start by completing your profile and setting up your first portfolio.
+                - generic [ref=e501]: 3m ago
+  - region "Notifications"

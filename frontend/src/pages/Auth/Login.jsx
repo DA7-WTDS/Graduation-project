@@ -140,19 +140,6 @@ const Login = () => {
                         </button>
                     </form>
 
-                    <div className="auth-divider">
-                        <span className="auth-divider-text">or continue with</span>
-                    </div>
-
-                    <div className="auth-social">
-                        <button className="auth-social-button">
-                            <span>G</span> Google
-                        </button>
-                        <button className="auth-social-button">
-                            <span>f</span> Facebook
-                        </button>
-                    </div>
-
                     <div className="auth-footer">
                         Don't have an account? <Link to="/signup" className="form-link">Sign up</Link>
                     </div>

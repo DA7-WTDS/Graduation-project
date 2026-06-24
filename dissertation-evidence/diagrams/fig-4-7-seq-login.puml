@@ -1,0 +1,35 @@
+@startuml fig-4-7-seq-login
+' QuantWise — Figure 4.7 Sequence: Login / JWT issuance
+skinparam shadowing false
+autonumber
+
+actor User
+participant "React SPA" as Web
+participant "Login Endpoint" as EP
+participant "LoginUser\nCommandHandler" as H
+participant "PostgreSQL\n(users)" as DB
+participant "PasswordHasher\n(BCrypt)" as BC
+participant "TokenProvider\n(JWT HS256)" as JWT
+
+User -> Web : enter email + password
+Web -> EP : POST /api/users/login
+EP -> H : LoginUserCommand(email, password)
+H -> DB : find user by email
+DB --> H : User (HashedPassword)
+
+alt user not found OR password invalid
+  H -> BC : Verify(password, hash)
+  BC --> H : false
+  H --> EP : Result.Fail(InvalidCredentials)
+  EP --> Web : 401 Unauthorized
+else valid credentials
+  H -> BC : Verify(password, hash)
+  BC --> H : true
+  H -> JWT : Create(userId, role)
+  JWT --> H : signed token (60 min)
+  H --> EP : Result.Ok(token)
+  EP --> Web : 200 OK { accessToken }
+  Web --> User : store token, redirect
+end
+
+@enduml

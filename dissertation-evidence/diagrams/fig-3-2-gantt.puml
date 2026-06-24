@@ -1,0 +1,18 @@
+@startgantt fig-3-2-gantt
+' QuantWise — Figure 3.2 Project Schedule (Gantt)
+' Kanban flow framed across milestones M0-M4, Feb-Jun 2026.
+' The offline ML-training phase overlaps the inter-semester gap and was done first.
+project starts 2026-02-01
+
+[M0 Offline ML training (LSTM/XGBoost/FinBERT, risk rules)] as [M0] lasts 56 days
+[M1 Backend foundation (modular monolith, Users + Portfolio, outbox/inbox)] as [M1] lasts 28 days
+[M2 Pipeline service + ingest (FastAPI /api/score, Recommendations, Quartz)] as [M2] lasts 21 days
+[M3 Recommendations + frontend (Gemini, 24h cache, fan-out, Quant Terminal)] as [M3] lasts 21 days
+[M4 Testing, hardening + write-up (68 tests, coverage, perf, security)] as [M4] lasts 24 days
+
+[M1] starts at [M0]'s end
+[M2] starts at [M1]'s end
+[M3] starts at [M2]'s end
+[M4] starts at [M3]'s end
+
+@endgantt

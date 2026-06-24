@@ -1,0 +1,36 @@
+- generic [ref=e2]:
+  - generic [ref=e219]:
+    - generic [ref=e221]:
+      - generic [ref=e223]:
+        - generic [ref=e224]: ✓
+        - generic [ref=e225]: Goals
+      - generic [ref=e226]:
+        - generic [ref=e227]: ✓
+        - generic [ref=e228]: Risk
+      - generic [ref=e229]:
+        - generic [ref=e230]: "3"
+        - generic [ref=e231]: Preferences
+      - generic [ref=e232]:
+        - generic [ref=e233]: "4"
+        - generic [ref=e234]: Portfolio
+    - generic [ref=e235]:
+      - generic [ref=e347]:
+        - generic [ref=e348]:
+          - heading "Investment Preferences" [level=2] [ref=e349]
+          - paragraph [ref=e350]: Tell us about your investment experience
+        - generic [ref=e351]:
+          - heading "What's your investment experience?" [level=3] [ref=e352]
+          - generic [ref=e353]:
+            - generic [ref=e354] [cursor=pointer]:
+              - generic [ref=e355]: Experienced
+              - generic [ref=e356]: 5+ years of active investing
+            - generic [ref=e357] [cursor=pointer]:
+              - generic [ref=e358]: Intermediate
+              - generic [ref=e359]: 1-5 years of investing
+            - generic [ref=e360] [cursor=pointer]:
+              - generic [ref=e361]: Beginner
+              - generic [ref=e362]: New to investing
+      - generic [ref=e304]:
+        - button "Back" [ref=e346] [cursor=pointer]
+        - button "Continue" [ref=e305] [cursor=pointer]
+  - region "Notifications"

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.slidev/
+*.local
+
+# build + qa artifacts
+build.log
+slidev-dev.log

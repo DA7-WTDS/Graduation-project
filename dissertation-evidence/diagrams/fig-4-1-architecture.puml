@@ -1,0 +1,42 @@
+@startuml fig-4-1-architecture
+' QuantWise — Figure 4.1 High-Level System Architecture (3-tier polyglot)
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Retail Investor" as User
+
+package "Presentation Tier" {
+  [React + Vite SPA\n\"Quant Terminal\" (TypeScript)] as Web
+}
+
+package "Application Tier" {
+  [".NET 10 Modular-Monolith API\n(Users, Portfolio,\nRecommendations, Notifications)"] as API
+  [FastAPI ML Pipeline\nLSTM + XGBoost + FinBERT] as Pipe
+}
+
+package "Data & Messaging Tier" {
+  database "PostgreSQL\n(4 schemas)" as PG
+  database "Redis\n(24h rec cache)" as Redis
+  queue "RabbitMQ\n(outbox/inbox)" as MQ
+  [Mailpit\n(dev SMTP)] as Mail
+}
+
+cloud "External Services" {
+  [Google Gemini\ngemini-2.5-flash] as Gemini
+  [Finnhub API] as Finnhub
+  [Yahoo Finance\n(yfinance)] as YF
+}
+
+User --> Web : HTTPS
+Web --> API : REST + JWT
+API --> PG : EF Core
+API --> Redis : HybridCache
+API --> MQ : MassTransit
+API --> Mail : SMTP
+API --> Gemini : recommendation\npersonalisation
+API --> Pipe : POST /api/score\n(Quartz daily job)
+Web --> Finnhub : live quotes
+Pipe --> YF : OHLCV + analyst data
+Pipe --> Finnhub : news + consensus
+
+@enduml

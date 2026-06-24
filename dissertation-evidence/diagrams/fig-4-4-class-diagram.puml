@@ -1,0 +1,119 @@
+@startuml fig-4-4-class-diagram
+' QuantWise — Figure 4.4 Domain Class Diagram (aggregate roots per module)
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+package "Users" {
+  class User {
+    +Guid Id
+    +string FirstName
+    +string LastName
+    +string Email
+    +string HashedPassword
+    +Role Role
+    +DateTime CreatedAt
+    --
+    +Create(...) : User
+    +Update(...)
+  }
+  enum Role {
+    User
+    Admin
+  }
+  User --> Role
+}
+
+package "Portfolio" {
+  class Portfolio {
+    +Guid Id
+    +Guid UserId
+    +string PrimaryGoal
+    +string TimeHorizon
+    +int RiskTolerance
+    +string MarketReaction
+    +string InvestmentExperience
+    +int StocksPercentage
+    +int BondsPercentage
+    +int EtfsPercentage
+    +int CashPercentage
+    +RiskProfile RiskProfile
+    +decimal InvestmentAmount
+    +DateTime CreatedAt
+    +DateTime? UpdatedAt
+    --
+    +Create(...) : Portfolio
+    +Update(...)
+  }
+  enum RiskProfile {
+    Conservative
+    Moderate
+    Aggressive
+  }
+  Portfolio --> RiskProfile
+}
+
+package "Recommendations" {
+  class DailyRun {
+    +Guid Id
+    +DateTime GeneratedAt
+    +int Count
+    +DateTime CreatedAt
+    --
+    +Create(...) : DailyRun
+  }
+  class StockPrediction {
+    +Guid Id
+    +Guid DailyRunId
+    +string Ticker
+    +string Direction
+    +double ChangePct
+    +double Confidence
+    +double SentimentScore
+    +string Signal
+    +double? AnalystRating
+    +double? PtUpsidePct
+    +string Agreement
+    +string RiskLevel
+    +double ConvictionScore
+    +string[] RiskFlags
+    +string Rationale
+  }
+  class UserHolding {
+    +Guid Id
+    +Guid UserId
+    +string Ticker
+    +double AllocationPct
+    +DateTime RunGeneratedAt
+    +DateTime UpdatedAt
+  }
+  DailyRun "1" *-- "many" StockPrediction
+}
+
+package "Notifications" {
+  class Notification {
+    +Guid Id
+    +Guid UserId
+    +string Title
+    +string Message
+    +NotificationType Type
+    +bool IsRead
+    +DateTime CreatedAt
+    --
+    +Create(...) : Notification
+    +MarkAsRead()
+  }
+  enum NotificationType {
+    Info
+    Warning
+    Success
+  }
+  Notification --> NotificationType
+}
+
+' Cross-module references are by UserId (no FK across schemas)
+Portfolio ..> User : UserId
+UserHolding ..> User : UserId
+Notification ..> User : UserId
+
+@enduml

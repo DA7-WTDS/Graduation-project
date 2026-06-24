@@ -1,0 +1,63 @@
+- generic [ref=e2]:
+  - generic [ref=e8]:
+    - generic:
+      - generic:
+        - img
+    - banner [ref=e9]:
+      - link "QUANTWISE" [ref=e10] [cursor=pointer]:
+        - /url: /dashboard
+      - navigation [ref=e11]:
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Portfolios" [ref=e13] [cursor=pointer]:
+          - /url: /portfolios
+        - link "Learning" [ref=e14] [cursor=pointer]:
+          - /url: /simulator
+        - link "Market" [ref=e15] [cursor=pointer]:
+          - /url: /market
+      - generic [ref=e16]:
+        - button "Notifications (1 unread)" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: "1"
+        - button "SD" [ref=e24] [cursor=pointer]
+    - main [ref=e25]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]: Model-driven · run 6/18/2026
+          - heading "Learning Environment" [level=1] [ref=e31]
+          - paragraph [ref=e32]: Allocate across the model's latest predictions and see the projected outcome.
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - heading "Build Allocation" [level=3] [ref=e36]
+            - generic [ref=e37]:
+              - generic [ref=e38]:
+                - generic [ref=e39]: Initial Capital
+                - generic [ref=e40]:
+                  - generic [ref=e41]: $
+                  - spinbutton [ref=e42]: "10000"
+              - generic [ref=e43]:
+                - generic [ref=e44]:
+                  - generic [ref=e45]: Asset Mix (from predictions)
+                  - button "+ Add" [disabled] [ref=e46] [cursor=pointer]
+                - generic [ref=e47]:
+                  - combobox [ref=e48]:
+                    - option "AAPL (+2.50%)" [selected]
+                    - option "MSFT (+1.80%)"
+                  - generic [ref=e49]:
+                    - spinbutton [ref=e50]: "60"
+                    - generic [ref=e51]: "%"
+                  - button "×" [ref=e52] [cursor=pointer]
+                - generic [ref=e53]:
+                  - combobox [ref=e54]:
+                    - option "AAPL (+2.50%)"
+                    - option "MSFT (+1.80%)" [selected]
+                  - generic [ref=e55]:
+                    - spinbutton [ref=e56]: "40"
+                    - generic [ref=e57]: "%"
+                  - button "×" [ref=e58] [cursor=pointer]
+                - generic [ref=e59]: "Total: 100%"
+              - button "Run Projection" [ref=e60] [cursor=pointer]
+          - generic [ref=e62]:
+            - img [ref=e64]
+            - paragraph [ref=e67]: Set your capital and asset mix, then run the projection.
+  - region "Notifications"

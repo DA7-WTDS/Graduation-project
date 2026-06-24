@@ -133,35 +133,6 @@
 .auth-submit:hover:not(:disabled) { background: #ffc23a; }
 .auth-submit:disabled { opacity: 0.6; cursor: default; }
 
-.auth-divider { display: flex; align-items: center; gap: var(--space-md); margin: var(--space-lg) 0; }
-.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--qw-border); }
-.auth-divider-text {
-    font-family: var(--qw-font-mono);
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--qw-text-faint);
-}
-
-.auth-social { display: flex; gap: var(--space-md); }
-.auth-social-button {
-    flex: 1;
-    padding: 10px;
-    background: var(--qw-panel-2);
-    border: 1px solid var(--qw-border);
-    border-radius: var(--radius-md);
-    font-size: var(--qw-fs-sm);
-    font-weight: 500;
-    color: var(--qw-text-dim);
-    cursor: pointer;
-    transition: background var(--transition-fast), border-color var(--transition-fast);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-}
-.auth-social-button:hover { background: #1e242b; border-color: var(--qw-border-strong); }
-
 .auth-footer { text-align: center; margin-top: var(--space-lg); font-size: var(--qw-fs-sm); color: var(--qw-text-dim); }
 
 .back-to-home {

@@ -1,0 +1,100 @@
+@startuml fig-4-10-erd
+' QuantWise — Figure 4.10 Entity-Relationship Diagram (across 4 EF Core contexts)
+' Each module owns its own PostgreSQL schema; there are no cross-schema FKs.
+' Cross-module links are logical (by user_id), shown as dashed.
+skinparam shadowing false
+hide circle
+skinparam linetype ortho
+
+entity "users.users" as users {
+  *id : uuid <<PK>>
+  --
+  first_name : text
+  last_name : text
+  email : text <<unique>>
+  hashed_password : text
+  role : int
+  created_at : timestamptz
+}
+
+entity "Portfolio.portfolios" as portfolios {
+  *id : uuid <<PK>>
+  --
+  user_id : uuid
+  primary_goal : text
+  time_horizon : text
+  risk_tolerance : int
+  market_reaction : text
+  investment_experience : text
+  stocks_percentage : int
+  bonds_percentage : int
+  etfs_percentage : int
+  cash_percentage : int
+  risk_profile : int
+  investment_amount : numeric
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "Recommendations.daily_runs" as daily_runs {
+  *id : uuid <<PK>>
+  --
+  generated_at : timestamptz
+  count : int
+  created_at : timestamptz
+}
+
+entity "Recommendations.stock_predictions" as predictions {
+  *id : uuid <<PK>>
+  --
+  daily_run_id : uuid <<FK>>
+  ticker : text
+  direction : text
+  change_pct : double
+  confidence : double
+  sentiment_score : double
+  signal : text
+  analyst_rating : double
+  pt_upside_pct : double
+  agreement : text
+  risk_level : text
+  conviction_score : double
+  risk_flags : text[]
+  rationale : text
+}
+
+entity "Recommendations.user_holdings" as holdings {
+  *id : uuid <<PK>>
+  --
+  user_id : uuid
+  ticker : text
+  allocation_pct : double
+  run_generated_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity "notifications.notifications" as notifications {
+  *id : uuid <<PK>>
+  --
+  user_id : uuid
+  title : text
+  message : text
+  type : int
+  is_read : bool
+  created_at : timestamptz
+}
+
+daily_runs ||--o{ predictions : "1 run has many predictions"
+
+users ||..o{ portfolios : "user_id (logical)"
+users ||..o{ holdings : "user_id (logical)"
+users ||..o{ notifications : "user_id (logical)"
+
+note bottom of notifications
+  Each schema also carries
+  outbox_messages / inbox_messages
+  tables for the transactional
+  outbox/inbox pattern (omitted here).
+end note
+
+@enduml

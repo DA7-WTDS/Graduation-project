@@ -1,0 +1,48 @@
+- generic [ref=e2]:
+  - generic [ref=e219]:
+    - generic [ref=e221]:
+      - generic [ref=e223]:
+        - generic [ref=e224]: ✓
+        - generic [ref=e225]: Goals
+      - generic [ref=e226]:
+        - generic [ref=e227]: "2"
+        - generic [ref=e228]: Risk
+      - generic [ref=e229]:
+        - generic [ref=e230]: "3"
+        - generic [ref=e231]: Preferences
+      - generic [ref=e232]:
+        - generic [ref=e233]: "4"
+        - generic [ref=e234]: Portfolio
+    - generic [ref=e235]:
+      - generic [ref=e307]:
+        - generic [ref=e308]:
+          - heading "Understanding Your Risk Tolerance" [level=2] [ref=e309]
+          - paragraph [ref=e310]: This helps us match you with the right investment strategy
+        - generic [ref=e311]:
+          - heading "How comfortable are you with investment risk?" [level=3] [ref=e312]
+          - paragraph [ref=e313]: Move the slider to indicate your comfort level
+          - generic [ref=e314]:
+            - generic [ref=e315]:
+              - generic [ref=e316]: Conservative
+              - generic [ref=e317]: Aggressive
+            - slider [ref=e318]: "50"
+            - generic [ref=e319]: 50%
+        - generic [ref=e320]:
+          - heading "If the market dropped 20%, what would you do?" [level=3] [ref=e321]
+          - generic [ref=e322]:
+            - generic [ref=e323] [cursor=pointer]:
+              - img [ref=e325]
+              - generic [ref=e330]: Hold & Buy More
+              - generic [ref=e331]: I see it as a buying opportunity
+            - generic [ref=e332] [cursor=pointer]:
+              - img [ref=e334]
+              - generic [ref=e338]: Hold Steady
+              - generic [ref=e339]: I stay calm and wait it out
+            - generic [ref=e340] [cursor=pointer]:
+              - img [ref=e342]
+              - generic [ref=e344]: Sell Some
+              - generic [ref=e345]: I reduce my exposure to limit losses
+      - generic [ref=e304]:
+        - button "Back" [ref=e346] [cursor=pointer]
+        - button "Continue" [disabled] [ref=e305]
+  - region "Notifications"
