@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantWise — System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#060911;--panel:#0D1117;--card:#111923;--card2:#182030;
+  --bdr:rgba(255,176,0,.15);--bdhi:rgba(255,176,0,.45);
+  --amb:#FFB000;--amb2:#CC8A00;--aglow:rgba(255,176,0,.1);
+  --tx:#D8E0EA;--mx:#68788A;--fx:#384250;
+  --cl:#38BDF8;--ca:#FB923C;--cm:#34D399;--cs:#A78BFA;--ci:#FACC15;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--ink);color:var(--tx);font-family:'Inter',sans-serif;
+  display:flex;flex-direction:column;
+  background-image:
+    radial-gradient(ellipse 80% 30% at 50% 0%,rgba(255,176,0,.055) 0%,transparent 65%),
+    linear-gradient(rgba(255,176,0,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,176,0,.018) 1px,transparent 1px);
+  background-size:100% 100%,44px 44px,44px 44px;
+}
+
+/* ── HEADER ── */
+header{
+  flex-shrink:0;height:54px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  background:rgba(13,17,23,.97);border-bottom:1px solid var(--bdr);
+  backdrop-filter:blur(20px);z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:.08em}
+.logo em{color:var(--amb);font-style:normal}
+.lpill{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:3px 9px;border-radius:3px;border:1px solid rgba(255,176,0,.38);color:var(--amb);background:rgba(255,176,0,.07);letter-spacing:.08em;text-transform:uppercase}
+.hbar{display:flex;align-items:center;gap:7px}
+.hlbl{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--mx);margin-right:4px;text-transform:uppercase;letter-spacing:.07em}
+.fbtn{
+  display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:5px;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:.67rem;font-weight:500;
+  background:var(--card2);border:1px solid var(--bdr);color:var(--mx);
+  transition:all .2s;white-space:nowrap;user-select:none;
+}
+.fbtn:hover{border-color:var(--amb);color:var(--tx);box-shadow:0 0 10px var(--aglow)}
+.fbtn.on{border-color:var(--amb);color:var(--amb);background:rgba(255,176,0,.07);box-shadow:0 0 14px rgba(255,176,0,.18)}
+.fbtn.rst{border-color:rgba(248,113,113,.28);color:#F87171}
+.fbtn.rst:hover{border-color:#F87171;background:rgba(248,113,113,.07)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* ── LAYOUT ── */
+main{flex:1;display:flex;overflow:hidden}
+
+/* ── CANVAS ── */
+#cvs{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:10px}
+#cvs svg{width:100%;height:100%}
+
+/* ── SIDEBAR ── */
+aside{
+  width:368px;flex-shrink:0;
+  background:rgba(13,17,23,.98);border-left:1px solid var(--bdr);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.tabs{display:flex;border-bottom:1px solid var(--bdr)}
+.tab{
+  flex:1;padding:13px 6px;text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;color:var(--mx);border-bottom:2px solid transparent;transition:all .2s;
+}
+.tab.on{color:var(--amb);border-bottom-color:var(--amb)}
+.pane{flex:1;overflow-y:auto;padding:18px;display:none}
+.pane.on{display:block}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--fx);border-radius:99px}
+
+/* ── DETAIL ── */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:200px;gap:12px;color:var(--mx);font-size:.82rem;text-align:center;padding:20px;
+}
+.empty svg{opacity:.22}
+.ibox{width:48px;height:48px;border-radius:11px;font-size:1.4rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dhd{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.dmeta h2{font-size:.96rem;font-weight:700;margin-bottom:4px}
+.dbdg{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:600;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em}
+.ddesc{font-size:.79rem;line-height:1.66;color:var(--mx);margin-bottom:16px}
+.slbl{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mx);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.slbl::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+.pill{font-family:'JetBrains Mono',monospace;font-size:.61rem;padding:3px 8px;border-radius:4px;background:var(--card2);border:1px solid rgba(255,255,255,.06);color:var(--mx)}
+.pill.db{border-color:rgba(167,139,250,.3);color:#A78BFA;background:rgba(167,139,250,.04)}
+.fblk{background:rgba(3,5,8,.9);border:1px solid rgba(255,255,255,.05);border-radius:6px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:.61rem;line-height:1.9}
+.fblk .fp{color:var(--mx)}.fblk .fn{color:#6EE7B7}
+
+/* ── FLOW PANE ── */
+.flhd{margin-bottom:14px}.flhd h3{font-size:.88rem;font-weight:700;margin-bottom:3px}.flhd p{font-size:.72rem;color:var(--mx)}
+.slist{display:flex;flex-direction:column;gap:7px}
+.step{display:flex;gap:11px;padding:9px 11px;border-radius:6px;border:1px solid transparent;background:rgba(255,255,255,.015);transition:all .25s}
+.step.on{border-color:rgba(255,176,0,.22);background:rgba(255,176,0,.04)}
+.step.done{opacity:.42}
+.snum{width:21px;height:21px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;background:var(--card2);border:1px solid rgba(255,255,255,.08);color:var(--mx);margin-top:1px;transition:all .2s}
+.step.on .snum{background:var(--amb);color:var(--ink);border-color:transparent;box-shadow:0 0 7px rgba(255,176,0,.5)}
+.sbdy .sn{font-size:.79rem;font-weight:600;margin-bottom:3px}.sbdy .sd{font-size:.71rem;color:var(--mx);line-height:1.5}
+
+/* ── SVG NODE STYLES ── */
+.nc{cursor:pointer}
+.nb{transition:stroke .2s,stroke-width .2s;filter:drop-shadow(0 5px 12px rgba(0,0,0,.6))}
+.nc:hover .nb{stroke-width:1.5}
+.nc.sel .nb{stroke-width:2}
+.nc.glo .nb{animation:glo 1.9s ease-in-out infinite}
+@keyframes glo{
+  0%,100%{filter:drop-shadow(0 5px 12px rgba(0,0,0,.6))}
+  50%{filter:drop-shadow(0 0 14px var(--gc,rgba(255,176,0,.5))) drop-shadow(0 5px 12px rgba(0,0,0,.6))}
+}
+.nl{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:700;fill:#D8E0EA}
+.ns{font-family:'JetBrains Mono',monospace;font-size:8px;fill:#68788A}
+.ni{font-size:17px}
+
+/* ── EDGES ── */
+.e{fill:none;stroke:rgba(255,255,255,.065);stroke-width:1.5;transition:stroke .25s,stroke-width .25s}
+.e.sec{stroke:rgba(255,255,255,.038);stroke-dasharray:4 3}
+.e.hid{opacity:0;pointer-events:none}
+.e.lit{stroke:var(--amb);stroke-width:2.2;stroke-dasharray:8 5;animation:edash 1.1s linear infinite;filter:drop-shadow(0 0 4px rgba(255,176,0,.65))}
+.e.hid.lit{opacity:1}
+@keyframes edash{to{stroke-dashoffset:-26}}
+.am{fill:rgba(255,255,255,.065);transition:fill .25s}
+.am.lit{fill:var(--amb)}
+
+/* Layer label styles */
+.lnum{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.06em}
+.ltxt{font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.1em;text-transform:uppercase}
+.elbl{font-family:'JetBrains Mono',monospace;font-size:7px;fill:#384250}
+
+/* ── FOOTER ── */
+footer{
+  flex-shrink:0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  background:rgba(13,17,23,.97);border-top:1px solid var(--bdr);
+  font-family:'JetBrains Mono',monospace;font-size:.59rem;color:var(--fx);
+}
+footer span{color:var(--mx)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">QUANT<em>WISE</em><div class="lpill">System Architecture</div></div>
+  <div class="hbar">
+    <span class="hlbl">Animate:</span>
+    <button class="fbtn" id="fb1" onclick="runFlow(1)"><span class="dot" style="background:#34D399"></span>Registration</button>
+    <button class="fbtn" id="fb2" onclick="runFlow(2)"><span class="dot" style="background:#FACC15"></span>Daily ML Batch</button>
+    <button class="fbtn" id="fb3" onclick="runFlow(3)"><span class="dot" style="background:#FB923C"></span>Gemini Recs</button>
+    <button class="fbtn rst" onclick="resetAll()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Reset
+    </button>
+  </div>
+</header>
+
+<main>
+<div id="cvs">
+<svg viewBox="0 0 1020 652" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+    <path d="M0 1.5 L8 5 L0 8.5z" class="am" id="arrp"/>
+  </marker>
+  <marker id="arrL" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
+    <path d="M0 1.5 L8 5 L0 8.5z" fill="#FFB000"/>
+  </marker>
+  <filter id="sh" x="-12%" y="-18%" width="124%" height="140%">
+    <feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#000" flood-opacity=".55"/>
+  </filter>
+</defs>
+
+<!-- ══════════════════════════════════════════════════════════
+     LAYER BANDS  (top → bottom flow)
+══════════════════════════════════════════════════════════ -->
+
+<!-- Band 01 · Client -->
+<rect x="10" y="12" width="1000" height="96" rx="8" fill="rgba(56,189,248,.035)" stroke="rgba(56,189,248,.22)" stroke-width=".8" stroke-dasharray="6 4"/>
+<text x="22" y="26" class="lnum" fill="#38BDF8">01</text>
+<text x="38" y="26" class="ltxt" fill="#38BDF8">CLIENT  LAYER</text>
+
+<!-- Band 02 · API Gateway -->
+<rect x="10" y="122" width="1000" height="100" rx="8" fill="rgba(251,146,60,.033)" stroke="rgba(251,146,60,.22)" stroke-width=".8" stroke-dasharray="6 4"/>
+<text x="22" y="136" class="lnum" fill="#FB923C">02</text>
+<text x="38" y="136" class="ltxt" fill="#FB923C">API  GATEWAY  ·  ASP.NET Core 10</text>
+
+<!-- Band 03 · Domain Modules -->
+<rect x="10" y="236" width="1000" height="120" rx="8" fill="rgba(52,211,153,.028)" stroke="rgba(52,211,153,.22)" stroke-width=".8" stroke-dasharray="6 4"/>
+<text x="22" y="250" class="lnum" fill="#34D399">03</text>
+<text x="38" y="250" class="ltxt" fill="#34D399">DOMAIN  MODULES  ·  Modular Monolith</text>
+
+<!-- Band 04 · Data Layer -->
+<rect x="10" y="370" width="1000" height="104" rx="8" fill="rgba(167,139,250,.028)" stroke="rgba(167,139,250,.22)" stroke-width=".8" stroke-dasharray="6 4"/>
+<text x="22" y="384" class="lnum" fill="#A78BFA">04</text>
+<text x="38" y="384" class="ltxt" fill="#A78BFA">DATA  LAYER  ·  PostgreSQL 18  ·  Redis  ·  RabbitMQ</text>
+
+<!-- Band 05 · AI / External -->
+<rect x="10" y="488" width="1000" height="150" rx="8" fill="rgba(250,204,21,.028)" stroke="rgba(250,204,21,.22)" stroke-width=".8" stroke-dasharray="6 4"/>
+<text x="22" y="502" class="lnum" fill="#FACC15">05</text>
+<text x="38" y="502" class="ltxt" fill="#FACC15">AI  PIPELINE  &amp;  EXTERNAL  APIs</text>
+
+<!-- ══════════════════════════════════════════════════════════
+     EDGES  (rendered under nodes)
+══════════════════════════════════════════════════════════ -->
+
+<!-- ─ Layer 1→2: React ↔ API (bidirectional vertical center) ─ -->
+<path id="e-fe-api" class="e" d="M505,108 L505,132" marker-end="url(#arr)"/>
+<path id="e-api-fe" class="e" d="M515,132 L515,108" marker-end="url(#arr)"/>
+<text x="522" y="123" class="elbl">HTTP / JWT</text>
+
+<!-- ─ Layer 2→3: API fans out to 4 modules ─ -->
+<path id="e-api-u"  class="e" d="M510,222 C510,234 118,234 118,246" marker-end="url(#arr)"/>
+<path id="e-api-p"  class="e" d="M510,222 C510,234 370,234 370,246" marker-end="url(#arr)"/>
+<path id="e-api-r"  class="e" d="M510,222 C510,234 629,234 629,246" marker-end="url(#arr)"/>
+<path id="e-api-n"  class="e" d="M510,222 C510,234 882,234 882,246" marker-end="url(#arr)"/>
+<text x="516" y="232" class="elbl">CQRS dispatch via MediatR</text>
+
+<!-- ─ Layer 3→4: All modules converge to PostgreSQL (dashed) ─ -->
+<path id="e-u-pg"  class="e sec" d="M118,356 C118,366 185,366 185,380" marker-end="url(#arr)"/>
+<path id="e-p-pg"  class="e sec" d="M370,356 C370,366 185,366 185,380" marker-end="url(#arr)"/>
+<path id="e-r-pg"  class="e sec" d="M629,356 C629,366 185,366 185,380" marker-end="url(#arr)"/>
+<path id="e-n-pg"  class="e sec" d="M882,356 C882,366 185,366 185,380" marker-end="url(#arr)"/>
+<text x="220" y="363" class="elbl">EF Core · isolated DbContext per module</text>
+
+<!-- ─ Recs ↔ Redis (cache, bidirectional) ─ -->
+<path id="e-r-rd"  class="e" d="M626,356 C626,366 507,366 507,380" marker-end="url(#arr)"/>
+<path id="e-rd-r"  class="e" d="M513,380 C513,366 632,366 632,356" marker-end="url(#arr)"/>
+<text x="545" y="363" class="elbl" fill="rgba(167,139,250,.5)">HybridCache ↕ 12h</text>
+
+<!-- ─ RabbitMQ → Notifications (Inbox, dashed, going UP) ─ -->
+<path id="e-mq-n"  class="e sec" d="M836,370 C836,360 882,360 882,356" marker-end="url(#arr)"/>
+<text x="846" y="362" class="elbl">← Inbox</text>
+
+<!-- ─ Stock APIs ↔ FastAPI (horizontal within AI band) ─ -->
+<path id="e-st-fa" class="e" d="M322,566 L365,566" marker-end="url(#arr)"/>
+<path id="e-fa-st" class="e" d="M365,554 L322,554" marker-end="url(#arr)"/>
+
+<!-- ─ Recs → Gemini (runs along right outer margin) ─ -->
+<path id="e-r-gm"  class="e" d="M736,295 C1010,295 1010,562 978,562" marker-end="url(#arr)"/>
+<path id="e-gm-r"  class="e" d="M978,548 C1010,548 1010,282 736,282" marker-end="url(#arr)"/>
+<text x="984" y="432" class="elbl" transform="rotate(90,984,432)" style="text-anchor:middle">Gemini SDK  ↕  schema JSON</text>
+
+<!-- ─ ANIMATED-ONLY EDGES (hidden by default) ─ -->
+<!-- Outbox: Modules → RabbitMQ (right-side bus) -->
+<path id="e-u-mq"  class="e hid" d="M238,295 L1006,295 C1014,295 1014,422 836,422" marker-end="url(#arr)"/>
+<path id="e-p-mq"  class="e hid" d="M488,306 L1006,306 C1014,306 1014,430 836,430" marker-end="url(#arr)"/>
+<path id="e-r-mq"  class="e hid" d="M736,310 L1006,310 C1014,310 1014,438 836,438" marker-end="url(#arr)"/>
+
+<!-- FastAPI → API ingest (left outer margin, bottom→top) -->
+<path id="e-fa-api" class="e hid" d="M365,560 L12,560 L12,172 L340,172" marker-end="url(#arr)"/>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     NODE CARDS
+══════════════════════════════════════════════════════════ -->
+
+<!-- ── BAND 01: React Frontend (centered) ──────────────────── -->
+<g class="nc" id="n-frontend" onclick="pick('frontend')">
+  <rect class="nb" x="370" y="22" width="280" height="78" rx="9" fill="#07111E" stroke="#38BDF8" stroke-width=".9" filter="url(#sh)"/>
+  <!-- React atom SVG icon -->
+  <g transform="translate(386,40) scale(.72)">
+    <circle cx="12" cy="12" r="2.9" fill="#38BDF8"/>
+    <ellipse cx="12" cy="12" rx="11" ry="4" fill="none" stroke="#38BDF8" stroke-width="1.2" opacity=".75"/>
+    <ellipse cx="12" cy="12" rx="11" ry="4" fill="none" stroke="#38BDF8" stroke-width="1.2" opacity=".75" transform="rotate(60 12 12)"/>
+    <ellipse cx="12" cy="12" rx="11" ry="4" fill="none" stroke="#38BDF8" stroke-width="1.2" opacity=".75" transform="rotate(120 12 12)"/>
+  </g>
+  <text class="nl" x="410" y="50">React Frontend</text>
+  <text class="ns" x="410" y="64">Vite  ·  TypeScript  ·  TanStack Query</text>
+  <text class="ns" x="410" y="77">Framer Motion  ·  Quant Terminal UI</text>
+  <rect x="370" y="97" width="280" height="2.5" rx="1.2" fill="#38BDF8" opacity=".55"/>
+</g>
+
+<!-- ── BAND 02: ASP.NET Core Gateway (centered) ───────────── -->
+<g class="nc" id="n-api" onclick="pick('api')">
+  <rect class="nb" x="340" y="132" width="340" height="80" rx="9" fill="#190E04" stroke="#FB923C" stroke-width=".9" filter="url(#sh)"/>
+  <!-- .NET text icon -->
+  <text style="font-family:JetBrains Mono,monospace;font-size:18px;font-weight:800;fill:#FB923C;opacity:.85" x="354" y="168">.NET</text>
+  <text class="nl" x="402" y="158">ASP.NET Core 10</text>
+  <text class="ns" x="402" y="172">Minimal APIs  ·  MediatR ISender  ·  JWT Auth</text>
+  <text class="ns" x="402" y="185">FluentValidation  ·  CORS  ·  Rate limiting</text>
+  <rect x="340" y="209" width="340" height="2.5" rx="1.2" fill="#FB923C" opacity=".55"/>
+</g>
+
+<!-- ── BAND 03: Four Domain Modules ──────────────────────── -->
+
+<!-- Users Module   x=10, w=230 -->
+<g class="nc" id="n-users" onclick="pick('users')">
+  <rect class="nb" x="10" y="246" width="226" height="100" rx="9" fill="#071410" stroke="#34D399" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="20" y="284">👤</text>
+  <text class="nl" x="44" y="278">Users Module</text>
+  <text class="ns" x="44" y="292">CQRS  ·  BCrypt</text>
+  <text class="ns" x="44" y="305">JWT Token Gen</text>
+  <text class="ns" x="44" y="318">Outbox pattern</text>
+  <text class="ns" x="44" y="331">UsersDbContext</text>
+  <rect x="10" y="343" width="226" height="2.5" rx="1.2" fill="#34D399" opacity=".55"/>
+</g>
+
+<!-- Portfolio Module   x=250, w=230 -->
+<g class="nc" id="n-portfolio" onclick="pick('portfolio')">
+  <rect class="nb" x="250" y="246" width="226" height="100" rx="9" fill="#071410" stroke="#34D399" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="260" y="284">💼</text>
+  <text class="nl" x="284" y="278">Portfolio Module</text>
+  <text class="ns" x="284" y="292">Risk Questionnaire</text>
+  <text class="ns" x="284" y="305">DDD  ·  EF Core</text>
+  <text class="ns" x="284" y="318">IPortfolioApi</text>
+  <text class="ns" x="284" y="331">PortfolioDbContext</text>
+  <rect x="250" y="343" width="226" height="2.5" rx="1.2" fill="#34D399" opacity=".55"/>
+</g>
+
+<!-- Recommendations Module   x=490, w=240 -->
+<g class="nc" id="n-recommendations" onclick="pick('recommendations')">
+  <rect class="nb" x="490" y="246" width="236" height="100" rx="9" fill="#071410" stroke="#34D399" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="500" y="284">🧠</text>
+  <text class="nl" x="524" y="278">Recommendations</text>
+  <text class="ns" x="524" y="292">Orchestration · Ingest</text>
+  <text class="ns" x="524" y="305">HybridCache · Gemini</text>
+  <text class="ns" x="524" y="318">Outbox pattern</text>
+  <text class="ns" x="524" y="331">RecommendationsDbContext</text>
+  <rect x="490" y="343" width="236" height="2.5" rx="1.2" fill="#34D399" opacity=".55"/>
+</g>
+
+<!-- Notifications Module   x=742, w=258 -->
+<g class="nc" id="n-notifications" onclick="pick('notifications')">
+  <rect class="nb" x="742" y="246" width="258" height="100" rx="9" fill="#071410" stroke="#34D399" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="752" y="284">🔔</text>
+  <text class="nl" x="776" y="278">Notifications</text>
+  <text class="ns" x="776" y="292">In-App  ·  Email alerts</text>
+  <text class="ns" x="776" y="305">Inbox pattern</text>
+  <text class="ns" x="776" y="318">Idempotency guard</text>
+  <text class="ns" x="776" y="331">NotificationsDbContext</text>
+  <rect x="742" y="343" width="258" height="2.5" rx="1.2" fill="#34D399" opacity=".55"/>
+</g>
+
+<!-- ── BAND 04: Storage (3 nodes) ──────────────────────────── -->
+
+<!-- PostgreSQL   x=18, w=308 -->
+<g class="nc" id="n-postgres" onclick="pick('postgres')">
+  <rect class="nb" x="18" y="380" width="308" height="84" rx="9" fill="#0E0817" stroke="#A78BFA" stroke-width=".9" filter="url(#sh)"/>
+  <!-- Elephant-like icon (geometric) -->
+  <g transform="translate(30,392) scale(.9)">
+    <ellipse cx="12" cy="9.5" rx="9" ry="7.5" fill="none" stroke="#A78BFA" stroke-width="1.4"/>
+    <circle cx="8.5" cy="8" r="1.5" fill="#A78BFA"/>
+    <circle cx="15.5" cy="8" r="1.5" fill="#A78BFA"/>
+    <path d="M9 14 Q12 17 15 14" stroke="#A78BFA" stroke-width="1.2" fill="none"/>
+  </g>
+  <text class="nl" x="68" y="400">PostgreSQL 18</text>
+  <text class="ns" x="30" y="416">Users · Portfolios · Recommendations</text>
+  <text class="ns" x="30" y="429">Notifications · Outbox / Inbox tables</text>
+  <text class="ns" x="30" y="442" fill="#4A385A" font-style="italic">Isolated DbContext per module (no cross joins)</text>
+  <rect x="18" y="461" width="308" height="2.5" rx="1.2" fill="#A78BFA" opacity=".55"/>
+</g>
+
+<!-- Redis   x=340, w=308 -->
+<g class="nc" id="n-redis" onclick="pick('redis')">
+  <rect class="nb" x="340" y="380" width="308" height="84" rx="9" fill="#0E0817" stroke="#A78BFA" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="352" y="410">⚡</text>
+  <text class="nl" x="380" y="403">Redis Cache</text>
+  <text class="ns" x="352" y="420">HybridCache (L1 Memory + L2 Redis)</text>
+  <text class="ns" x="352" y="433">12-hour TTL  ·  per-user cache key</text>
+  <text class="ns" x="352" y="446" fill="#4A385A" font-style="italic">Eliminates repeated Gemini API calls</text>
+  <rect x="340" y="461" width="308" height="2.5" rx="1.2" fill="#A78BFA" opacity=".55"/>
+</g>
+
+<!-- RabbitMQ   x=662, w=338 -->
+<g class="nc" id="n-rabbitmq" onclick="pick('rabbitmq')">
+  <rect class="nb" x="662" y="380" width="338" height="84" rx="9" fill="#0E0817" stroke="#A78BFA" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="674" y="410">🐇</text>
+  <text class="nl" x="702" y="403">RabbitMQ + MassTransit</text>
+  <text class="ns" x="674" y="420">Outbox publish → exchange → Inbox consume</text>
+  <text class="ns" x="674" y="433">MassTransit consumers · Quartz publisher job</text>
+  <text class="ns" x="674" y="446" fill="#4A385A" font-style="italic">Exactly-once guaranteed delivery</text>
+  <rect x="662" y="461" width="338" height="2.5" rx="1.2" fill="#A78BFA" opacity=".55"/>
+</g>
+
+<!-- ── BAND 05: AI / External (3 nodes) ────────────────────── -->
+
+<!-- Market Data APIs   x=18, w=308 -->
+<g class="nc" id="n-stockapi" onclick="pick('stockapi')">
+  <rect class="nb" x="18" y="498" width="308" height="130" rx="9" fill="#10100A" stroke="#FACC15" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="30" y="534">📈</text>
+  <text class="nl" x="58" y="527">Market Data APIs</text>
+  <text class="ns" x="30" y="548">yFinance — OHLCV historical price arrays</text>
+  <text class="ns" x="30" y="561">Finnhub — analyst ratings &amp; headlines</text>
+  <text class="ns" x="30" y="574">Rate-limited throttle gate (IP ban prevention)</text>
+  <text class="ns" x="30" y="587">Up to 25 headlines / ticker  ·  14-day window</text>
+  <text class="ns" x="30" y="600" fill="#4A420A" font-style="italic">Read-only external data sources</text>
+  <rect x="18" y="625" width="308" height="2.5" rx="1.2" fill="#FACC15" opacity=".55"/>
+</g>
+
+<!-- FastAPI Pipeline   x=340, w=308 -->
+<g class="nc" id="n-fastapi" onclick="pick('fastapi')">
+  <rect class="nb" x="340" y="498" width="308" height="130" rx="9" fill="#10100A" stroke="#FACC15" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="352" y="534">🐍</text>
+  <text class="nl" x="380" y="527">FastAPI Pipeline</text>
+  <text class="ns" x="352" y="548">Stage 1: LSTM (60-day window · MC-Dropout ×30)</text>
+  <text class="ns" x="352" y="561">Stage 2: XGBoost (14 technical indicators)</text>
+  <text class="ns" x="352" y="574">FinBERT NLP sentiment  ·  Risk Rules Engine</text>
+  <text class="ns" x="352" y="587">Conviction score  ·  Risk flags per ticker</text>
+  <text class="ns" x="352" y="600" fill="#4A420A" font-style="italic">POST ingest → .NET /api/internal/daily-results</text>
+  <rect x="340" y="625" width="308" height="2.5" rx="1.2" fill="#FACC15" opacity=".55"/>
+</g>
+
+<!-- Google Gemini   x=662, w=338 -->
+<g class="nc" id="n-gemini" onclick="pick('gemini')">
+  <rect class="nb" x="662" y="498" width="338" height="130" rx="9" fill="#10100A" stroke="#FACC15" stroke-width=".9" filter="url(#sh)"/>
+  <text class="ni" x="674" y="534">✦</text>
+  <text class="nl" x="702" y="527">Google Gemini 1.5 Flash</text>
+  <text class="ns" x="674" y="548">Input: RiskProfile + DailyRun signals (100 stocks)</text>
+  <text class="ns" x="674" y="561">Output: BUY / WATCH / AVOID · allocation_pct</text>
+  <text class="ns" x="674" y="574">Schema-constrained JSON  ·  3× retry on parse fail</text>
+  <text class="ns" x="674" y="587">Response cached 12 h per user in Redis</text>
+  <text class="ns" x="674" y="600" fill="#4A420A" font-style="italic">Per-user personalisation at request time</text>
+  <rect x="662" y="625" width="338" height="2.5" rx="1.2" fill="#FACC15" opacity=".55"/>
+</g>
+
+</svg>
+</div>
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="tabs">
+    <div class="tab on" id="tab-d" onclick="sw('d')">Component Info</div>
+    <div class="tab"    id="tab-f" onclick="sw('f')">Active Flow</div>
+  </div>
+  <div class="pane on" id="pane-d">
+    <div class="empty" id="det-empty">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#68788A" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p>Click any node on the diagram to explore its architecture details, tech stack, DB tables, and source files.</p>
+    </div>
+    <div id="det-c" style="display:none">
+      <div class="dhd">
+        <div class="ibox" id="det-ico">🖥️</div>
+        <div class="dmeta"><h2 id="det-name"></h2><span class="dbdg" id="det-bdg"></span></div>
+      </div>
+      <p class="ddesc" id="det-desc"></p>
+      <div class="slbl">Tech Stack</div>
+      <div class="pills" id="det-tech"></div>
+      <div class="slbl" id="det-dbl" style="display:none">Database Tables</div>
+      <div class="pills" id="det-db"></div>
+      <div class="slbl">Source Files</div>
+      <div class="fblk" id="det-files"></div>
+    </div>
+  </div>
+  <div class="pane" id="pane-f">
+    <div class="empty" id="fl-empty">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#68788A" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <p>Press an <strong>Animate</strong> button to watch data travel layer-by-layer through the system.</p>
+    </div>
+    <div id="fl-c" style="display:none">
+      <div class="flhd"><h3 id="fl-t"></h3><p id="fl-s"></p></div>
+      <div class="slist" id="sl"></div>
+    </div>
+  </div>
+</aside>
+</main>
+
+<footer>
+  <div>QuantWise  ·  Modular Monolith  ·  ASP.NET Core 10  ·  Python FastAPI  ·  React TypeScript</div>
+  <span>Graduation Project  ·  June 2026</span>
+</footer>
+
+<script>
+const ND = {
+  frontend:{icon:'⚛️',color:'#38BDF8',layer:'Client Web Application',name:'React Frontend',
+    desc:'Terminal-aesthetic SPA ("Quant Terminal") built on React 18 and TypeScript. Manages JWT auth state, renders BUY/WATCH/AVOID signal rows, hosts the notification bell, and uses TanStack Query for server-state synchronisation with 12-hour client-side deduplication.',
+    tech:['React 18','TypeScript','Vite','TanStack Query','Framer Motion','Martian Mono · Hanken Grotesk'],
+    files:[{p:'frontend/src/app/',n:'App.tsx'},{p:'frontend/src/features/recommendations/',n:'RecommendationsPanel.tsx'},{p:'frontend/src/features/onboarding/',n:'Onboarding.tsx'},{p:'frontend/src/shared/api/',n:'client.ts'}]},
+  api:{icon:'🌐',color:'#FB923C',layer:'API Gateway',name:'ASP.NET Core 10 Gateway',
+    desc:'Unified HTTP entry point for the modular monolith. Minimal-API endpoints handle JWT validation, CORS, and route requests to module handlers via MediatR ISender.Send(). No business logic here — purely translates HTTP to typed CQRS commands and queries.',
+    tech:['ASP.NET Core 10','Minimal APIs','MediatR','JWT Bearer Tokens','FluentValidation'],
+    files:[{p:'Backend/src/API/Project.Api/',n:'Program.cs'},{p:'Backend/src/API/Project.Api/Middleware/',n:'ExceptionHandlingMiddleware.cs'}]},
+  users:{icon:'👤',color:'#34D399',layer:'Domain Module',name:'Users Module',
+    desc:'Owns user identity and credential management. RegisterUserCommandHandler hashes passwords using BCrypt, persists the User aggregate to UsersDbContext, and writes a UserRegisteredIntegrationEvent to the Outbox table inside the same DB transaction — guaranteeing the welcome notification is never lost.',
+    tech:['MediatR CQRS','BCrypt Hashing','EF Core 10','FluentResults','Outbox Pattern'],
+    db:['Users','UserSettings','OutboxMessages','OutboxMessageConsumers'],
+    files:[{p:'Backend/src/Modules/Users/.Application/Users/Register/',n:'RegisterUserCommandHandler.cs'},{p:'Backend/src/Modules/Users/.Domain/Users/',n:'User.cs'},{p:'Backend/src/Modules/Users/.Infrastructure/Database/',n:'UsersDbContext.cs'}]},
+  portfolio:{icon:'💼',color:'#34D399',layer:'Domain Module',name:'Portfolio Module',
+    desc:'Manages investment portfolios, questionnaire answers, asset-class allocations, and the computed RiskProfile (Conservative | Moderate | Aggressive). Exposes an IPortfolioApi public interface used by Recommendations to fetch risk data without any direct cross-module DB join.',
+    tech:['Domain-Driven Design','MediatR CQRS','EF Core 10','Unit of Work','FluentResults'],
+    db:['Portfolios','PortfolioHoldings','PortfolioPerformance','AssetAllocation','Questionnaires'],
+    files:[{p:'Backend/src/Modules/Portfolio/.Application/Portfolios/Create/',n:'CreatePortfolioCommandHandler.cs'},{p:'Backend/src/Modules/Portfolio/.Domain/Portfolios/',n:'Portfolio.cs'},{p:'Backend/src/Modules/Portfolio/.Infrastructure/Database/',n:'PortfolioDbContext.cs'}]},
+  recommendations:{icon:'🧠',color:'#34D399',layer:'Domain Module',name:'Recommendations Module',
+    desc:'Intelligence hub. Receives daily ML batch via Ingest endpoint and stores DailyRun + StockPrediction rows. At request time, checks Redis (12h TTL). On cache miss: fetches RiskProfile via IPortfolioApi, loads latest DailyRun, builds a Gemini prompt, validates structured JSON with 3 retries, populates Redis, and returns picks.',
+    tech:['MediatR CQRS','Google Gemini SDK','HybridCache','EF Core 10','Quartz.NET','FluentResults'],
+    db:['DailyRuns','StockPredictions','OutboxMessages','OutboxMessageConsumers'],
+    files:[{p:'Backend/src/Modules/Recommendations/.Application/Recommendations/GetRecommendations/',n:'GetRecommendationsQueryHandler.cs'},{p:'Backend/src/Modules/Recommendations/.Infrastructure/Llm/',n:'GeminiLlmClient.cs'},{p:'Backend/src/Modules/Recommendations/.Application/Recommendations/IngestDailyRun/',n:'IngestDailyRunCommandHandler.cs'}]},
+  notifications:{icon:'🔔',color:'#34D399',layer:'Domain Module',name:'Notifications Module',
+    desc:'Listens for Integration Events from RabbitMQ via MassTransit consumers. Uses an Inbox table to record each message ID and guarantee exactly-once processing across restarts. Creates in-app Notification rows and sends emails via Mailpit.',
+    tech:['MassTransit Consumer','Idempotent Inbox Pattern','EF Core 10','Mailpit SMTP'],
+    db:['Notifications','InboxMessages','InboxMessageConsumers'],
+    files:[{p:'Backend/src/Modules/Notifications/.Infrastructure/EventConsumers/',n:'UserRegisteredIntegrationEventConsumer.cs'},{p:'Backend/src/Modules/Notifications/.Application/Notifications/',n:'GetNotificationsQueryHandler.cs'},{p:'Backend/src/Modules/Notifications/.Infrastructure/Database/',n:'NotificationsDbContext.cs'}]},
+  postgres:{icon:'🐘',color:'#A78BFA',layer:'Storage · Relational DB',name:'PostgreSQL 18',
+    desc:'Primary relational datastore in Docker. Strictly partitioned by module: each module maps to isolated tables via a separate EF Core DbContext. Direct cross-module SQL joins are banned — cross-cutting data flows through Outbox → RabbitMQ → Inbox only.',
+    tech:['PostgreSQL 18 (Docker)','EF Core 10 Migrations','ACID Transactions','JSONB Columns'],
+    files:[{p:'',n:'docker-compose.yml  (postgres service)'},{p:'Backend/src/Modules/Users/.Infrastructure/Database/',n:'UsersDbContext.cs'},{p:'Backend/src/Modules/Portfolio/.Infrastructure/Database/',n:'PortfolioDbContext.cs'},{p:'Backend/src/Modules/Recommendations/.Infrastructure/Database/',n:'RecommendationsDbContext.cs'}]},
+  redis:{icon:'⚡',color:'#A78BFA',layer:'Storage · Cache',name:'Redis Cache',
+    desc:'HybridCache layer (L1 in-process memory + L2 Redis) caches each user\'s complete recommendations DTO for 12 hours, keyed by UserId. Eliminates repeated Gemini API token costs and page-load latency. Evicted on each new DailyRun ingest.',
+    tech:['Redis 7 (Docker)','Microsoft HybridCache','In-Memory L1 tier','12h TTL per-user key'],
+    files:[{p:'',n:'docker-compose.yml  (redis service)'},{p:'Backend/src/Modules/Recommendations/.Application/Recommendations/GetRecommendations/',n:'GetRecommendationsQueryHandler.cs'}]},
+  rabbitmq:{icon:'🐇',color:'#A78BFA',layer:'Message Broker',name:'RabbitMQ + MassTransit',
+    desc:'Asynchronous event bus decoupling domain modules. Producers write Integration Events into Outbox tables within the same DB transaction as business data. Quartz background publisher polls and dispatches to RabbitMQ. Consumers record message IDs in Inbox for exactly-once processing.',
+    tech:['RabbitMQ 3 (Docker)','MassTransit','Outbox Publisher Job','Inbox Idempotency'],
+    files:[{p:'',n:'docker-compose.yml  (rabbitmq service)'},{p:'Backend/src/Modules/Notifications/.Infrastructure/EventConsumers/',n:'UserRegisteredIntegrationEventConsumer.cs'}]},
+  stockapi:{icon:'📈',color:'#FACC15',layer:'External API',name:'Market Data APIs',
+    desc:'Two external data sources consumed daily. yFinance downloads 6-month OHLCV price arrays for 100 tickers (with throttle gate to avoid IP bans). Finnhub provides analyst consensus ratings, price targets, and up to 25 recent news headlines per ticker for FinBERT sentiment scoring.',
+    tech:['yFinance Python library','Finnhub REST API','Rate-limiting throttle gate','Proxy support'],
+    files:[{p:'Pipeline/',n:'main.py'},{p:'Pipeline/scraping/',n:'yfinance_client.py'},{p:'Pipeline/scraping/',n:'finnhub_client.py'}]},
+  fastapi:{icon:'🐍',color:'#FACC15',layer:'AI Service',name:'FastAPI ML Pipeline',
+    desc:'Nightly AI scoring microservice. Stage 1 LSTM backbone encodes 60-day price sequences with MC-Dropout (30 samples) for uncertainty. Stage 2 XGBoost takes LSTM hidden state + 14 technical indicators. FinBERT scores news headlines. Risk-rules engine cross-validates prediction vs. sentiment to produce conviction scores and risk flags.',
+    tech:['FastAPI','PyTorch LSTM','XGBoost','FinBERT (HuggingFace)','MC-Dropout','Scikit-Learn'],
+    files:[{p:'Pipeline/',n:'main.py'},{p:'Pipeline/models/',n:'lstm_model.py'},{p:'Pipeline/models/',n:'xgboost_head.py'},{p:'Pipeline/scoring/',n:'risk_rules.py'},{p:'Pipeline/scoring/',n:'finbert_sentiment.py'}]},
+  gemini:{icon:'✦',color:'#FACC15',layer:'LLM · External',name:'Google Gemini 1.5 Flash',
+    desc:'Request-time personalisation. Receives user\'s RiskProfile (Conservative | Moderate | Aggressive) and full DailyRun market signals. Returns schema-constrained JSON: { summary, picks[{ticker, action, allocation_pct, reason, risk_note, fit}] }. Retried up to 3× on parse failure. Response cached 12h.',
+    tech:['Gemini 1.5 Flash','Schema-constrained JSON','3× retry on parse fail','Per-user context prompt'],
+    files:[{p:'Backend/src/Modules/Recommendations/.Infrastructure/Llm/',n:'GeminiLlmClient.cs'},{p:'Backend/src/Modules/Recommendations/.Application/Recommendations/GetRecommendations/',n:'GetRecommendationsQueryHandler.cs'}]},
+};
+
+const FL = {
+  1:{color:'#34D399',title:'Registration & Onboarding',sub:'CQRS command → Outbox → RabbitMQ → Inbox welcome notification',
+    steps:[
+      {t:'User submits registration form',d:'React UI POSTs credentials to /api/users/register via the HTTP client with JWT.',nodes:['frontend','api'],edges:['e-fe-api']},
+      {t:'CreateUserCommand dispatched',d:'Gateway routes via MediatR. BCrypt hashes password, User aggregate saved, OutboxMessage row inserted — all in one DB transaction.',nodes:['api','users','postgres'],edges:['e-api-u','e-u-pg']},
+      {t:'Outbox publisher fires',d:'Quartz background job polls un-sent OutboxMessages and publishes UserRegisteredIntegrationEvent to RabbitMQ exchange.',nodes:['users','rabbitmq'],edges:['e-u-mq']},
+      {t:'MassTransit consumer activates',d:'Notifications Module consumer receives the event. Inbox table checked for idempotency — if new, processes it.',nodes:['rabbitmq','notifications'],edges:['e-mq-n']},
+      {t:'Welcome notification created & displayed',d:'Notification row inserted. Frontend bell updates via unread-count poll. User is welcomed.',nodes:['notifications','postgres','frontend'],edges:['e-n-pg','e-api-fe']},
+    ]},
+  2:{color:'#FACC15',title:'Daily ML Batch Ingestion',sub:'Quartz trigger → Python scrape → AI scoring → .NET ingest → PostgreSQL',
+    steps:[
+      {t:'Quartz.NET scheduler fires',d:'FetchDailyPipelineJob in .NET sends HTTP POST to FastAPI /api/score triggering the daily run.',nodes:['api','fastapi'],edges:['e-fa-api']},
+      {t:'Scrape market data',d:'FastAPI pulls 6-month OHLCV arrays from yFinance and analyst ratings + headlines from Finnhub for 100 tickers.',nodes:['fastapi','stockapi'],edges:['e-st-fa','e-fa-st']},
+      {t:'Run ML models',d:'LSTM encodes temporal patterns (MC-Dropout ×30). XGBoost predicts price change direction. FinBERT scores sentiment. Risk engine outputs conviction scores and flags.',nodes:['fastapi'],edges:[]},
+      {t:'POST scored results to .NET',d:'FastAPI sends completed JSON payload to POST /api/internal/daily-results.',nodes:['fastapi','api'],edges:['e-fa-api']},
+      {t:'IngestDailyRun persists to DB',d:'Recommendations Module writes DailyRun + StockPrediction rows to DB. Redis cache evicted for all users.',nodes:['api','recommendations','postgres'],edges:['e-api-r','e-r-pg']},
+    ]},
+  3:{color:'#FB923C',title:'Personalised Recommendations Request',sub:'Cache check → Portfolio contract → Gemini LLM → Redis → Dashboard render',
+    steps:[
+      {t:'User opens Dashboard',d:'React fires GET /api/recommendations with JWT token. Gateway dispatches GetRecommendationsQuery.',nodes:['frontend','api','recommendations'],edges:['e-fe-api','e-api-r']},
+      {t:'HybridCache lookup',d:'Handler checks Redis for cached per-user DTO (12h TTL). Cache HIT → returns immediately to frontend.',nodes:['recommendations','redis'],edges:['e-r-rd','e-rd-r']},
+      {t:'Cache miss: fetch Risk Profile',d:'Cache MISS path. Handler calls IPortfolioApi.GetUserRiskProfileAsync → returns Conservative | Moderate | Aggressive.',nodes:['recommendations','portfolio'],edges:[]},
+      {t:'Fetch latest DailyRun signals',d:'Handler queries RecommendationsDbContext for the most recent scored stock predictions.',nodes:['recommendations','postgres'],edges:['e-r-pg']},
+      {t:'Gemini personalisation',d:'GeminiLlmClient sends schema-constrained prompt with risk tier + market signals. Gemini returns structured JSON picks. Up to 3× retries on parse failure.',nodes:['recommendations','gemini'],edges:['e-r-gm','e-gm-r']},
+      {t:'Cache write + render signal rows',d:'RecommendationsDTO stored in Redis (12h). Response returned. Frontend renders BUY / WATCH / AVOID rows.',nodes:['recommendations','redis','api','frontend'],edges:['e-r-rd','e-api-fe']},
+    ]},
+};
+
+let AF=null,SI=0,TM=null,CT='d';
+
+function sw(t){
+  CT=t;
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(e=>e.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('pane-'+t).classList.add('on');
+}
+
+function pick(k){
+  document.querySelectorAll('.nc').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('n-'+k).classList.add('sel');
+  const d=ND[k];
+  document.getElementById('det-empty').style.display='none';
+  document.getElementById('det-c').style.display='block';
+  const ico=document.getElementById('det-ico');
+  ico.textContent=d.icon; ico.style.background=d.color+'14'; ico.style.border='1px solid '+d.color+'36';
+  document.getElementById('det-name').textContent=d.name;
+  const b=document.getElementById('det-bdg');
+  b.textContent=d.layer; b.style.background=d.color+'12'; b.style.border='1px solid '+d.color+'35'; b.style.color=d.color;
+  document.getElementById('det-desc').textContent=d.desc;
+  document.getElementById('det-tech').innerHTML=d.tech.map(t=>`<span class="pill">${t}</span>`).join('');
+  const dbl=document.getElementById('det-dbl'),dbp=document.getElementById('det-db');
+  if(d.db&&d.db.length){dbl.style.display='flex';dbp.innerHTML=d.db.map(t=>`<span class="pill db">${t}</span>`).join('');}
+  else{dbl.style.display='none';dbp.innerHTML='';}
+  document.getElementById('det-files').innerHTML=d.files.map(f=>`<div><span class="fp">${f.p}</span><span class="fn">${f.n}</span></div>`).join('');
+  sw('d');
+}
+
+function resetAll(){
+  clearTimeout(TM); AF=null; SI=0;
+  document.querySelectorAll('.e').forEach(e=>{
+    e.classList.remove('lit');
+    if(e.classList.contains('hid')){e.removeAttribute('marker-end');}
+    else{e.setAttribute('marker-end','url(#arr)');}
+  });
+  document.querySelectorAll('.nc').forEach(c=>{c.classList.remove('glo','sel');c.style.removeProperty('--gc');});
+  document.querySelectorAll('.fbtn:not(.rst)').forEach(b=>b.classList.remove('on'));
+  document.getElementById('fl-c').style.display='none';
+  document.getElementById('fl-empty').style.display='flex';
+}
+
+function runFlow(id){
+  resetAll(); AF=FL[id]; SI=0;
+  document.getElementById('fb'+id).classList.add('on');
+  document.getElementById('fl-empty').style.display='none';
+  document.getElementById('fl-c').style.display='block';
+  document.getElementById('fl-t').textContent=AF.title;
+  document.getElementById('fl-s').textContent=AF.sub;
+  document.getElementById('sl').innerHTML=AF.steps.map((s,i)=>
+    `<div class="step" id="si${i}"><div class="snum">${i+1}</div><div class="sbdy"><div class="sn">${s.t}</div><div class="sd">${s.d}</div></div></div>`
+  ).join('');
+  sw('f'); playStep();
+}
+
+function playStep(){
+  if(!AF)return;
+  // Clear previous
+  document.querySelectorAll('.e').forEach(e=>{
+    e.classList.remove('lit');
+    if(e.classList.contains('hid')){e.removeAttribute('marker-end');}
+    else{e.setAttribute('marker-end','url(#arr)');}
+  });
+  document.querySelectorAll('.nc').forEach(c=>{c.classList.remove('glo');c.style.removeProperty('--gc');});
+  if(SI>=AF.steps.length)SI=0;
+  const s=AF.steps[SI];
+  // Update step cards
+  document.querySelectorAll('.step').forEach((el,i)=>{
+    el.classList.remove('on','done');
+    if(i<SI)el.classList.add('done');
+    if(i===SI){el.classList.add('on');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  });
+  // Glow nodes
+  s.nodes.forEach(k=>{
+    const el=document.getElementById('n-'+k);
+    if(el){el.classList.add('glo');el.style.setProperty('--gc',ND[k].color+'80');}
+  });
+  // Light edges
+  s.edges.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.classList.add('lit');
+      el.setAttribute('marker-end','url(#arrL)');
+    }
+  });
+  // Show first node detail
+  if(s.nodes.length)pick(s.nodes[0]);
+  SI++;
+  TM=setTimeout(playStep,4200);
+}
+</script>
+</body>
+</html>
