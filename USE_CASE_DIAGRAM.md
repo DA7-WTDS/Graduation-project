@@ -1,116 +1,119 @@
 # Use Case Diagram
 
-A UML Use Case Diagram mapping the actors and implemented use cases of the **QuantWise** platform.
+A UML Use Case Diagram mapping the actors, system boundary, and implemented use cases of the **QuantWise** platform, adhering strictly to UML 2.5 standards.
+
+## Diagram
 
 ```mermaid
 flowchart LR
-    %% ==========================================
-    %% ACTORS DEFINITIONS (ASCII Stickmen)
-    %% ==========================================
-    User["  o  <br/> /|\ <br/> / \ <br/>User"]
-    Admin["  o  <br/> /|\ <br/> / \ <br/>Admin"]
+    %% Actors
+    User["  o  \n /|\\ \n / \\ \nUser"]
+    Admin["  o  \n /|\\ \n / \\ \nAdmin"]
+    Pipeline["[FastAPI Pipeline]"]
+    Gemini["[Google Gemini API]"]
 
-    %% ==========================================
-    %% SYSTEM BOUNDARY
-    %% ==========================================
-    subgraph System["QuantWise Platform"]
+    subgraph QuantWise ["QuantWise System Boundary"]
         direction TB
 
-        %% Users Module
-        subgraph UsersModule["Authentication & Users"]
-            direction LR
+        subgraph UsersModule["Authentication & Users Module"]
             UC_Register(["Register Account"])
             UC_Login(["Log In"])
             UC_Profile(["View Profile"])
         end
 
-        %% Portfolio Module
-        subgraph PortfolioModule["Portfolio Management"]
-            direction LR
+        subgraph PortfolioModule["Portfolio Management Module"]
             UC_CreatePortfolio(["Create Portfolio"])
-            UC_GetPortfolio(["View Portfolio<br/>& Allocation"])
-            UC_UpdatePortfolio(["Update Allocation<br/>& Risk Settings"])
+            UC_ViewPortfolio(["View Portfolio & Allocation"])
+            UC_UpdatePortfolio(["Update Allocation & Risk Settings"])
         end
 
-        %% Recommendations Module
-        subgraph RecommendationsModule["AI Recommendations"]
-            direction LR
-            UC_GetRecs(["View Daily AI<br/>Recommendations"])
+        subgraph RecsModule["AI Recommendations Module"]
+            UC_ViewRecs(["View Daily AI Recommendations"])
+            UC_PersonalizeRecs(["Personalize Recommendations (LLM)"])
+            UC_ViewPredictions(["View Raw Predictions (Simulator)"])
+            UC_IngestResults(["Ingest Daily ML Scoring Run"])
         end
 
-        %% Notifications Module
-        subgraph NotificationsModule["Notifications"]
-            direction LR
-            UC_GetNotifications(["View In-App<br/>Notifications"])
-            UC_MarkRead(["Mark Notification<br/>as Read"])
+        subgraph NotifModule["Notifications Module"]
+            UC_ViewNotifications(["View Notifications"])
+            UC_MarkRead(["Mark Notification as Read"])
             UC_MarkAllRead(["Mark All Read"])
-            UC_TestNotification(["Trigger Test<br/>Notification"])
+            UC_TestNotification(["Trigger Test Notification"])
         end
 
-        %% Admin Module (Faked Management Cases)
-        subgraph AdminModule["Admin Management"]
-            direction LR
+        subgraph AdminModule["Admin Management Module"]
             UC_ManageUsers(["Manage Users"])
-            UC_AuditLogs(["View Audit Logs"])
-            UC_SystemSettings(["Configure System<br/>Parameters"])
+            UC_ViewAudit(["View Audit Logs"])
+            UC_ConfigParams(["Configure System Parameters"])
         end
     end
 
-    %% ==========================================
-    %% ACTOR TO USE CASE RELATIONSHIPS
-    %% ==========================================
-    
-    %% User Interactions
+    %% User associations
     User --> UC_Register
     User --> UC_Login
     User --> UC_Profile
     User --> UC_CreatePortfolio
-    User --> UC_GetPortfolio
+    User --> UC_ViewPortfolio
     User --> UC_UpdatePortfolio
-    User --> UC_GetRecs
-    User --> UC_GetNotifications
+    User --> UC_ViewRecs
+    User --> UC_ViewPredictions
+    User --> UC_ViewNotifications
     User --> UC_MarkRead
     User --> UC_MarkAllRead
     User --> UC_TestNotification
 
-    %% Admin Interactions
+    %% Admin associations
     Admin --> UC_ManageUsers
-    Admin --> UC_AuditLogs
-    Admin --> UC_SystemSettings
+    Admin --> UC_ViewAudit
+    Admin --> UC_ConfigParams
 
-    %% ==========================================
-    %% VISUAL STYLING
-    %% ==========================================
-    classDef actor fill:none,stroke:#FFB000,stroke-width:2px,color:#E8EAED;
-    classDef usecase fill:#171C22,stroke:#FFB000,stroke-width:1px,color:#E8EAED;
-    classDef system fill:#0B0E11,stroke:#3DDC84,stroke-width:2px,color:#E8EAED;
+    %% System and Includes
+    Pipeline --> UC_IngestResults
+    UC_ViewRecs -.->|"<<include>>"| UC_PersonalizeRecs
+    UC_PersonalizeRecs -.->|"<<use>>"| Gemini
 
-    class User,Admin actor;
-    class UC_Register,UC_Login,UC_Profile,UC_CreatePortfolio,UC_GetPortfolio,UC_UpdatePortfolio,UC_GetRecs,UC_GetNotifications,UC_MarkRead,UC_MarkAllRead,UC_TestNotification,UC_ManageUsers,UC_AuditLogs,UC_SystemSettings usecase;
-    class System system;
+    %% Styling
+    classDef actor fill:#12161B,stroke:#FFB000,stroke-width:2px,color:#E8EAED;
+    classDef usecase fill:#181D24,stroke:#3DDC84,stroke-width:1.5px,color:#E8EAED;
+    classDef boundary fill:#0B0E11,stroke:#64A0FF,stroke-width:2px,color:#E8EAED;
+
+    class User,Admin,Pipeline,Gemini actor;
+    class UC_Register,UC_Login,UC_Profile,UC_CreatePortfolio,UC_ViewPortfolio,UC_UpdatePortfolio,UC_ViewRecs,UC_PersonalizeRecs,UC_ViewPredictions,UC_IngestResults,UC_ViewNotifications,UC_MarkRead,UC_MarkAllRead,UC_TestNotification,UC_ManageUsers,UC_ViewAudit,UC_ConfigParams usecase;
+    class QuantWise boundary;
 ```
 
-## Description of Use Cases
+---
+
+## Description of Actors & Use Cases
+
+### Actors
+* **Retail User (Primary Actor)**: Individual investor utilizing the platform to onboarding, construct portfolios, and obtain daily risk-tailored buy/sell advisory.
+* **Administrator (Primary Actor)**: Backend manager handling user accounts, system configuration thresholds, and reviewing operational logs.
+* **FastAPI Pipeline (System Actor)**: Background ML processing system that executes price time-series scoring, sentiment NLP, and risk grading, pushing daily results to the API.
+* **Google Gemini API (System Actor)**: External generative language model serving as a constrained synthesizer to personalize output text signals based on user-specific portfolio criteria.
 
 ### 1. Authentication & Users
-* **Register Account**: Creates a new user profile in the database, hashes the password, and schedules a welcome integration event.
-* **Log In**: Authenticates user credentials and returns a secure JWT Bearer Token.
-* **View Profile**: Retrieves the active user's profile information using their JWT token.
+* **Register Account**: Initiates a new user profile, hashes passwords via BCrypt, and schedules a welcome integration event.
+* **Log In**: Authenticates credentials and issues a secure JWT Bearer token.
+* **View Profile**: Queries user details via active token context.
 
 ### 2. Portfolio Management
-* **Create Portfolio**: Initializes a user's stock investment portfolio with a name, initial balance, asset allocation mix, and answers to the risk questionnaire.
-* **View Portfolio**: Reads the current balance and questionnaire settings.
-* **Update Allocation & Risk Settings**: Adjusts the user's risk tolerance, questionnaire parameters, and desired percentages for asset classes (Stocks, Bonds, ETFs, Cash).
+* **Create Portfolio**: Onboards user through a risk questionnaire to compute and set up initial asset target allocation percentages.
+* **View Portfolio & Allocation**: Reads asset target mix percentages and total investment values.
+* **Update Allocation & Risk Settings**: Modifies risk tolerance profiles and target asset class allocation settings.
 
 ### 3. AI Recommendations
-* **View Daily AI Recommendations**: Fetches the personalized picks (BUY/WATCH/AVOID) for the day, calling the Google Gemini model at request time to personalize based on the user's risk profile.
+* **View Daily AI Recommendations**: Reads risk-tailored recommendation picks. **Includes** `Personalize Recommendations (LLM)` on a cache miss.
+* **Personalize Recommendations (LLM)**: Integrates current market predictions with the user's specific risk settings via Gemini. **Uses** `Google Gemini API` as a supporting system service.
+* **View Raw Predictions (Simulator)**: Exposes the full market-wide daily pipeline outputs to allow users to run simulations in the learning terminal.
+* **Ingest Daily ML Scoring Run**: Receives incoming batch runs from the Python pipeline, persists database entities, and triggers domain fanning out.
 
 ### 4. Notifications
-* **View In-App Notifications**: Lists user-specific notifications and unread counts.
-* **Mark Notification as Read / Mark All Read**: Updates read status flags.
-* **Trigger Test Notification**: Debugging endpoint that generates a mock notification to test real-time UI/delivery pipelines.
+* **View Notifications**: Fetches user-specific inbox alerts.
+* **Mark Notification as Read / Mark All Read**: Updates target notification status properties.
+* **Trigger Test Notification**: Internal testing helper to verify transactional notification flows.
 
-### 5. Admin Management (Administrative Administration)
-* **Manage Users**: Allows administrators to disable, enable, or search for user accounts and manage user roles.
-* **View Audit Logs**: Provides read access to the system audit trails, tracking security events and sensitive data modifications.
-* **Configure System Parameters**: Allows setting global environment thresholds, LLM configurations, and API keys.
+### 5. Admin Management
+* **Manage Users**: Review, disable, or modify user profile scopes.
+* **View Audit Logs**: Inspect system activity and database logs.
+* **Configure System Parameters**: Fine-tune global threshold variables.
