@@ -544,51 +544,111 @@ layout: default
 
 ---
 layout: default
+class: diagram
 ---
 
-<div class="qw">
-  <p class="qw-kicker">System Architecture</p>
-  <h1 class="qw-title">Input → Process → Output</h1>
+<div class="qw-dia"><p class="qw-kicker">System Architecture</p><h1 class="qw-title">Container view — modular monolith + AI pipeline</h1></div>
 
-  <div class="qw-arch">
-    <div class="qw-stage">
-      <div class="qw-stage-h"><span class="num">01</span> Input · Market &amp; User</div>
-      <div class="qw-acards">
-        <div class="qw-acard"><carbon-chart-candlestick class="ic" /><div class="tx"><b>Market Data</b><span>yFinance OHLCV · Finnhub ratings &amp; news</span></div></div>
-        <div class="qw-acard"><carbon-user-profile class="ic" /><div class="tx"><b>User</b><span>Risk questionnaire · dashboard request</span></div></div>
-      </div>
-    </div>
-    <div class="qw-arrow">→</div>
-    <div class="qw-stage proc">
-      <div class="qw-stage-h"><span class="num">02</span> Process · QuantWise Engine</div>
-      <div class="qw-acards">
-        <div class="qw-acard"><logos-fastapi-icon class="ic" /><div class="tx"><b>FastAPI ML Pipeline</b><span>LSTM + XGBoost · FinBERT · Risk Rules</span></div></div>
-        <div class="qw-acard"><logos-dotnet class="ic" /><div class="tx"><b>.NET Modular Monolith</b><span>Users · Portfolio · Recommendations · Notifications</span></div></div>
-        <div class="qw-acard"><logos-google-icon class="ic" /><div class="tx"><b>Google Gemini</b><span>Grounded · schema-JSON · cached 12 h</span></div></div>
-        <div class="qw-acard"><span class="ic-row"><logos-postgresql /><logos-redis /><logos-rabbitmq-icon /></span><div class="tx"><b>Infrastructure</b><span>Postgres · Redis · RabbitMQ + MassTransit</span></div></div>
-      </div>
-    </div>
-    <div class="qw-arrow">→</div>
-    <div class="qw-stage">
-      <div class="qw-stage-h"><span class="num">03</span> Output · Guidance</div>
-      <div class="qw-acards">
-        <div class="qw-acard"><logos-react class="ic" /><div class="tx"><b>React Frontend</b><span>Dashboard · holdings · notifications</span></div></div>
-        <div class="qw-acard"><div class="tx" style="gap:6px"><div class="qw-sig"><span class="b">BUY</span><span class="s">SELL</span><span class="h">HOLD</span></div><span>allocation % + plain-language rationale</span></div></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="qw-eng"><span class="lab">Engineering</span><span class="chip">CQRS + MediatR</span><span class="chip">Outbox / Inbox · exactly-once</span><span class="chip">Redis HybridCache · 12 h</span><span class="chip">Per-module DbContext</span><span class="chip">JWT auth</span></div>
-</div>
+```mermaid {theme: 'neutral', scale: 0.4}
+flowchart TB
+  subgraph Client["Client Layer"]
+    Frontend["React Frontend<br/>React · TS · Vite"]
+  end
+  subgraph API[".NET 10 API Monolith"]
+    Gateway["ASP.NET Minimal API Gateway"]
+    subgraph Modules["Domain Modules"]
+      UsersMod["Users"]
+      PortfolioMod["Portfolio"]
+      RecsMod["Recommendations"]
+      NotifMod["Notifications"]
+    end
+  end
+  subgraph MQ["Message Broker"]
+    RabbitMQ["RabbitMQ · MassTransit"]
+  end
+  subgraph Data["Storage Layer"]
+    PostgreSQL[("PostgreSQL 18")]
+    Redis[("Redis Cache")]
+  end
+  subgraph AI["AI Pipeline"]
+    FastAPI["FastAPI Service<br/>PyTorch · XGBoost · FinBERT"]
+  end
+  subgraph Ext["External APIs"]
+    StockAPI["yFinance · Finnhub"]
+    GeminiAPI["Google Gemini"]
+  end
+  Frontend <-->|REST · JWT| Gateway
+  Gateway --> UsersMod
+  Gateway --> PortfolioMod
+  Gateway --> RecsMod
+  Gateway --> NotifMod
+  UsersMod --> PostgreSQL
+  PortfolioMod --> PostgreSQL
+  RecsMod --> PostgreSQL
+  NotifMod --> PostgreSQL
+  RecsMod <-->|HybridCache 24h| Redis
+  UsersMod -.->|Outbox| RabbitMQ
+  RecsMod -.->|Outbox| RabbitMQ
+  RabbitMQ -.->|Inbox| NotifMod
+  RecsMod -->|Risk Profile API| PortfolioMod
+  FastAPI -->|Prices · sentiment| StockAPI
+  FastAPI -->|Ingest daily run| Gateway
+  RecsMod <-->|Personalized picks| GeminiAPI
+```
 
 ---
 layout: default
+class: diagram
 ---
 
-<div class="qw-fig">
-  <div class="cap">Design · Use-Case Diagram</div>
-  <div class="imgwrap"><img src="/use-case.png" alt="QuantWise use-case diagram" /></div>
-</div>
+<div class="qw-dia"><p class="qw-kicker">Design</p><h1 class="qw-title">Use-Case Diagram</h1></div>
+
+```mermaid {theme: 'neutral', scale: 0.38}
+flowchart LR
+  User["Retail User"]
+  Pipeline["FastAPI Pipeline"]
+  Gemini["Google Gemini API"]
+  subgraph QuantWise["QuantWise Platform"]
+    direction TB
+    subgraph U["Authentication & Users"]
+      UC_Register(["Register Account"])
+      UC_Login(["Log In"])
+      UC_Profile(["View Profile"])
+    end
+    subgraph P["Portfolio Management"]
+      UC_CreatePortfolio(["Create Portfolio"])
+      UC_ViewPortfolio(["View Portfolio & Allocation"])
+      UC_UpdatePortfolio(["Update Allocation & Risk Settings"])
+    end
+    subgraph R["AI Recommendations"]
+      UC_ViewRecs(["View Daily Recommendations"])
+      UC_PersonalizeRecs(["Personalize Recommendations (LLM)"])
+      UC_ViewPredictions(["View Raw Predictions (Simulator)"])
+      UC_IngestResults(["Ingest Daily ML Scoring Run"])
+    end
+    subgraph N["Notifications"]
+      UC_ViewNotifications(["View Notifications"])
+      UC_MarkRead(["Mark Notification as Read"])
+      UC_MarkAllRead(["Mark All Read"])
+      UC_TestNotification(["Trigger Test Notification"])
+    end
+  end
+  User --> UC_Register
+  User --> UC_Login
+  User --> UC_Profile
+  User --> UC_CreatePortfolio
+  User --> UC_ViewPortfolio
+  User --> UC_UpdatePortfolio
+  User --> UC_ViewRecs
+  User --> UC_ViewPredictions
+  User --> UC_ViewNotifications
+  User --> UC_MarkRead
+  User --> UC_MarkAllRead
+  User --> UC_TestNotification
+  Pipeline --> UC_IngestResults
+  UC_ViewRecs -.->|"«include»"| UC_PersonalizeRecs
+  UC_PersonalizeRecs -.->|"«use»"| Gemini
+```
 
 ---
 layout: default
@@ -660,7 +720,7 @@ layout: default
   <div class="qw-io">
     <div class="qw-io-col in"><span class="qw-io-h">Input · from Phase 3</span><div class="qw-io-list"><div class="it"><span>Predictions + <b>sentiment</b> per ticker</span></div><div class="it"><span>User <b>risk profile</b> + allocation</span></div></div></div>
     <div class="qw-arrow">→</div>
-    <div class="qw-io-proc"><span class="qw-io-h">Process</span><div class="qw-step"><div class="t"><span class="n">1</span> Risk-Rules engine</div><span class="s">agreement · flags · risk level · conviction</span></div><div class="qw-step"><div class="t"><span class="n">2</span> Gemini personalisation</div><span class="s">grounded · schema-JSON · per risk profile</span></div><div class="qw-step"><div class="t"><span class="n">3</span> Cache &amp; deliver</div><span class="s">Redis 12 h · BUY / SELL / HOLD</span></div></div>
+    <div class="qw-io-proc"><span class="qw-io-h">Process</span><div class="qw-step"><div class="t"><span class="n">1</span> Risk-Rules engine</div><span class="s">agreement · flags · risk level · conviction</span></div><div class="qw-step"><div class="t"><span class="n">2</span> Gemini personalisation</div><span class="s">grounded · schema-JSON · per risk profile</span></div><div class="qw-step"><div class="t"><span class="n">3</span> Cache &amp; deliver</div><span class="s">Redis 24 h · BUY / SELL / HOLD</span></div></div>
     <div class="qw-arrow">→</div>
     <div class="qw-io-col out"><span class="qw-io-h">Output</span><div class="qw-io-list"><div class="it"><span>Risk-graded signals <b>LOW / MED / HIGH</b></span></div><div class="it"><span>Personalised <b>BUY / SELL / HOLD</b> + allocation + reason</span></div></div></div>
   </div>
@@ -697,7 +757,7 @@ layout: default
   <div class="qw-llm-grid">
     <div>
       <span class="qw-lab">Constrained synthesiser, not a predictor</span>
-      <div class="qw-llm-rules"><div class="it"><span>Uses <b>only the day's risk-graded data</b> — never invents tickers, prices, or numbers.</span></div><div class="it"><span>Respects the grading — <b>no HIGH-risk or contradicted picks</b> for Conservative users.</span></div><div class="it"><span>Output forced to <b>schema-valid JSON</b> (native responseSchema) · <b>3× retry</b> on parse fail.</span></div><div class="it"><span>Allocations must <b>sum to 100%</b>; result <b>cached 12 h</b> per user in Redis.</span></div></div>
+      <div class="qw-llm-rules"><div class="it"><span>Uses <b>only the day's risk-graded data</b> — never invents tickers, prices, or numbers.</span></div><div class="it"><span>Respects the grading — <b>no HIGH-risk or contradicted picks</b> for Conservative users.</span></div><div class="it"><span>Output forced to <b>schema-valid JSON</b> (native responseSchema) · <b>3× retry</b> on parse fail.</span></div><div class="it"><span>Allocations must <b>sum to 100%</b>; result <b>cached 24 h</b> per user in Redis.</span></div></div>
     </div>
     <div>
       <span class="qw-lab">Illustrative output · { summary, picks[] }</span>
@@ -728,6 +788,105 @@ layout: default
   </div>
   <p class="qw-cite">Mostafa, Ahmed, Darwish &amp; Solayman (2026) — A Hybrid LSTM–XGBoost Framework · 14 US equities, multi-horizon. Deployed QuantWise model = single 30-day variant.</p>
 </div>
+
+---
+layout: default
+class: pub
+---
+
+<div class="qw-pub">
+  <p class="qw-kicker">Publication</p>
+
+  <div class="qw-pub-logo">
+    <img src="/conference-logo.png" alt="Conference" />
+  </div>
+
+  <span class="qw-pub-badge">Accepted · pending publication</span>
+
+  <h1 class="qw-pub-title">"A Hybrid LSTM–XGBoost Framework for Multi-Horizon Stock Return Prediction Across Diversified Equity Portfolios"</h1>
+
+  <p class="qw-pub-status">Accepted at <b class="ph">IMSA</b> &nbsp;·&nbsp; IEEE Egypt Section</p>
+
+  <div class="qw-pub-authors">
+    <span class="qw-pub-lab">Authors</span>
+    <div class="names">
+      <span><b>Seif ElDein Mostafa</b></span>
+      <span class="dot">·</span>
+      <span><b>Yahia Ahmed</b></span>
+    </div>
+  </div>
+
+  <p class="qw-pub-cat">IEEE Catalog 979-8-3315-8488-7 / 26 · © 2026 IEEE</p>
+</div>
+
+<style>
+.slidev-layout.pub { background: #FCFBF9; }
+.qw-pub {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 0 80px;
+  font-family: 'Inter', sans-serif;
+}
+.qw-pub .qw-kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.22em;
+  font-size: 11px; color: #B5701A; margin: 0 0 22px;
+}
+.qw-pub-logo { margin-bottom: 18px; }
+.qw-pub-logo img { height: 66px; width: auto; }
+.qw-pub-badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 11px; font-weight: 600;
+  color: #1F8A4C;
+  background: #E7F3EC;
+  border: 1px solid #BFE0CB;
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin-bottom: 18px;
+}
+.qw-pub-title {
+  font-family: 'Spectral', serif;
+  font-weight: 600; font-style: italic;
+  font-size: 27px; line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #17181B;
+  max-width: 820px;
+  margin: 0 0 22px;
+}
+.qw-pub-status {
+  font-size: 15px; color: #2C2F36; margin: 0 0 28px;
+}
+.qw-pub-status b { font-weight: 600; }
+.qw-pub-status .ph {
+  color: #B5701A;
+  border-bottom: 1.5px dashed #D9B583;
+  padding-bottom: 1px;
+}
+.qw-pub-authors {
+  border-top: 1px solid #ECE8E1;
+  padding-top: 20px;
+}
+.qw-pub-lab {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  font-size: 10px; color: #8A857C; margin-bottom: 10px;
+}
+.qw-pub-authors .names {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 17px; color: #17181B;
+}
+.qw-pub-authors .names .dot { color: #B5701A; font-weight: 700; }
+.qw-pub-cat {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: #8A857C;
+  margin: 30px 0 0;
+}
+</style>
 
 ---
 layout: default
@@ -805,4 +964,43 @@ layout: default
     </tbody>
   </table>
   <p class="qw-cite">12 / 12 black-box system cases passed · each traced to a functional requirement · run on the live stack (frontend :3000 → backend :5000).</p>
+</div>
+
+---
+layout: default
+class: diagram
+---
+
+<div class="qw-dia"><p class="qw-kicker">Project Management</p><h1 class="qw-title">Project Schedule (Gantt)</h1></div>
+
+```plantuml
+@startgantt fig-3-2-gantt
+' QuantWise — Figure 3.2 Project Schedule (Gantt)
+' Kanban flow framed across milestones M0-M4, Feb-Jun 2026.
+' The offline ML-training phase overlaps the inter-semester gap and was done first.
+project starts 2026-02-01
+
+[M0 Offline ML training (LSTM/XGBoost/FinBERT, risk rules)] as [M0] lasts 56 days
+[M1 Backend foundation (modular monolith, Users + Portfolio, outbox/inbox)] as [M1] lasts 28 days
+[M2 Pipeline service + ingest (FastAPI /api/score, Recommendations, Quartz)] as [M2] lasts 21 days
+[M3 Recommendations + frontend (Gemini, 24h cache, fan-out, Quant Terminal)] as [M3] lasts 21 days
+[M4 Testing, hardening + write-up (68 tests, coverage, perf, security)] as [M4] lasts 24 days
+
+[M1] starts at [M0]'s end
+[M2] starts at [M1]'s end
+[M3] starts at [M2]'s end
+[M4] starts at [M3]'s end
+
+@endgantt
+```
+
+---
+layout: cover
+---
+
+<div class="cover">
+  <main class="cover-main">
+    <h1 class="title">Thank You</h1>
+    <p class="subtitle">We welcome any questions.</p>
+  </main>
 </div>

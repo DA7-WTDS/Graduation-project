@@ -391,6 +391,13 @@
 .qw-tc-table td.id { font-family: 'IBM Plex Mono', monospace; color: var(--qw-bronze); font-weight: 600; white-space: nowrap; }
 .qw-tc-pass { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 700; color: #1F8A4C; background: rgba(61,220,132,0.16); padding: 2px 8px; border-radius: 5px; }
 
+/* ===== mermaid diagram slides ===== */
+.slidev-layout.diagram { background: #FCFBF9; padding: 15px 35px; }
+.slidev-layout.diagram .qw-dia { margin-bottom: 2px; }
+.slidev-layout.diagram .mermaid { display: flex; justify-content: center; align-items: center; }
+.slidev-layout.diagram .qw-kicker { margin-bottom: 6px; }
+.slidev-layout.diagram .qw-title { margin: 0; font-size: 30px; }
+
 /* ===== raw figure slides (diagrams shown as-is, unstyled) ===== */
 .qw-fig { position: absolute; inset: 0; display: flex; flex-direction: column; background: #FFFFFF; padding: 28px 36px 22px; }
 .qw-fig .cap { font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; color: var(--qw-bronze); margin-bottom: 14px; flex-shrink: 0; }
