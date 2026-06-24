@@ -603,52 +603,68 @@ class: diagram
 
 <div class="qw-dia"><p class="qw-kicker">Design</p><h1 class="qw-title">Use-Case Diagram</h1></div>
 
-```mermaid {theme: 'neutral', scale: 0.38}
-flowchart LR
-  User["Retail User"]
-  Pipeline["FastAPI Pipeline"]
-  Gemini["Google Gemini API"]
-  subgraph QuantWise["QuantWise Platform"]
-    direction TB
-    subgraph U["Authentication & Users"]
-      UC_Register(["Register Account"])
-      UC_Login(["Log In"])
-      UC_Profile(["View Profile"])
-    end
-    subgraph P["Portfolio Management"]
-      UC_CreatePortfolio(["Create Portfolio"])
-      UC_ViewPortfolio(["View Portfolio & Allocation"])
-      UC_UpdatePortfolio(["Update Allocation & Risk Settings"])
-    end
-    subgraph R["AI Recommendations"]
-      UC_ViewRecs(["View Daily Recommendations"])
-      UC_PersonalizeRecs(["Personalize Recommendations (LLM)"])
-      UC_ViewPredictions(["View Raw Predictions (Simulator)"])
-      UC_IngestResults(["Ingest Daily ML Scoring Run"])
-    end
-    subgraph N["Notifications"]
-      UC_ViewNotifications(["View Notifications"])
-      UC_MarkRead(["Mark Notification as Read"])
-      UC_MarkAllRead(["Mark All Read"])
-      UC_TestNotification(["Trigger Test Notification"])
-    end
-  end
-  User --> UC_Register
-  User --> UC_Login
-  User --> UC_Profile
-  User --> UC_CreatePortfolio
-  User --> UC_ViewPortfolio
-  User --> UC_UpdatePortfolio
-  User --> UC_ViewRecs
-  User --> UC_ViewPredictions
-  User --> UC_ViewNotifications
-  User --> UC_MarkRead
-  User --> UC_MarkAllRead
-  User --> UC_TestNotification
-  Pipeline --> UC_IngestResults
-  UC_ViewRecs -.->|"«include»"| UC_PersonalizeRecs
-  UC_PersonalizeRecs -.->|"«use»"| Gemini
+<div style="margin-top: -220px; margin-left: 150px;">
+
+```plantuml {scale: 0.6}
+@startuml
+scale 0.6
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Retail User" as User
+actor "FastAPI Pipeline" as Pipeline
+actor "Google Gemini" as Gemini
+
+rectangle "QuantWise Platform" {
+  rectangle "Authentication & Users" {
+    usecase "Register Account" as UC_Register
+    usecase "Log In" as UC_Login
+    usecase "View Profile" as UC_Profile
+  }
+  
+  rectangle "Portfolio Management" {
+    usecase "Create Portfolio" as UC_CreatePortfolio
+    usecase "View Portfolio & Allocation" as UC_ViewPortfolio
+    usecase "Update Allocation & Risk Settings" as UC_UpdatePortfolio
+  }
+  
+  rectangle "AI Recommendations" {
+    usecase "View Daily Recommendations" as UC_ViewRecs
+    usecase "Personalize Recommendations (LLM)" as UC_PersonalizeRecs
+    usecase "View Raw Predictions (Simulator)" as UC_ViewPredictions
+    usecase "Ingest Daily ML Scoring Run" as UC_IngestResults
+  }
+  
+  rectangle "Notifications" {
+    usecase "View Notifications" as UC_ViewNotifications
+    usecase "Mark Notification as Read" as UC_MarkRead
+    usecase "Mark All Read" as UC_MarkAllRead
+    usecase "Trigger Test Notification" as UC_TestNotification
+  }
+}
+
+User --> UC_Register
+User --> UC_Login
+User --> UC_Profile
+User --> UC_CreatePortfolio
+User --> UC_ViewPortfolio
+User --> UC_UpdatePortfolio
+User --> UC_ViewRecs
+User --> UC_ViewPredictions
+User --> UC_ViewNotifications
+User --> UC_MarkRead
+User --> UC_MarkAllRead
+User --> UC_TestNotification
+
+Pipeline --> UC_IngestResults
+
+UC_ViewRecs ..> UC_PersonalizeRecs : <<include>>
+UC_PersonalizeRecs ..> Gemini : <<use>>
+@enduml
 ```
+
+</div>
 
 ---
 layout: default

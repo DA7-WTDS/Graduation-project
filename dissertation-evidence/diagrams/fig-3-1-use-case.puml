@@ -1,50 +1,55 @@
 @startuml fig-3-1-use-case
-' QuantWise — Figure 3.1 Use-Case Diagram
-' Render at https://www.plantuml.com/plantuml or with the plantuml CLI.
 left to right direction
 skinparam packageStyle rectangle
 skinparam actorStyle awesome
 
-actor "Retail Investor" as User
-actor "Administrator" as Admin
-actor "ML Pipeline\n(Quartz job)" as Pipeline
+actor "Retail User" as User
+actor "FastAPI Pipeline" as Pipeline
 actor "Google Gemini" as Gemini
 
 rectangle "QuantWise Platform" {
-  usecase "Register account" as UC1
-  usecase "Log in (JWT)" as UC2
-  usecase "Complete risk\nquestionnaire" as UC3
-  usecase "View risk profile\n& allocation" as UC4
-  usecase "View personalised\nrecommendations" as UC5
-  usecase "View portfolio\ntarget mix" as UC6
-  usecase "Browse market\nquotes & search" as UC7
-  usecase "View notifications" as UC8
-  usecase "Manage profile" as UC9
-  usecase "Ingest daily\nprediction run" as UC10
-  usecase "Generate market-wide\nrisk-graded scores" as UC11
-  usecase "Fan out daily\nnotifications" as UC12
+  rectangle "Authentication & Users" {
+    usecase "Register Account" as UC_Register
+    usecase "Log In" as UC_Login
+    usecase "View Profile" as UC_Profile
+  }
+  
+  rectangle "Portfolio Management" {
+    usecase "Create Portfolio" as UC_CreatePortfolio
+    usecase "View Portfolio & Allocation" as UC_ViewPortfolio
+    usecase "Update Allocation & Risk Settings" as UC_UpdatePortfolio
+  }
+  
+  rectangle "AI Recommendations" {
+    usecase "View Daily Recommendations" as UC_ViewRecs
+    usecase "Personalize Recommendations (LLM)" as UC_PersonalizeRecs
+    usecase "View Raw Predictions (Simulator)" as UC_ViewPredictions
+    usecase "Ingest Daily ML Scoring Run" as UC_IngestResults
+  }
+  
+  rectangle "Notifications" {
+    usecase "View Notifications" as UC_ViewNotifications
+    usecase "Mark Notification as Read" as UC_MarkRead
+    usecase "Mark All Read" as UC_MarkAllRead
+    usecase "Trigger Test Notification" as UC_TestNotification
+  }
 }
 
-User --> UC1
-User --> UC2
-User --> UC3
-User --> UC4
-User --> UC5
-User --> UC6
-User --> UC7
-User --> UC8
-User --> UC9
-Admin --> UC2
-Admin --> UC10
+User --> UC_Register
+User --> UC_Login
+User --> UC_Profile
+User --> UC_CreatePortfolio
+User --> UC_ViewPortfolio
+User --> UC_UpdatePortfolio
+User --> UC_ViewRecs
+User --> UC_ViewPredictions
+User --> UC_ViewNotifications
+User --> UC_MarkRead
+User --> UC_MarkAllRead
+User --> UC_TestNotification
 
-UC3 .> UC4 : <<include>>
-UC5 .> UC2 : <<include>>
-UC6 .> UC2 : <<include>>
-UC8 .> UC2 : <<include>>
-UC5 ..> Gemini : <<uses>>
+Pipeline --> UC_IngestResults
 
-Pipeline --> UC11
-UC11 .> UC10 : <<include>>
-UC10 .> UC12 : <<extend>>
-
+UC_ViewRecs ..> UC_PersonalizeRecs : <<include>>
+UC_PersonalizeRecs ..> Gemini : <<use>>
 @enduml
