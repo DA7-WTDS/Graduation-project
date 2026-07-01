@@ -27,22 +27,33 @@ public static class ConfigurationExtensions
 
         public InfrastructureOptions BuildInfrastructureOptions(
             ILoggingBuilder loggingBuilder,
-            Action<IRegistrationConfigurator>[]? moduleConfigureConsumers = null) =>
-            new()
+            Action<IRegistrationConfigurator>[]? moduleConfigureConsumers = null)
+        {
+            // Demo mode drops the external Redis/RabbitMQ dependencies, so their
+            // configuration becomes optional; every other path keeps failing fast.
+            bool demoMode = configuration.GetValue<bool>("DemoMode");
+
+            return new()
             {
+                DemoMode = demoMode,
                 ConnectionStrings = new()
                 {
                     Database = configuration.GetConnectionStringOrThrow(nameof(ConnectionStrings.Database)),
-                    Redis = configuration.GetConnectionStringOrThrow(nameof(ConnectionStrings.Redis))
+                    Redis = demoMode
+                        ? (configuration.GetConnectionString(nameof(ConnectionStrings.Redis)) ?? string.Empty)
+                        : configuration.GetConnectionStringOrThrow(nameof(ConnectionStrings.Redis))
                 },
                 OpenTelemetryOptions = new()
                 {
                     ServiceName = configuration.GetValueOrThrow<string>($"{OpenTelemetryOptions.SectionName}:{nameof(OpenTelemetryOptions.ServiceName)}"),
                     Version = configuration.GetValueOrThrow<string>($"{OpenTelemetryOptions.SectionName}:{nameof(OpenTelemetryOptions.Version)}")
                 },
-                RabbitMq = configuration.GetConfigurationSectionOrThrow<RabbitMqConfiguration>(RabbitMqConfiguration.SectionName),
+                RabbitMq = demoMode
+                    ? (configuration.GetSection(RabbitMqConfiguration.SectionName).Get<RabbitMqConfiguration>() ?? new())
+                    : configuration.GetConfigurationSectionOrThrow<RabbitMqConfiguration>(RabbitMqConfiguration.SectionName),
                 LoggingBuilder = loggingBuilder,
                 ModuleConfigureConsumers = moduleConfigureConsumers ?? []
             };
+        }
     }
 }

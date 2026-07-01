@@ -39,7 +39,7 @@ public static class InfrastructureConfiguration
 
         services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
-        services.AddCachingInternal(options.ConnectionStrings.Redis);
+        services.AddCachingInternal(options.ConnectionStrings.Redis, options.DemoMode);
 
         services.TryAddSingleton<ICacheService, CacheService>();
 
@@ -53,6 +53,16 @@ public static class InfrastructureConfiguration
             }
 
             configure.SetKebabCaseEndpointNameFormatter();
+
+            if (options.DemoMode)
+            {
+                // No RabbitMQ broker in demo hosting — messages flow within the
+                // single process. Notifications still fire; durability across
+                // restarts and multiple instances is the only thing lost.
+                configure.UsingInMemory((ctx, cfg) => cfg.ConfigureEndpoints(ctx));
+
+                return;
+            }
 
             configure.UsingRabbitMq((ctx, cfg) =>
             {

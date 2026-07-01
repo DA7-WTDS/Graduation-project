@@ -1,0 +1,39 @@
+# Render Blueprint — QuantWise demo hosting (free tier).
+# Backend runs in DemoMode: no Redis, no RabbitMQ (both in-memory).
+# The AI pipeline is NOT hosted; the dashboard reads pre-seeded data from Postgres.
+
+databases:
+  - name: quantwise-db
+    databaseName: quantwise
+    plan: free
+
+services:
+  - type: web
+    name: quantwise-api
+    runtime: docker
+    rootDir: Backend
+    dockerfilePath: Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DemoMode
+        value: "true"
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # Postgres — paste from the quantwise-db "External Connection" in
+      # Npgsql keyword format (see DEPLOY.md). Not auto-wired because Render
+      # exposes the DB as a postgres:// URL, which Npgsql does not parse.
+      - key: ConnectionStrings__Database
+        sync: false
+      # JWT signing key (any long random secret) + issuer = this service URL.
+      - key: Authentication__Key
+        sync: false
+      - key: Authentication__Authority
+        sync: false
+      # Only needed if a recommendation cache-miss occurs during the demo.
+      - key: Recommendations__Llm__ApiKey
+        sync: false
+      - key: Finnhub__ApiKey
+        sync: false
+      - key: Recommendations__Ingest__ApiKey
+        sync: false

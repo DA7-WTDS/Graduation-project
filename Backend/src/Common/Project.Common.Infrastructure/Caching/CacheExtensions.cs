@@ -8,12 +8,22 @@ public static class CacheExtensions
 {
     extension(IServiceCollection services)
     {
-        public IServiceCollection AddCachingInternal(string redisConnectionString)
+        public IServiceCollection AddCachingInternal(string redisConnectionString, bool demoMode = false)
         {
-            services.AddStackExchangeRedisCache(options =>
+            if (demoMode)
             {
-                options.Configuration = redisConnectionString;
-            });
+                // No Redis server in demo hosting — HybridCache uses an in-process
+                // distributed cache. Behaviour is identical for a single instance;
+                // the cache is simply lost on restart.
+                services.AddDistributedMemoryCache();
+            }
+            else
+            {
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.Configuration = redisConnectionString;
+                });
+            }
 
             services.ConfigureOptions<HybridCacheConfigureOptions>();
 

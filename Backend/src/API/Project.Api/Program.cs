@@ -50,12 +50,19 @@ Assembly[] moduleApplicationAssemblies = [
 
 builder.Services.AddApplication(moduleApplicationAssemblies);
 
-string databaseConnectionString = builder.Configuration.GetConnectionStringOrThrow("Database");
-string redisConnectionString = builder.Configuration.GetConnectionStringOrThrow("Redis");
+bool demoMode = builder.Configuration.GetValue<bool>("DemoMode");
 
-builder.Services.AddHealthChecks()
-    .AddNpgSql(databaseConnectionString, name: "database", tags: ["ready"])
-    .AddRedis(redisConnectionString, name: "redis", tags: ["ready"]);
+string databaseConnectionString = builder.Configuration.GetConnectionStringOrThrow("Database");
+
+var healthChecks = builder.Services.AddHealthChecks()
+    .AddNpgSql(databaseConnectionString, name: "database", tags: ["ready"]);
+
+// Redis only exists outside demo mode; skip its health check when it's not wired up.
+if (!demoMode)
+{
+    string redisConnectionString = builder.Configuration.GetConnectionStringOrThrow("Redis");
+    healthChecks.AddRedis(redisConnectionString, name: "redis", tags: ["ready"]);
+}
 
 Action<IRegistrationConfigurator>[] configureConsumersActions = [
     UsersModule.ConfigureConsumers,
