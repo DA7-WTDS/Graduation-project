@@ -38,7 +38,7 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from training.build_dataset import HORIZON_DAYS, TECH_COLS  # noqa: E402
+from training.build_dataset import EXTRA_COLS, HORIZON_DAYS, TECH_COLS  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -76,9 +76,40 @@ def evaluate(df: pd.DataFrame, score_col: str) -> dict:
     }
 
 
+XGB_PARAMS = dict(
+    n_estimators=600,
+    learning_rate=0.03,
+    max_depth=5,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    min_child_weight=20,
+    objective="reg:squarederror",
+    early_stopping_rounds=50,
+    random_state=42,
+    n_jobs=-1,
+)
+
+CULL_GAIN_SHARE = 0.005  # features under 0.5% of total gain are cull candidates
+
+
+def fit_variant(train, val, test, cols: list[str], label: str):
+    model = xgb.XGBRegressor(**XGB_PARAMS)
+    model.fit(train[cols], train["rel_return"], eval_set=[(val[cols], val["rel_return"])], verbose=False)
+    scored = test.copy()
+    scored["pred"] = model.predict(scored[cols])
+    m = evaluate(scored, "pred")
+    m["best_iteration"] = int(model.best_iteration)
+    m["n_features"] = len(cols)
+    log.info(f"{label}: IC {m['ic_mean']} (t {m['ic_t_stat']}) · hit {m['hit_rate']} · spread {m['decile_spread_mean']}")
+    return model, m
+
+
 def main(data_path: Path, out_dir: Path) -> dict:
     panel: pd.DataFrame = pd.read_pickle(data_path)
     log.info(f"Loaded {len(panel):,} rows · {panel['date'].min().date()} → {panel['date'].max().date()}")
+
+    sec_cols = [c for c in panel.columns if c.startswith("sec_")]
+    expanded_cols = TECH_COLS + [c for c in EXTRA_COLS if c in panel.columns] + sec_cols
 
     b1, b2 = chrono_split(panel["date"])
     purge = pd.Timedelta(days=PURGE_CALENDAR_DAYS)
@@ -88,46 +119,42 @@ def main(data_path: Path, out_dir: Path) -> dict:
     test  = panel[panel["date"] >= b2]
     log.info(f"Split: train {len(train):,} (<{(b1 - purge).date()}) · val {len(val):,} · test {len(test):,} (≥{b2.date()})")
 
-    model = xgb.XGBRegressor(
-        n_estimators=600,
-        learning_rate=0.03,
-        max_depth=5,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        min_child_weight=20,
-        objective="reg:squarederror",
-        early_stopping_rounds=50,
-        random_state=42,
-        n_jobs=-1,
-    )
-    model.fit(
-        train[TECH_COLS], train["rel_return"],
-        eval_set=[(val[TECH_COLS], val["rel_return"])],
-        verbose=False,
-    )
-    log.info(f"Trained: best_iteration={model.best_iteration}")
+    # A/B: base 14 indicators vs Phase-1.3 expanded set, identical everything else.
+    base_model, base_m = fit_variant(train, val, test, TECH_COLS, "base-14    ")
+    exp_model, exp_m   = fit_variant(train, val, test, expanded_cols, "expanded   ")
 
-    test = test.copy()
-    test["pred"] = model.predict(test[TECH_COLS])
+    winner_is_expanded = exp_m["ic_mean"] >= base_m["ic_mean"]
+    winner_model = exp_model if winner_is_expanded else base_model
+    winner_cols  = expanded_cols if winner_is_expanded else TECH_COLS
+
+    # Culling gate (§ 1.3): near-zero-gain features are flagged every run.
+    gains = winner_model.get_booster().get_score(importance_type="gain")
+    total_gain = sum(gains.values()) or 1.0
+    gain_share = {c: round(gains.get(c, 0.0) / total_gain, 5) for c in winner_cols}
+    cull = sorted([c for c, s in gain_share.items() if s < CULL_GAIN_SHARE])
+
+    momentum_baseline = evaluate(test, "Momentum_21")
 
     metrics = {
         "target": f"relative {HORIZON_DAYS}-trading-day return vs universe median",
-        "features": "14 technical indicators (same as deployed tech_cols)",
         "test_window": f"{test['date'].min().date()} → {test['date'].max().date()}",
-        "model": evaluate(test, "pred"),
-        "baseline_momentum21": evaluate(test, "Momentum_21"),
+        "base_14_indicators": base_m,
+        "expanded_1_3": exp_m,
+        "delta_ic_expanded_vs_base": round(exp_m["ic_mean"] - base_m["ic_mean"], 4),
+        "winner": "expanded" if winner_is_expanded else "base_14",
+        "baseline_momentum21": momentum_baseline,
         "base_rate_beat_median": round(float(test["beat_median"].mean()), 4),
         "n_test": len(test),
-        "best_iteration": int(model.best_iteration),
+        "cull_candidates_gain_lt_0.5pct": cull,
+        "deferred_blocks": "sentiment/analyst history (arrives via § 1.6 + own daily-run accumulation)",
     }
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    model.save_model(out_dir / "xgb_ranking.json")
+    winner_model.save_model(out_dir / "xgb_ranking.json")
+    (out_dir / "features.json").write_text(json.dumps(winner_cols, indent=2))
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
-    importance = dict(sorted(
-        zip(TECH_COLS, model.feature_importances_.round(4).tolist()),
-        key=lambda kv: -kv[1]))
-    (out_dir / "feature_importance.json").write_text(json.dumps(importance, indent=2))
+    (out_dir / "feature_importance.json").write_text(json.dumps(
+        dict(sorted(gain_share.items(), key=lambda kv: -kv[1])), indent=2))
 
     log.info(json.dumps(metrics, indent=2))
     log.info(f"Artifacts → {out_dir}")

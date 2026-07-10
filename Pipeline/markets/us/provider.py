@@ -431,6 +431,21 @@ class USMarketDataProvider(MarketDataProvider):
                 log.debug(f"{t}: closes slice failed — {e}")
         return out
 
+    def get_sector_map(self, tickers: list[str]) -> dict[str, str]:
+        """Sector per ticker via yf.Ticker().info (throttled; 'Unknown' on failure).
+        Callers should cache — this is ~1 vendor call per ticker."""
+        out: dict[str, str] = {}
+        for t in tickers:
+            sector = "Unknown"
+            try:
+                _yf_throttle()
+                info = yf.Ticker(t).info or {}
+                sector = info.get("sector") or "Unknown"
+            except Exception as e:
+                log.debug(f"{t}: sector lookup failed — {e}")
+            out[t] = sector
+        return out
+
     def gather_ticker_context(self, ticker: str) -> dict | None:
         """Network I/O phase (runs in thread pool): analyst data + news headlines."""
         try:

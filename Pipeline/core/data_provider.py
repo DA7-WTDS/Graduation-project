@@ -56,6 +56,12 @@ class MarketDataProvider(ABC):
         for one ticker (network I/O phase of sentiment; safe in thread pools).
         Returns the dict consumed by main._score_gathered, or None on failure."""
 
+    # ---- optional (training/feature enrichment) ----
+
+    def get_sector_map(self, tickers: list[str]) -> dict[str, str]:
+        """ticker -> sector name (best effort; 'Unknown' where unavailable)."""
+        raise NotImplementedError(f"{self.market}: sector map not implemented")
+
     # ---- declared for the licensed-data migration (not used by the current flow) ----
 
     def get_corporate_actions(self, ticker: str):  # pragma: no cover
