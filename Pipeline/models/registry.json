@@ -1,0 +1,30 @@
+[
+  {
+    "version": "20260710_203418",
+    "market": "us",
+    "run_at": "2026-07-10T20:34:35.422911+00:00",
+    "data_window": "2016-11-23 \u2192 2026-06-09",
+    "rows": 227655,
+    "test_slice_from": "2024-12-31",
+    "challenger": {
+      "ic_mean": 0.0887,
+      "ic_std": 0.2442,
+      "ic_t_stat": 6.89,
+      "hit_rate": 0.5016,
+      "decile_spread_mean": 0.0323,
+      "days": 360
+    },
+    "champion_before": {
+      "ic_mean": 0.0769,
+      "ic_std": 0.159,
+      "ic_t_stat": 9.18,
+      "hit_rate": 0.5151,
+      "decile_spread_mean": 0.0226,
+      "days": 360
+    },
+    "promoted": false,
+    "reason": "dIC +0.0118, dHit -0.0135 vs rule (IC \u2265 +0.0, hit \u2265 \u22120.005)",
+    "artifact_sha256": "8a29dbdc8852cb8e",
+    "winner_feature_set": "expanded"
+  }
+]

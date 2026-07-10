@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import pickle
 import sys
 from pathlib import Path
 
@@ -35,6 +36,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 from scipy.stats import spearmanr
+from sklearn.isotonic import IsotonicRegression
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -92,6 +94,40 @@ XGB_PARAMS = dict(
 CULL_GAIN_SHARE = 0.005  # features under 0.5% of total gain are cull candidates
 
 
+def ece(prob: np.ndarray, hit: np.ndarray, bins: int = 10) -> float:
+    """Expected calibration error: |mean predicted P − realized rate|, bin-weighted."""
+    edges = np.quantile(prob, np.linspace(0, 1, bins + 1))
+    total = 0.0
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        m = (prob >= lo) & (prob <= hi)
+        if m.sum() == 0:
+            continue
+        total += m.mean() * abs(prob[m].mean() - hit[m].mean())
+    return round(float(total), 4)
+
+
+def calibrate(model, val, test, cols: list[str]) -> tuple[IsotonicRegression, dict]:
+    """§ 1.4: isotonic map raw score → empirical P(beat median), fit on VAL only.
+    'Confidence 0.7' must mean ~70% — this is what risk grading consumes."""
+    val_score = model.predict(val[cols])
+    iso = IsotonicRegression(y_min=0.01, y_max=0.99, out_of_bounds="clip")
+    iso.fit(val_score, (val["rel_return"] > 0).astype(int))
+
+    test_score = model.predict(test[cols])
+    hit = (test["rel_return"] > 0).to_numpy().astype(float)
+    # Uncalibrated proxy for comparison: min-max squashed raw score.
+    rng = test_score.max() - test_score.min() or 1.0
+    raw_prob = (test_score - test_score.min()) / rng
+    cal_prob = iso.predict(test_score)
+
+    report = {
+        "ece_uncalibrated_minmax": ece(raw_prob, hit),
+        "ece_calibrated": ece(cal_prob, hit),
+        "calibrated_prob_range": [round(float(cal_prob.min()), 3), round(float(cal_prob.max()), 3)],
+    }
+    return iso, report
+
+
 def fit_variant(train, val, test, cols: list[str], label: str):
     model = xgb.XGBRegressor(**XGB_PARAMS)
     model.fit(train[cols], train["rel_return"], eval_set=[(val[cols], val["rel_return"])], verbose=False)
@@ -135,6 +171,8 @@ def main(data_path: Path, out_dir: Path) -> dict:
 
     momentum_baseline = evaluate(test, "Momentum_21")
 
+    calibrator, calib_report = calibrate(winner_model, val, test, winner_cols)
+
     metrics = {
         "target": f"relative {HORIZON_DAYS}-trading-day return vs universe median",
         "test_window": f"{test['date'].min().date()} → {test['date'].max().date()}",
@@ -146,11 +184,14 @@ def main(data_path: Path, out_dir: Path) -> dict:
         "base_rate_beat_median": round(float(test["beat_median"].mean()), 4),
         "n_test": len(test),
         "cull_candidates_gain_lt_0.5pct": cull,
+        "calibration": calib_report,
         "deferred_blocks": "sentiment/analyst history (arrives via § 1.6 + own daily-run accumulation)",
     }
 
     out_dir.mkdir(parents=True, exist_ok=True)
     winner_model.save_model(out_dir / "xgb_ranking.json")
+    with open(out_dir / "calibrator.pkl", "wb") as fh:
+        pickle.dump(calibrator, fh)
     (out_dir / "features.json").write_text(json.dumps(winner_cols, indent=2))
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
     (out_dir / "feature_importance.json").write_text(json.dumps(

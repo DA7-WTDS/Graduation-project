@@ -34,5 +34,13 @@
   "base_rate_beat_median": 0.4967,
   "n_test": 35515,
   "cull_candidates_gain_lt_0.5pct": [],
+  "calibration": {
+    "ece_uncalibrated_minmax": 0.1153,
+    "ece_calibrated": 0.0384,
+    "calibrated_prob_range": [
+      0.458,
+      0.596
+    ]
+  },
   "deferred_blocks": "sentiment/analyst history (arrives via \u00a7 1.6 + own daily-run accumulation)"
 }

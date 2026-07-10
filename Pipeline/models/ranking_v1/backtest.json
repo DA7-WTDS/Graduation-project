@@ -1,0 +1,33 @@
+{
+  "window": "2025-01-02 \u2192 2026-06-09",
+  "config": {
+    "top_n": 10,
+    "rebalance_days": 21,
+    "max_weight": 0.15,
+    "cost_bps_per_side": 25.0
+  },
+  "strategy": {
+    "total_return_pct": 92.09,
+    "cagr_pct": 58.33,
+    "ann_vol_pct": 32.49,
+    "sharpe": 1.54,
+    "max_drawdown_pct": -21.77,
+    "avg_turnover_per_rebalance": 0.811,
+    "total_cost_drag_pct": 7.3
+  },
+  "equal_weight_universe": {
+    "total_return_pct": 69.32,
+    "cagr_pct": 44.87,
+    "ann_vol_pct": 19.16,
+    "sharpe": 2.03,
+    "max_drawdown_pct": -20.03
+  },
+  "sp500": {
+    "total_return_pct": 25.87,
+    "cagr_pct": 17.58,
+    "ann_vol_pct": 17.41,
+    "sharpe": 1.02,
+    "max_drawdown_pct": -18.9
+  },
+  "note": "OOS test split only; survivorship-biased universe (today's constituents) inflates ALL three series equally \u2014 the strategy-vs-benchmark GAP is the honest signal."
+}

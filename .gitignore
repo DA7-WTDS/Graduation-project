@@ -470,3 +470,4 @@ Pipeline/models/_backup_old_model/
 
 # Pipeline — runtime copy of the latest /api/score response (regenerated each run)
 Pipeline/last_score_output.json
+Pipeline/models/candidate_*/

@@ -131,5 +131,37 @@ internal sealed class ScoreOutcomesJob(
         logger.LogInformation(
             "ScoreOutcomesJob — done. Scored={Scored}, Skipped={Skipped} (no usable closes).",
             scored, skipped);
+
+        await CheckDriftAsync(opts, context.CancellationToken);
+    }
+
+    /// <summary>Drift alarm (IMPLEMENTATION_PLAN § 1.7): the model is retrained
+    /// monthly, but if live accuracy degrades between retrains someone must know.</summary>
+    private async Task CheckDriftAsync(OutcomesOptions opts, CancellationToken ct)
+    {
+        DateTime windowStart = DateTime.UtcNow.AddDays(-90);
+        var window = await dbContext.PredictionOutcomes
+            .Where(o => o.RunGeneratedAt >= windowStart)
+            .Select(o => o.DirectionHit)
+            .ToListAsync(ct);
+
+        if (window.Count < opts.DriftMinSamples)
+        {
+            return;
+        }
+
+        double hitRate = window.Count(h => h) / (double)window.Count;
+        if (hitRate < opts.DriftWarnHitRate)
+        {
+            logger.LogWarning(
+                "MODEL DRIFT ALARM — rolling 90d hit-rate {HitRate:P1} over {Count} outcomes is below the {Threshold:P0} floor. Investigate before the next retrain.",
+                hitRate, window.Count, opts.DriftWarnHitRate);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Drift check — rolling 90d hit-rate {HitRate:P1} over {Count} outcomes (floor {Threshold:P0}).",
+                hitRate, window.Count, opts.DriftWarnHitRate);
+        }
     }
 }
