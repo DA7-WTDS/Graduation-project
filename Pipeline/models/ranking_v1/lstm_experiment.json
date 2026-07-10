@@ -1,0 +1,26 @@
+{
+  "decision_rule": "keep hybrid iff dIC >= +0.02 or dHit >= +1.5pp (IMPLEMENTATION_PLAN \u00a7 1.2)",
+  "trees_only": {
+    "ic_mean": 0.0778,
+    "ic_std": 0.1497,
+    "ic_t_stat": 9.88,
+    "hit_rate": 0.516,
+    "decile_spread_mean": 0.0191,
+    "days": 361,
+    "best_iteration": 100
+  },
+  "hybrid_lstm": {
+    "ic_mean": 0.0526,
+    "ic_std": 0.169,
+    "ic_t_stat": 5.91,
+    "hit_rate": 0.503,
+    "decile_spread_mean": 0.0144,
+    "days": 361,
+    "best_iteration": 80
+  },
+  "delta_ic": -0.0252,
+  "delta_hit_rate": -0.013,
+  "verdict": "DROP LSTM (ship trees-only)",
+  "n_rows": 228051,
+  "test_window": "2024-12-30 \u2192 2026-06-09"
+}

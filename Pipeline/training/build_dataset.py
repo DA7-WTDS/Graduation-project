@@ -45,6 +45,10 @@ TECH_COLS = [
     "EMA_9_Ratio", "Volatility_20", "Momentum_10", "Momentum_21", "Volume_Change",
 ]
 
+# The 5 LSTM sequential inputs (universal_config feature_cols). Only "Return"
+# is not already in TECH_COLS; carried so experiments can window embeddings.
+SEQ_COLS = ["Volume_Ratio", "Return", "RSI", "MACD", "MACD_signal"]
+
 
 def build(market: str, period: str, out_path: Path) -> pd.DataFrame:
     provider = get_provider(market)
@@ -84,7 +88,8 @@ def build(market: str, period: str, out_path: Path) -> pd.DataFrame:
         # Forward return over the horizon (trading days), then the raw label.
         df["fwd_return"] = df["close"].shift(-HORIZON_DAYS) / df["close"] - 1.0
         df["ticker"] = t
-        frames.append(df[["date", "ticker", "close", "fwd_return", *TECH_COLS]])
+        cols = ["date", "ticker", "close", "fwd_return", *dict.fromkeys(TECH_COLS + SEQ_COLS)]
+        frames.append(df[cols])
 
     if not frames:
         raise SystemExit("No usable ticker frames.")
