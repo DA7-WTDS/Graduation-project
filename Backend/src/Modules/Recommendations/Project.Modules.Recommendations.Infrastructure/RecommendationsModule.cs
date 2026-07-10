@@ -17,8 +17,10 @@ using Project.Modules.Recommendations.Infrastructure.DailyRuns;
 using Project.Modules.Recommendations.Infrastructure.Database;
 using Project.Modules.Recommendations.Infrastructure.Holdings;
 using Project.Modules.Recommendations.Infrastructure.Llm;
+using Project.Modules.Recommendations.Application.Abstractions.Outcomes;
 using Project.Modules.Recommendations.Infrastructure.Outbox;
 using Project.Modules.Recommendations.Infrastructure.Inbox;
+using Project.Modules.Recommendations.Infrastructure.Outcomes;
 using Project.Modules.Recommendations.Infrastructure.Pipeline;
 using Project.Modules.Recommendations.Infrastructure.PublicApi;
 using Project.Modules.Recommendations.PublicApi;
@@ -59,6 +61,7 @@ public static class RecommendationsModule
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<RecommendationsDbContext>());
         services.AddScoped<IDailyRunRepository, DailyRunRepository>();
         services.AddScoped<IUserHoldingRepository, UserHoldingRepository>();
+        services.AddScoped<IPredictionOutcomeRepository, PredictionOutcomeRepository>();
 
         // Register Public API
         services.AddScoped<IRecommendationsApi, RecommendationsApi>();
@@ -75,10 +78,20 @@ public static class RecommendationsModule
         services.ConfigureOptions<ConfigureProcessOutboxJob>();
         services.ConfigureOptions<ConfigureProcessInboxJob>();
         services.ConfigureOptions<ConfigureFetchDailyPipelineJob>();
+        services.ConfigureOptions<ConfigureScoreOutcomesJob>();
 
         // Pipeline HTTP client — typed client for FetchDailyPipelineJob
         services.Configure<PipelineOptions>(configuration.GetSection("Recommendations:Pipeline"));
         services.AddHttpClient<FetchDailyPipelineJob>((sp, client) =>
+        {
+            PipelineOptions o = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
+            client.BaseAddress = new Uri(o.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+        });
+
+        // Outcome scorer (IMPLEMENTATION_PLAN § 0.3) — same pipeline base URL, own client.
+        services.Configure<OutcomesOptions>(configuration.GetSection("Recommendations:Outcomes"));
+        services.AddHttpClient<ScoreOutcomesJob>((sp, client) =>
         {
             PipelineOptions o = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
             client.BaseAddress = new Uri(o.BaseUrl);

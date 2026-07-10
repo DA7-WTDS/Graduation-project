@@ -1,0 +1,18 @@
+# US market — interim vendors: yfinance (OHLCV, screener, fallback news/analyst)
+# + Finnhub (news, analyst consensus). See IMPLEMENTATION_PLAN.md § 0.1.
+market: us
+enabled: true
+provider: yfinance_finnhub
+
+calendar:
+  trading_days: [Mon, Tue, Wed, Thu, Fri]
+  timezone: America/New_York
+
+universe:
+  # Top large-caps via screener; hardcoded fallback list lives in provider.py.
+  min_market_cap: 10000000000
+  size: 100
+
+fetch:
+  period: 6mo
+  interval: 1d

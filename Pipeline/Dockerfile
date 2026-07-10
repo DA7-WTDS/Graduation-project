@@ -36,6 +36,8 @@ RUN python -c "from transformers import pipeline; pipeline('text-classification'
 
 # App code
 COPY main.py risk_rules.py ./
+COPY core/ ./core/
+COPY markets/ ./markets/
 
 # ML model artifacts (only the 6 runtime files — notebooks/backups excluded)
 COPY models/lstm_backbone.pth \

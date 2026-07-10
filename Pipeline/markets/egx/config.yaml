@@ -1,0 +1,22 @@
+# EGX market — SCAFFOLD ONLY. Disabled until the licensed data adapter lands.
+# Flip `enabled: true` only after implementing markets/egx/data.py against the
+# MarketDataProvider interface and completing the migration checklist in
+# IMPLEMENTATION_PLAN.md § 0.1 (backfill -> universe rules -> train EGX model
+# -> enable ingest with market=EGX).
+market: egx
+enabled: false
+provider: null  # awaiting licensed vendor
+
+calendar:
+  trading_days: [Sun, Mon, Tue, Wed, Thu]
+  timezone: Africa/Cairo
+
+universe:
+  # EGX100 ∩ liquidity filter — rules defined ahead of data (IMPL § 1.5).
+  index: EGX100
+  min_avg_daily_value_traded_egp: 5000000
+  min_trading_days_per_quarter: 45
+
+fetch:
+  period: 6mo
+  interval: 1d
