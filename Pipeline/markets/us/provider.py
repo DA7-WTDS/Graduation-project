@@ -382,12 +382,12 @@ class USMarketDataProvider(MarketDataProvider):
             log.warning(f"EquityQuery screener failed ({e}), using fallback list.")
             return _FALLBACK_TICKERS
 
-    def get_ohlcv_batch(self, tickers: list[str]) -> "pd.DataFrame | None":
+    def get_ohlcv_batch(self, tickers: list[str], period: str | None = None) -> "pd.DataFrame | None":
         fetch = self.config.get("fetch", {})
         try:
             return yf.download(
                 tickers=tickers,
-                period=fetch.get("period", "6mo"),
+                period=period or fetch.get("period", "6mo"),
                 interval=fetch.get("interval", "1d"),
                 auto_adjust=True,
                 progress=False,

@@ -1,0 +1,24 @@
+{
+  "target": "relative 21-trading-day return vs universe median",
+  "features": "14 technical indicators (same as deployed tech_cols)",
+  "test_window": "2024-12-16 \u2192 2026-06-08",
+  "model": {
+    "ic_mean": 0.0783,
+    "ic_std": 0.1575,
+    "ic_t_stat": 9.55,
+    "hit_rate": 0.5159,
+    "decile_spread_mean": 0.0189,
+    "days": 369
+  },
+  "baseline_momentum21": {
+    "ic_mean": 0.059,
+    "ic_std": 0.2307,
+    "ic_t_stat": 4.91,
+    "hit_rate": 0.5098,
+    "decile_spread_mean": 0.0488,
+    "days": 369
+  },
+  "base_rate_beat_median": 0.4959,
+  "n_test": 36459,
+  "best_iteration": 100
+}

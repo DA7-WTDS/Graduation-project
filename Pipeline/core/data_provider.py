@@ -38,9 +38,10 @@ class MarketDataProvider(ABC):
         """Investable ticker universe for this market (config-driven rules)."""
 
     @abstractmethod
-    def get_ohlcv_batch(self, tickers: list[str]) -> "pd.DataFrame | None":
+    def get_ohlcv_batch(self, tickers: list[str], period: str | None = None) -> "pd.DataFrame | None":
         """Batch daily OHLCV for the whole universe (grouped by ticker).
-        Fetch window (period/interval) comes from the market config."""
+        Fetch window comes from the market config; `period` overrides it
+        (training uses long histories, serving uses the config default)."""
 
     @abstractmethod
     def get_closes(
