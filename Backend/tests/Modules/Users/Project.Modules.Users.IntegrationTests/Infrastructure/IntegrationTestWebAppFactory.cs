@@ -110,6 +110,8 @@ public sealed class IntegrationTestWebAppFactory : WebApplicationFactory<Program
                 new Table("Portfolio", "__EFMigrationsHistory"),
                 new Table("Recommendations", "__EFMigrationsHistory"),
                 new Table("notifications", "__EFMigrationsHistory"),
+                // Reference data seeded by migration (§ 3.1) — not per-test state.
+                new Table("Portfolio", "instruments"),
             ],
         });
     }

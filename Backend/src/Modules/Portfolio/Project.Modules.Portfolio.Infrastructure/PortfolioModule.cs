@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Project.Common.Infrastructure;
 using Project.Common.Application.Messaging;
@@ -9,9 +10,11 @@ using Project.Common.Infrastructure.Outbox;
 using Project.Common.Infrastructure.Inbox;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Goals;
+using Project.Modules.Portfolio.Application.Abstractions.Instruments;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Goals;
+using Project.Modules.Portfolio.Infrastructure.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.PublicApi;
 using Project.Modules.Portfolio.Infrastructure.Outbox;
@@ -57,6 +60,7 @@ public static class PortfolioModule
         // Register Repositories
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<IGoalRepository, GoalRepository>();
+        services.AddScoped<IInstrumentRepository, InstrumentRepository>();
 
         // Register Public API
         services.AddScoped<IPortfolioApi, PortfolioApi>();
@@ -68,6 +72,16 @@ public static class PortfolioModule
         // Register Quartz Jobs
         services.ConfigureOptions<ConfigureProcessOutboxJob>();
         services.ConfigureOptions<ConfigureProcessInboxJob>();
+        services.ConfigureOptions<ConfigureRefreshInstrumentStatsJob>();
+
+        // Instrument registry refresh — typed HTTP client against the pipeline
+        services.Configure<InstrumentsOptions>(configuration.GetSection("Portfolio:Instruments"));
+        services.AddHttpClient<RefreshInstrumentStatsJob>((sp, client) =>
+        {
+            InstrumentsOptions o = sp.GetRequiredService<IOptions<InstrumentsOptions>>().Value;
+            client.BaseAddress = new Uri(o.PipelineBaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+        });
 
         return services;
     }

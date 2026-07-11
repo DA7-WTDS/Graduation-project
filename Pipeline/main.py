@@ -436,6 +436,82 @@ def closes(req: ClosesRequest):
     return ClosesResponse(market=MARKET, closes=data)
 
 
+class InstrumentStatsRequest(BaseModel):
+    tickers: list[str] | None = None  # omitted/empty -> current universe
+
+
+class InstrumentStat(BaseModel):
+    ticker: str
+    realized_vol_1y: float | None        # annualized std of daily returns
+    avg_daily_value_traded: float | None  # 90-day mean of close x volume
+    last_close: float | None
+    sector: str | None
+
+
+class InstrumentStatsResponse(BaseModel):
+    market: str
+    as_of: str
+    stats: list[InstrumentStat]
+
+
+@app.post("/api/instrument-stats", response_model=InstrumentStatsResponse)
+def instrument_stats(req: InstrumentStatsRequest):
+    """Computed stats for the instrument registry (IMPLEMENTATION_PLAN § 3.1).
+    Called nightly by the .NET RefreshInstrumentStatsJob: with no tickers the
+    current universe is used, so newly screened names auto-register."""
+    tickers = req.tickers or _provider.get_universe()
+    if len(tickers) > 300:
+        raise HTTPException(status_code=400, detail="Too many tickers (max 300).")
+
+    data = _provider.get_ohlcv_batch(tickers, period="1y")
+    try:
+        sectors = _provider.get_sector_map(tickers)
+    except Exception as e:
+        log.warning(f"instrument-stats: sector map unavailable — {e}")
+        sectors = {}
+
+    stats: list[InstrumentStat] = []
+    is_multi = data is not None and hasattr(data.columns, "levels")
+    for t in tickers:
+        frame = None
+        try:
+            if data is not None and not data.empty:
+                if is_multi and t in data.columns.get_level_values(0):
+                    frame = data[t].dropna(how="all")
+                elif not is_multi and t in data.columns:
+                    frame = data[t].dropna(how="all")
+        except Exception:
+            frame = None
+
+        vol = adv = last_close = None
+        if frame is not None and len(frame) >= 60 and "Close" in frame:
+            closes = frame["Close"].dropna()
+            returns = closes.pct_change().dropna()
+            if len(returns) >= 60:
+                vol = float(returns.std() * np.sqrt(252))
+            last_close = float(closes.iloc[-1])
+            if "Volume" in frame:
+                dv = (frame["Close"] * frame["Volume"]).dropna().tail(90)
+                if not dv.empty:
+                    adv = float(dv.mean())
+
+        stats.append(InstrumentStat(
+            ticker=t,
+            realized_vol_1y=vol,
+            avg_daily_value_traded=adv,
+            last_close=last_close,
+            sector=sectors.get(t),
+        ))
+
+    computed = sum(1 for s in stats if s.realized_vol_1y is not None)
+    log.info(f"instrument-stats: {computed}/{len(tickers)} tickers with stats.")
+    return InstrumentStatsResponse(
+        market=MARKET,
+        as_of=datetime.now(timezone.utc).isoformat(),
+        stats=stats,
+    )
+
+
 @app.post("/api/score", response_model=ScoreResponse)
 def score():
     if _state.lstm is None:
