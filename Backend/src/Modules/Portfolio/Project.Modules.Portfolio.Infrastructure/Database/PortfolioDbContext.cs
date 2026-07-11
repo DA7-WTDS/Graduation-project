@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Project.Modules.Portfolio.Domain.Portfolios;
 using Project.Modules.Portfolio.Domain.Goals;
 using Project.Modules.Portfolio.Domain.Instruments;
+using Project.Modules.Portfolio.Domain.Strategies;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.Goals;
 using Project.Modules.Portfolio.Infrastructure.Instruments;
+using Project.Modules.Portfolio.Infrastructure.Strategies;
 using Project.Common.Infrastructure.Outbox;
 using Project.Common.Infrastructure.Inbox;
 
@@ -19,6 +21,7 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
     internal DbSet<QuestionnaireResponse> QuestionnaireResponses { get; set; }
     internal DbSet<InvestorProfile> InvestorProfiles { get; set; }
     internal DbSet<Instrument> Instruments { get; set; }
+    internal DbSet<StrategyTemplate> StrategyTemplates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +31,7 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
         modelBuilder.ApplyConfiguration(new QuestionnaireResponseConfiguration());
         modelBuilder.ApplyConfiguration(new InvestorProfileConfiguration());
         modelBuilder.ApplyConfiguration(new InstrumentConfiguration());
+        modelBuilder.ApplyConfiguration(new StrategyTemplateConfiguration());
 
         modelBuilder.ApplyConfiguration(new InboxMessageConfiguration());
         modelBuilder.ApplyConfiguration(new InboxMessageConsumerConfiguration());

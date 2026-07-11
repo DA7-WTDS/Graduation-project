@@ -12,10 +12,12 @@ using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Goals;
 using Project.Modules.Portfolio.Application.Abstractions.Instruments;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
+using Project.Modules.Portfolio.Application.Abstractions.Strategies;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Goals;
 using Project.Modules.Portfolio.Infrastructure.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
+using Project.Modules.Portfolio.Infrastructure.Strategies;
 using Project.Modules.Portfolio.Infrastructure.PublicApi;
 using Project.Modules.Portfolio.Infrastructure.Outbox;
 using Project.Modules.Portfolio.Infrastructure.Inbox;
@@ -61,6 +63,7 @@ public static class PortfolioModule
         services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<IGoalRepository, GoalRepository>();
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
+        services.AddScoped<IStrategyTemplateRepository, StrategyTemplateRepository>();
 
         // Register Public API
         services.AddScoped<IPortfolioApi, PortfolioApi>();

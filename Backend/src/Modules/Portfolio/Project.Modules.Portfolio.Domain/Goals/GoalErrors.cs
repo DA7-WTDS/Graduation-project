@@ -25,4 +25,12 @@ public static class GoalErrors
     public static Error InvalidAmount(decimal value) =>
         new Error($"Invalid amount '{value}'. Must be zero or greater.")
             .WithErrorType(ErrorType.Validation);
+
+    public static Error ProfileMissing =>
+        new Error("Complete the questionnaire before requesting a portfolio draft.")
+            .WithErrorType(ErrorType.Validation);
+
+    public static Error NoTemplateMatches =>
+        new Error("No strategy template matches this profile — seed data is incomplete.")
+            .WithErrorType(ErrorType.NotFound);
 }

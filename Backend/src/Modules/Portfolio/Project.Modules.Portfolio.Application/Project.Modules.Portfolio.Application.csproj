@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\..\Common\Project.Common.Application\Project.Common.Application.csproj" />
     <ProjectReference Include="..\..\..\Common\Project.Common.Domain\Project.Common.Domain.csproj" />
     <ProjectReference Include="..\Project.Modules.Portfolio.Domain\Project.Modules.Portfolio.Domain.csproj" />
+    <ProjectReference Include="..\..\Recommendations\Project.Modules.Recommendations.PublicApi\Project.Modules.Recommendations.PublicApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
