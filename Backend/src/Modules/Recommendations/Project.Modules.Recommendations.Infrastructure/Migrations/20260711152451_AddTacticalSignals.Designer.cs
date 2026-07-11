@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Project.Modules.Recommendations.Infrastructure.Database;
@@ -11,9 +12,11 @@ using Project.Modules.Recommendations.Infrastructure.Database;
 namespace Project.Modules.Recommendations.Infrastructure.Migrations
 {
     [DbContext(typeof(RecommendationsDbContext))]
-    partial class RecommendationsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711152451_AddTacticalSignals")]
+    partial class AddTacticalSignals
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

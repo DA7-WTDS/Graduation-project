@@ -35,7 +35,9 @@ internal sealed class RecommendationsApi(RecommendationsDbContext dbContext) : I
             .Where(p => p.DailyRunId == runId)
             .OrderByDescending(p => p.ConvictionScore)
             .ThenBy(p => p.Ticker)
-            .Select(p => new RankedTicker(p.Ticker, p.Direction, p.RiskLevel, p.ConvictionScore, p.ChangePct))
+            .Select(p => new RankedTicker(
+                p.Ticker, p.Direction, p.RiskLevel, p.ConvictionScore, p.ChangePct,
+                p.SentimentScore, p.Signal, p.Rsi14, p.PctVsSma50))
             .ToListAsync(cancellationToken);
     }
 }

@@ -29,6 +29,10 @@ public sealed class StockPrediction : Entity
     public string[] RiskFlags { get; private set; } = [];
     public string Rationale { get; private set; }
 
+    // Tactical dip-buyer inputs (§ 3.4): oversold state at prediction time.
+    public double? Rsi14 { get; private set; }
+    public double? PctVsSma50 { get; private set; }
+
     public static StockPrediction Create(
         string ticker,
         string direction,
@@ -44,7 +48,9 @@ public sealed class StockPrediction : Entity
         string riskLevel,
         double convictionScore,
         string[] riskFlags,
-        string rationale)
+        string rationale,
+        double? rsi14 = null,
+        double? pctVsSma50 = null)
     {
         return new StockPrediction
         {
@@ -63,7 +69,9 @@ public sealed class StockPrediction : Entity
             RiskLevel = riskLevel,
             ConvictionScore = convictionScore,
             RiskFlags = riskFlags ?? [],
-            Rationale = rationale
+            Rationale = rationale,
+            Rsi14 = rsi14,
+            PctVsSma50 = pctVsSma50
         };
     }
 }

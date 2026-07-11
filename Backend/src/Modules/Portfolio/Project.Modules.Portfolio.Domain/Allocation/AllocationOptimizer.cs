@@ -7,8 +7,17 @@ using Project.Modules.Portfolio.Domain.Strategies;
 
 namespace Project.Modules.Portfolio.Domain.Allocation;
 
-/// <summary>One equity candidate from the latest daily run, best first.</summary>
-public sealed record RankedEquity(string Symbol, double Score, string Direction, string RiskLevel);
+/// <summary>One equity candidate from the latest daily run, best first.
+/// Rsi14/PctVsSma50 feed the tactical dip rule; SentimentSignal is the
+/// "not deteriorating" check (POSITIVE/NEUTRAL/NEGATIVE).</summary>
+public sealed record RankedEquity(
+    string Symbol,
+    double Score,
+    string Direction,
+    string RiskLevel,
+    string SentimentSignal = "NEUTRAL",
+    double? Rsi14 = null,
+    double? PctVsSma50 = null);
 
 public sealed record AllocationPosition(
     string Symbol,
@@ -24,10 +33,15 @@ public sealed record AllocationResult(
 
 public sealed record AllocationOptions(
     int TopN = 10,
-    double MaxPositionWeight = 0.15,     // of the whole portfolio (equities only)
+    double MaxPositionWeight = 0.15,     // of the whole portfolio (single stocks only)
     double MaxSectorWeight = 0.30,       // of the whole portfolio (equities only)
     decimal MinPositionValue = 25m,
-    double MinVolFloor = 0.05);          // avoids score/vol exploding on sleepy names
+    double MinVolFloor = 0.05,           // avoids score/vol exploding on sleepy names
+    // Tactical dip rule (§ 3.4): oversold AND quality AND sentiment-not-deteriorating.
+    double TacticalRsiMax = 35,
+    double TacticalDipMin = -0.05,       // at least 5% below the 50-DMA
+    double TacticalMinAdv = 5_000_000,   // liquidity floor (quality proxy until fundamentals are licensed)
+    int TacticalTopN = 5);
 
 /// <summary>
 /// The deterministic allocation optimizer (§ 3.3, D6): same inputs ⇒ same
@@ -53,15 +67,25 @@ public static class AllocationOptimizer
 
         List<Instrument> active = instruments.Where(i => i.IsActive).ToList();
 
-        // ---- fold not-yet-implemented sleeves into core (v1) ----
+        // Tactical candidates are computed up front: when the market offers no
+        // qualifying dips today, the tactical bucket folds into core instead of
+        // sitting empty. Speculative stays folded until the IPO/catalyst engine
+        // (needs the § 1.6 event stream + a licensed IPO calendar).
+        List<(RankedEquity Rank, Instrument Instrument)> dips = SelectTacticalCandidates(rankings, active, riskBand, opts);
+
         var effective = new List<TemplateBucket>();
         double foldedIntoCore = 0;
         foreach (TemplateBucket bucket in buckets)
         {
-            if (bucket.Sleeve is Sleeves.Tactical or Sleeves.Speculative)
+            if (bucket.Sleeve == Sleeves.Speculative)
             {
                 foldedIntoCore += bucket.Weight;
-                assumptions.Add($"{bucket.Sleeve} sleeve ({bucket.Weight:P0}) folded into core until its engine ships (§ 3.4).");
+                assumptions.Add($"{bucket.Sleeve} sleeve ({bucket.Weight:P0}) folded into core until the IPO/catalyst engine ships (§ 3.4).");
+            }
+            else if (bucket.Sleeve == Sleeves.Tactical && dips.Count == 0)
+            {
+                foldedIntoCore += bucket.Weight;
+                assumptions.Add($"No qualifying dip opportunities today — the tactical sleeve ({bucket.Weight:P0}) folded into core.");
             }
             else
             {
@@ -88,9 +112,19 @@ public static class AllocationOptimizer
             bool isRankedCore = bucket.Sleeve == Sleeves.Core
                 && (bucket.Rules.Types is null || bucket.Rules.Types.Contains("stock", StringComparer.OrdinalIgnoreCase));
 
-            if (isRankedCore)
+            if (bucket.Sleeve == Sleeves.Tactical)
             {
-                positions.AddRange(BuildCore(bucket, riskBand, active, rankings, amount, opts, assumptions));
+                positions.AddRange(BuildTactical(bucket, dips, amount, opts, assumptions));
+            }
+            else if (isRankedCore)
+            {
+                // A name the tactical sleeve is buying must not be double-bought
+                // by core (only relevant when a tactical bucket is actually live).
+                bool tacticalActive = effective.Any(b => b.Sleeve == Sleeves.Tactical);
+                IReadOnlyList<RankedEquity> coreRankings = tacticalActive
+                    ? rankings.Where(r => !dips.Any(d => d.Rank.Symbol.Equals(r.Symbol, StringComparison.OrdinalIgnoreCase))).ToList()
+                    : rankings;
+                positions.AddRange(BuildCore(bucket, riskBand, active, coreRankings, amount, opts, assumptions));
             }
             else
             {
@@ -209,12 +243,7 @@ public static class AllocationOptimizer
             .ToDictionary(i => i.Symbol, StringComparer.OrdinalIgnoreCase);
 
         // Risk-grade filter: capacity-capped users never see HIGH-risk names.
-        string[] allowed = riskBand switch
-        {
-            RiskProfile.Conservative => ["LOW"],
-            RiskProfile.Moderate => ["LOW", "MEDIUM"],
-            _ => ["LOW", "MEDIUM", "HIGH"]
-        };
+        string[] allowed = AllowedRiskLevels(riskBand);
 
         List<(RankedEquity Rank, Instrument Instrument)> candidates = rankings
             .Where(r => r.Direction.Equals("UP", StringComparison.OrdinalIgnoreCase))
@@ -284,16 +313,98 @@ public static class AllocationOptimizer
             .ToList();
     }
 
-    /// <summary>Portfolio-level position cap for the equity core: capped names
-    /// give their surplus to everything else (stability first by construction,
-    /// since it is the bulk of the uncapped weight). Water-fills to a fixpoint.</summary>
+    // ---- the tactical dip-buyer sleeve (§ 3.4) ----
+
+    /// <summary>Oversold AND quality AND sentiment-not-deteriorating, all from
+    /// data (rankings + registry), best dips first. Quality is a liquidity
+    /// proxy until fundamentals are licensed.</summary>
+    private static List<(RankedEquity Rank, Instrument Instrument)> SelectTacticalCandidates(
+        IReadOnlyList<RankedEquity> rankings,
+        List<Instrument> instruments,
+        RiskProfile riskBand,
+        AllocationOptions opts)
+    {
+        var bySymbol = instruments
+            .Where(i => i.Type == InstrumentType.Stock)
+            .ToDictionary(i => i.Symbol, StringComparer.OrdinalIgnoreCase);
+
+        string[] allowed = AllowedRiskLevels(riskBand);
+
+        return rankings
+            .Where(r => r.Rsi14 is double rsi && rsi < opts.TacticalRsiMax)
+            .Where(r => r.PctVsSma50 is double dip && dip <= opts.TacticalDipMin)
+            .Where(r => !r.SentimentSignal.Equals("NEGATIVE", StringComparison.OrdinalIgnoreCase))
+            .Where(r => allowed.Contains(r.RiskLevel, StringComparer.OrdinalIgnoreCase))
+            .Where(r => bySymbol.TryGetValue(r.Symbol, out Instrument? i)
+                && (i.AvgDailyValueTraded ?? 0) >= opts.TacticalMinAdv)
+            .OrderBy(r => r.Rsi14) // deepest oversold first
+            .ThenBy(r => r.Symbol, StringComparer.Ordinal)
+            .Take(opts.TacticalTopN)
+            .Select(r => (r, bySymbol[r.Symbol]))
+            .ToList();
+    }
+
+    private static List<AllocationPosition> BuildTactical(
+        TemplateBucket bucket,
+        List<(RankedEquity Rank, Instrument Instrument)> dips,
+        decimal amount,
+        AllocationOptions opts,
+        List<string> assumptions)
+    {
+        // Weight ∝ dip depth (how far below the RSI threshold) over volatility —
+        // deeper, calmer dips get more of the bounded sleeve.
+        Dictionary<string, double> raw = dips.ToDictionary(
+            d => d.Rank.Symbol,
+            d => Math.Max(opts.TacticalRsiMax - d.Rank.Rsi14!.Value, 1.0)
+                 / Math.Max(d.Instrument.RealizedVol1Y ?? 0.25, opts.MinVolFloor),
+            StringComparer.OrdinalIgnoreCase);
+
+        Dictionary<string, double> weights = CapPositions(Normalize(raw, bucket.Weight), opts.MaxPositionWeight);
+
+        List<string> dust = weights.Where(w => (decimal)w.Value * amount < opts.MinPositionValue).Select(w => w.Key).ToList();
+        if (dust.Count > 0 && dust.Count < weights.Count)
+        {
+            foreach (string s in dust)
+            {
+                weights.Remove(s);
+            }
+
+            weights = CapPositions(Normalize(weights, bucket.Weight), opts.MaxPositionWeight);
+        }
+
+        var bySymbol = dips.ToDictionary(d => d.Rank.Symbol, StringComparer.OrdinalIgnoreCase);
+        return weights
+            .OrderByDescending(w => w.Value)
+            .ThenBy(w => w.Key, StringComparer.Ordinal)
+            .Select(w => new AllocationPosition(
+                w.Key,
+                Sleeves.Tactical,
+                w.Value,
+                Math.Round((decimal)w.Value * amount, 2),
+                $"dip: RSI {bySymbol[w.Key].Rank.Rsi14!.Value:F0}, {bySymbol[w.Key].Rank.PctVsSma50:P1} vs 50-DMA, {bySymbol[w.Key].Instrument.Sector ?? "sector n/a"}"))
+            .ToList();
+    }
+
+    private static string[] AllowedRiskLevels(RiskProfile riskBand) => riskBand switch
+    {
+        RiskProfile.Conservative => ["LOW"],
+        RiskProfile.Moderate => ["LOW", "MEDIUM"],
+        _ => ["LOW", "MEDIUM", "HIGH"]
+    };
+
+    /// <summary>Portfolio-level position cap for single stocks (core + tactical):
+    /// capped names give their surplus to everything else (stability first by
+    /// construction, since it is the bulk of the uncapped weight). Water-fills
+    /// to a fixpoint.</summary>
     private static List<AllocationPosition> EnforceCoreCap(
         List<AllocationPosition> positions, double cap, HashSet<string> stockSymbols, List<string> assumptions)
     {
         var weights = positions.ToDictionary(p => $"{p.Sleeve}:{p.Symbol}", p => p.Weight, StringComparer.Ordinal);
         bool IsCore(string key) =>
-            key.StartsWith($"{Sleeves.Core}:", StringComparison.Ordinal)
-            && stockSymbols.Contains(key[(Sleeves.Core.Length + 1)..]);
+            (key.StartsWith($"{Sleeves.Core}:", StringComparison.Ordinal)
+                && stockSymbols.Contains(key[(Sleeves.Core.Length + 1)..]))
+            || (key.StartsWith($"{Sleeves.Tactical}:", StringComparison.Ordinal)
+                && stockSymbols.Contains(key[(Sleeves.Tactical.Length + 1)..]));
         bool disclosed = false;
 
         for (int pass = 0; pass < positions.Count + 1; pass++)

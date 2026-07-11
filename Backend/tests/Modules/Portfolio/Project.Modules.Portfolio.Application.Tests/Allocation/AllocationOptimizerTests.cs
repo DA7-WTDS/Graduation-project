@@ -214,6 +214,140 @@ public class AllocationOptimizerTests
         result.Assumptions.Should().BeEmpty();
     }
 
+    // ---- § 3.4 tactical dip-buyer sleeve ----
+
+    private static readonly List<TemplateBucket> ActiveGrowthBuckets =
+    [
+        new(Sleeves.Core, 0.50, new BucketRules(Types: ["stock"])),
+        new(Sleeves.Tactical, 0.30, new BucketRules(Types: ["stock"])),
+        new(Sleeves.Stability, 0.20, new BucketRules(AssetClasses: ["cash_like"])),
+    ];
+
+    private static RankedEquity Dip(string symbol, double rsi, double pctVsSma50,
+        string signal = "NEUTRAL", string risk = "LOW", string direction = "DOWN") =>
+        new(symbol, 10, direction, risk, signal, rsi, pctVsSma50);
+
+    [Fact]
+    public void Qualifying_dips_fill_the_tactical_sleeve()
+    {
+        var rankings = new List<RankedEquity>
+        {
+            new("AAA", 80, "UP", "LOW"),                       // core names, no dip data
+            new("DDD", 70, "UP", "LOW"),
+            Dip("BBB", 28, -0.12),                             // deep oversold, sentiment neutral
+            Dip("CCC", 33, -0.06, signal: "POSITIVE"),
+        };
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Aggressive, Registry, rankings, 10_000m,
+            new AllocationOptions(MaxPositionWeight: 0.30, MaxSectorWeight: 1.0));
+
+        var tactical = result.Positions.Where(p => p.Sleeve == Sleeves.Tactical).ToList();
+        tactical.Select(p => p.Symbol).Should().BeEquivalentTo(["BBB", "CCC"]);
+        tactical.Sum(p => p.Weight).Should().BeApproximately(0.30, 1e-9);
+        tactical.Should().OnlyContain(p => p.Rationale.StartsWith("dip:"));
+        result.Assumptions.Should().NotContain(a => a.Contains("tactical"));
+    }
+
+    [Fact]
+    public void A_dip_pick_is_never_double_bought_by_the_core_sleeve()
+    {
+        // BBB is both highly ranked (core-eligible, UP) and oversold (dip-eligible).
+        var rankings = new List<RankedEquity>
+        {
+            new("AAA", 80, "UP", "LOW"),
+            new("BBB", 90, "UP", "LOW", "NEUTRAL", 28, -0.12),
+        };
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Aggressive, Registry, rankings, 10_000m,
+            new AllocationOptions(MaxPositionWeight: 0.50, MaxSectorWeight: 1.0));
+
+        result.Positions.Count(p => p.Symbol == "BBB").Should().Be(1);
+        result.Positions.Single(p => p.Symbol == "BBB").Sleeve.Should().Be(Sleeves.Tactical);
+    }
+
+    [Fact]
+    public void Deteriorating_sentiment_disqualifies_a_dip()
+    {
+        var rankings = new List<RankedEquity>
+        {
+            Dip("BBB", 28, -0.12, signal: "NEGATIVE"), // falling knife — news says why
+            Dip("CCC", 33, -0.06),
+        };
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Aggressive, Registry, rankings, 10_000m,
+            new AllocationOptions(MaxPositionWeight: 0.30));
+
+        result.Positions.Where(p => p.Sleeve == Sleeves.Tactical)
+            .Select(p => p.Symbol).Should().BeEquivalentTo(["CCC"]);
+    }
+
+    [Fact]
+    public void Shallow_pullbacks_and_neutral_rsi_are_not_dips()
+    {
+        var rankings = new List<RankedEquity>
+        {
+            Dip("BBB", 50, -0.12),  // RSI not oversold
+            Dip("CCC", 30, -0.02),  // barely below the 50-DMA
+        };
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Aggressive, Registry, rankings, 10_000m);
+
+        result.Positions.Should().NotContain(p => p.Sleeve == Sleeves.Tactical);
+        result.Assumptions.Should().Contain(a => a.Contains("tactical sleeve"));
+    }
+
+    [Fact]
+    public void Illiquid_names_fail_the_quality_gate()
+    {
+        Instrument thin = Stock("THN", 0.30, "Energy");
+        thin.UpdateStats(0.30, 500_000, 10, "Energy", DateTime.UtcNow); // $0.5M/day << $5M floor
+        List<Instrument> registry = [.. Registry, thin];
+
+        var rankings = new List<RankedEquity> { Dip("THN", 25, -0.15), Dip("BBB", 30, -0.08) };
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Aggressive, registry, rankings, 10_000m,
+            new AllocationOptions(MaxPositionWeight: 0.30));
+
+        result.Positions.Where(p => p.Sleeve == Sleeves.Tactical)
+            .Select(p => p.Symbol).Should().BeEquivalentTo(["BBB"]);
+    }
+
+    [Fact]
+    public void Conservative_profiles_only_get_low_risk_dips()
+    {
+        var rankings = new List<RankedEquity>
+        {
+            Dip("BBB", 28, -0.12, risk: "HIGH"),
+            Dip("CCC", 33, -0.06, risk: "LOW"),
+        };
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Conservative, Registry, rankings, 10_000m,
+            new AllocationOptions(MaxPositionWeight: 0.30));
+
+        result.Positions.Where(p => p.Sleeve == Sleeves.Tactical)
+            .Select(p => p.Symbol).Should().BeEquivalentTo(["CCC"]);
+    }
+
+    [Fact]
+    public void No_dips_folds_the_tactical_bucket_into_core_gracefully()
+    {
+        var rankings = Rankings(("AAA", 80, "LOW"), ("BBB", 70, "LOW"), ("CCC", 60, "LOW"), ("DDD", 50, "LOW"));
+
+        AllocationResult result = AllocationOptimizer.Build(
+            ActiveGrowthBuckets, RiskProfile.Aggressive, Registry, rankings, 10_000m,
+            new AllocationOptions(MaxPositionWeight: 0.30));
+
+        result.Positions.Where(p => p.Sleeve == Sleeves.Core).Sum(p => p.Weight)
+            .Should().BeApproximately(0.80, 1e-9); // 0.50 + folded 0.30
+        result.Assumptions.Should().Contain(a => a.Contains("No qualifying dip"));
+    }
+
     [Fact]
     public void Changing_any_input_changes_the_hash()
     {

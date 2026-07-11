@@ -51,7 +51,9 @@ internal sealed class IngestDailyRunCommandHandler(
             r.RiskLevel,
             r.ConvictionScore,
             r.RiskFlags,
-            r.Rationale));
+            r.Rationale,
+            r.Rsi14,
+            r.PctVsSma50));
 
         DailyRun run = DailyRun.Create(generatedAtUtc, predictions);
 

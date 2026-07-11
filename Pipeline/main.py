@@ -98,6 +98,9 @@ class TickerPrediction(BaseModel):
     change_pct:   float
     confidence:   float
     predicted_at: str
+    # Tactical dip-buyer inputs (§ 3.4): oversold state at prediction time.
+    rsi_14:        float | None = None
+    pct_vs_sma50:  float | None = None
 
 
 class TickerSentiment(BaseModel):
@@ -138,6 +141,8 @@ class ScoreRecord(BaseModel):
     conviction_score: float
     risk_flags:       list[str]
     rationale:        str
+    rsi_14:           float | None = None
+    pct_vs_sma50:     float | None = None
 
 
 class ScoreResponse(BaseModel):
@@ -284,12 +289,27 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
         )
         confidence = round(float(np.sqrt(signal_strength * stability) * data_quality), 4)
 
+        # Tactical dip-buyer inputs (§ 3.4): last RSI-14 (already in the feature
+        # frame) and distance from the 50-DMA. Best effort — never fails a prediction.
+        rsi_14 = pct_vs_sma50 = None
+        try:
+            rsi_14 = round(float(df["RSI"].iloc[-1]), 2)
+            closes = df["close"].astype(float)
+            if len(closes) >= 50:
+                sma50 = float(closes.rolling(50).mean().iloc[-1])
+                if sma50 > 0:
+                    pct_vs_sma50 = round(float(closes.iloc[-1]) / sma50 - 1.0, 4)
+        except Exception as tac_err:
+            log.debug(f"{ticker}: tactical signals unavailable — {tac_err}")
+
         return TickerPrediction(
             ticker       = ticker,
             direction    = direction,
             change_pct   = change_pct,
             confidence   = confidence,
             predicted_at = datetime.now(timezone.utc).isoformat(),
+            rsi_14       = rsi_14,
+            pct_vs_sma50 = pct_vs_sma50,
         )
 
     except Exception as e:
@@ -619,6 +639,8 @@ def score():
             conviction_score = r["conviction_score"],
             risk_flags       = r["risk_flags"],
             rationale        = r["rationale"],
+            rsi_14           = r.get("rsi_14"),
+            pct_vs_sma50     = r.get("pct_vs_sma50"),
         )
         for r in enriched
     ]

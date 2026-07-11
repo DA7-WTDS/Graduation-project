@@ -6,14 +6,20 @@ using System.Threading.Tasks;
 namespace Project.Modules.Recommendations.PublicApi;
 
 /// <summary>One ticker from the latest daily run, as consumed by the allocation
-/// optimizer (§ 3.3). ConvictionScore blends model, sentiment, and analyst
-/// agreement; RiskLevel is the pipeline's risk grade (LOW/MEDIUM/HIGH).</summary>
+/// optimizer (§ 3.3 core sleeve, § 3.4 tactical sleeve). ConvictionScore blends
+/// model, sentiment, and analyst agreement; RiskLevel is the pipeline's risk
+/// grade (LOW/MEDIUM/HIGH); Rsi14/PctVsSma50 describe the oversold state and
+/// Signal ("POSITIVE"/"NEUTRAL"/"NEGATIVE") the sentiment direction.</summary>
 public sealed record RankedTicker(
     string Ticker,
     string Direction,
     string RiskLevel,
     double ConvictionScore,
-    double ChangePct);
+    double ChangePct,
+    double SentimentScore,
+    string Signal,
+    double? Rsi14,
+    double? PctVsSma50);
 
 public interface IRecommendationsApi
 {

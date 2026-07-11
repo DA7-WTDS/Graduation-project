@@ -23,4 +23,6 @@ public sealed record PredictionRecordDto
     [JsonPropertyName("conviction_score")] public double ConvictionScore { get; init; }
     [JsonPropertyName("risk_flags")]       public string[] RiskFlags { get; init; } = [];
     [JsonPropertyName("rationale")]        public string Rationale { get; init; } = string.Empty;
+    [JsonPropertyName("rsi_14")]           public double? Rsi14 { get; init; }
+    [JsonPropertyName("pct_vs_sma50")]     public double? PctVsSma50 { get; init; }
 }

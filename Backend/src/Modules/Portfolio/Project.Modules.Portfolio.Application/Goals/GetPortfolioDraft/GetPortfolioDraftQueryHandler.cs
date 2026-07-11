@@ -61,7 +61,9 @@ internal sealed class GetPortfolioDraftQueryHandler(
 
         IReadOnlyList<RankedTicker> ranked = await recommendationsApi.GetLatestRankedTickersAsync(cancellationToken);
         List<RankedEquity> rankings = ranked
-            .Select(r => new RankedEquity(r.Ticker, r.ConvictionScore, r.Direction, r.RiskLevel))
+            .Select(r => new RankedEquity(
+                r.Ticker, r.ConvictionScore, r.Direction, r.RiskLevel,
+                r.Signal, r.Rsi14, r.PctVsSma50))
             .ToList();
 
         decimal amount = (await portfolioRepository.GetByUserIdAsync(request.UserId, cancellationToken))
