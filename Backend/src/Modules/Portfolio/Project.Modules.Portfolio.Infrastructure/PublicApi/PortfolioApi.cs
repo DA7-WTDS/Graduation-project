@@ -42,4 +42,34 @@ internal sealed class PortfolioApi(PortfolioDbContext dbContext) : IPortfolioApi
                 p.CashPercentage))
             .ToList();
     }
+
+    public async Task<MonitoringProfileResponse?> GetMonitoringProfileAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var portfolio = await dbContext.Portfolios
+            .AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Select(p => new { p.RiskProfile })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (portfolio is null)
+        {
+            return null;
+        }
+
+        // Latest investor profile across the user's goals (v1 UI is single-goal,
+        // but take the newest either way). Null for pre-Phase-2 legacy users.
+        var profile = await (
+            from g in dbContext.Goals
+            join ip in dbContext.InvestorProfiles on g.Id equals ip.GoalId
+            where g.UserId == userId
+            orderby ip.CreatedAt descending
+            select new { GoalType = g.Type, ip.Engagement })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new MonitoringProfileResponse(
+            userId,
+            portfolio.RiskProfile.ToString(),
+            profile?.GoalType.ToString(),
+            profile?.Engagement.ToString());
+    }
 }

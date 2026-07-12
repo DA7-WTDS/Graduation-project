@@ -98,6 +98,16 @@ public static class RecommendationsModule
             client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
         });
 
+        // Monitoring triggers (§ 3.5) — nightly crash + conviction-reversal checks.
+        services.Configure<Monitoring.MonitorOptions>(configuration.GetSection("Recommendations:Monitor"));
+        services.ConfigureOptions<Monitoring.ConfigureMarketMonitorJob>();
+        services.AddHttpClient<Monitoring.MarketMonitorJob>((sp, client) =>
+        {
+            PipelineOptions o = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
+            client.BaseAddress = new Uri(o.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+        });
+
         services.AddHttpClient<ILlmClient, GeminiLlmClient>((sp, client) =>
         {
             LlmOptions o = sp.GetRequiredService<IOptions<LlmOptions>>().Value;
