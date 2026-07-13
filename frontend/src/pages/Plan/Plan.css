@@ -1,0 +1,335 @@
+.plan {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-lg) var(--space-4xl);
+}
+
+.plan-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.plan-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--qw-amber);
+}
+
+.plan-title {
+    margin: var(--space-xs) 0 0;
+    font-size: 30px;
+    font-weight: 650;
+    color: var(--qw-text);
+}
+
+.plan-sub {
+    margin: var(--space-xs) 0 0;
+    color: var(--qw-text-dim);
+    font-size: var(--font-size-small);
+}
+
+/* profile tiles */
+.plan-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+}
+
+.plan-spec {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--qw-amber);
+    font-size: var(--font-size-small);
+}
+
+/* card heads */
+.plan-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.plan-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--qw-text-dim);
+}
+
+.plan-accepted-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-success);
+}
+
+/* onboarding prompt */
+.plan-onboard {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-2xl);
+}
+
+.plan-onboard-copy {
+    margin: 0;
+    color: var(--qw-text-dim);
+    max-width: 42ch;
+}
+
+/* proposal body */
+.plan-proposal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.plan-proposal-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.plan-tpl-name {
+    display: block;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--qw-text);
+}
+
+.plan-tpl-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--qw-text-faint);
+}
+
+.plan-alloc-bar {
+    display: flex;
+    height: 34px;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    background: var(--qw-panel-2);
+}
+
+.plan-alloc-seg {
+    height: 100%;
+    min-width: 2px;
+    transition: opacity 0.15s ease;
+}
+
+.plan-alloc-seg:hover {
+    opacity: 0.82;
+}
+
+/* positions table */
+.plan-positions {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--qw-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.plan-pos {
+    display: grid;
+    grid-template-columns: 14px 64px 84px 1fr 64px 84px;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 10px var(--space-md);
+    background: var(--qw-panel);
+    font-size: 13px;
+}
+
+.plan-pos-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.plan-pos-sym {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--qw-text);
+}
+
+.plan-pos-sleeve {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--qw-text-faint);
+}
+
+.plan-pos-rationale {
+    color: var(--qw-text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plan-pos-weight {
+    font-family: var(--font-mono);
+    text-align: right;
+    color: var(--qw-amber);
+}
+
+.plan-pos-value {
+    font-family: var(--font-mono);
+    text-align: right;
+    color: var(--qw-text-dim);
+}
+
+/* assumptions */
+.plan-assumptions {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--qw-amber-glow);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    color: var(--qw-text-dim);
+}
+
+.plan-assumptions li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-assumptions svg {
+    color: var(--qw-amber);
+    flex-shrink: 0;
+}
+
+/* proposal footer */
+.plan-proposal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--qw-border);
+}
+
+.plan-hash {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--qw-text-faint);
+}
+
+.plan-accepted-flag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-success);
+    font-weight: 600;
+    font-size: var(--font-size-small);
+}
+
+.plan-superseded-flag {
+    color: var(--qw-text-faint);
+    font-size: var(--font-size-small);
+}
+
+/* status badges */
+.plan-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.plan-badge-proposed {
+    color: var(--qw-amber);
+    border-color: var(--qw-amber);
+}
+
+.plan-badge-accepted {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.plan-badge-superseded {
+    color: var(--qw-text-faint);
+    border-color: var(--qw-border-strong);
+}
+
+/* history */
+.plan-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.plan-history-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 10px var(--space-md);
+    background: var(--qw-panel-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+    color: var(--qw-text);
+    transition: border-color 0.15s ease;
+}
+
+.plan-history-row:hover {
+    border-color: var(--qw-border-strong);
+}
+
+.plan-history-row.active {
+    border-color: var(--qw-amber);
+}
+
+.plan-history-v {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--qw-amber);
+}
+
+.plan-history-tpl {
+    font-size: 13px;
+    color: var(--qw-text);
+}
+
+.plan-history-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--qw-text-faint);
+}
+
+@media (max-width: 720px) {
+    .plan-tiles {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .plan-pos {
+        grid-template-columns: 14px 56px 1fr 70px;
+    }
+
+    .plan-pos-sleeve,
+    .plan-pos-rationale {
+        display: none;
+    }
+}

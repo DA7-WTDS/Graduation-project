@@ -10,6 +10,7 @@ import './AppShell.css'
 
 const navItems = [
     { to: '/dashboard', label: 'Dashboard' },
+    { to: '/plan', label: 'Plan' },
     { to: '/portfolios', label: 'Portfolios' },
     { to: '/simulator', label: 'Learning' },
     { to: '/market', label: 'Market' },

@@ -10,6 +10,7 @@ const Login = lazy(() => import('./pages/Auth/Login'))
 const Signup = lazy(() => import('./pages/Auth/Signup'))
 const Onboarding = lazy(() => import('./pages/Onboarding/Onboarding'))
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'))
+const Plan = lazy(() => import('./pages/Plan/Plan'))
 const Profile = lazy(() => import('./pages/Profile/Profile'))
 const Portfolios = lazy(() => import('./pages/Portfolios/Portfolios'))
 const Simulator = lazy(() => import('./pages/Simulator/Simulator'))
@@ -57,6 +58,7 @@ function App() {
                             }
                         >
                             <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/plan" element={<Plan />} />
                             <Route path="/portfolios" element={<Portfolios />} />
                             <Route path="/simulator" element={<Simulator />} />
                             <Route path="/market" element={<Market />} />
