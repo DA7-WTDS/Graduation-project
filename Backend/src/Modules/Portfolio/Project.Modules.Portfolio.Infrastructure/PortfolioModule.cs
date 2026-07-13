@@ -12,11 +12,13 @@ using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Goals;
 using Project.Modules.Portfolio.Application.Abstractions.Instruments;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
+using Project.Modules.Portfolio.Application.Abstractions.Proposals;
 using Project.Modules.Portfolio.Application.Abstractions.Strategies;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Goals;
 using Project.Modules.Portfolio.Infrastructure.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
+using Project.Modules.Portfolio.Infrastructure.Proposals;
 using Project.Modules.Portfolio.Infrastructure.Strategies;
 using Project.Modules.Portfolio.Infrastructure.PublicApi;
 using Project.Modules.Portfolio.Infrastructure.Outbox;
@@ -64,6 +66,11 @@ public static class PortfolioModule
         services.AddScoped<IGoalRepository, GoalRepository>();
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
         services.AddScoped<IStrategyTemplateRepository, StrategyTemplateRepository>();
+
+        services.AddScoped<IPortfolioProposalRepository, PortfolioProposalRepository>();
+
+        // Shared goal→optimizer pipeline (draft preview + proposal creation).
+        services.AddScoped<Application.Allocation.PortfolioProposalBuilder>();
 
         // Register Public API
         services.AddScoped<IPortfolioApi, PortfolioApi>();
