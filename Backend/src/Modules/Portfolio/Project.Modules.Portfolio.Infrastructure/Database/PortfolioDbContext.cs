@@ -25,6 +25,7 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
     internal DbSet<Instrument> Instruments { get; set; }
     internal DbSet<StrategyTemplate> StrategyTemplates { get; set; }
     internal DbSet<PortfolioProposal> PortfolioProposals { get; set; }
+    internal DbSet<GoalPortfolio> GoalPortfolios { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,8 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
         modelBuilder.ApplyConfiguration(new InstrumentConfiguration());
         modelBuilder.ApplyConfiguration(new StrategyTemplateConfiguration());
         modelBuilder.ApplyConfiguration(new PortfolioProposalConfiguration());
+        modelBuilder.ApplyConfiguration(new GoalPortfolioConfiguration());
+        modelBuilder.ApplyConfiguration(new PortfolioHoldingConfiguration());
 
         modelBuilder.ApplyConfiguration(new InboxMessageConfiguration());
         modelBuilder.ApplyConfiguration(new InboxMessageConsumerConfiguration());

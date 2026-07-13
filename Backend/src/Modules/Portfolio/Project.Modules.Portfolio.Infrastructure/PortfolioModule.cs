@@ -68,6 +68,7 @@ public static class PortfolioModule
         services.AddScoped<IStrategyTemplateRepository, StrategyTemplateRepository>();
 
         services.AddScoped<IPortfolioProposalRepository, PortfolioProposalRepository>();
+        services.AddScoped<IGoalPortfolioRepository, GoalPortfolioRepository>();
 
         // Shared goal→optimizer pipeline (draft preview + proposal creation).
         services.AddScoped<Application.Allocation.PortfolioProposalBuilder>();
@@ -83,6 +84,8 @@ public static class PortfolioModule
         services.ConfigureOptions<ConfigureProcessOutboxJob>();
         services.ConfigureOptions<ConfigureProcessInboxJob>();
         services.ConfigureOptions<ConfigureRefreshInstrumentStatsJob>();
+        services.ConfigureOptions<ConfigurePortfolioValuationJob>();
+        services.Configure<PortfolioValuationOptions>(configuration.GetSection("Portfolio:Valuation"));
 
         // Instrument registry refresh — typed HTTP client against the pipeline
         services.Configure<InstrumentsOptions>(configuration.GetSection("Portfolio:Instruments"));

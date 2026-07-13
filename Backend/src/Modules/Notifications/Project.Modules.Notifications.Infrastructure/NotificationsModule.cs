@@ -18,6 +18,7 @@ using Project.Modules.Notifications.Infrastructure.Database;
 using Project.Modules.Notifications.Application.Abstractions.Data;
 using Project.Modules.Users.IntegrationEvents.Users;
 using Project.Modules.Recommendations.IntegrationEvents;
+using Project.Modules.Portfolio.IntegrationEvents;
 
 namespace Project.Modules.Notifications.Infrastructure;
 
@@ -86,5 +87,7 @@ public static class NotificationsModule
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<DailyRunIngestedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<MarketCrashDetectedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<ConvictionReversalDetectedIntegrationEvent>>();
+        registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDrawdownDetectedIntegrationEvent>>();
+        registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDriftDetectedIntegrationEvent>>();
     }
 }

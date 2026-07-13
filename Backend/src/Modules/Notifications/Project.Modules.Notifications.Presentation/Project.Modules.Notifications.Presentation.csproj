@@ -10,6 +10,7 @@
     <ProjectReference Include="../../Users/Project.Modules.Users.IntegrationEvents/Project.Modules.Users.IntegrationEvents.csproj" />
     <ProjectReference Include="../../Users/Project.Modules.Users.PublicApi/Project.Modules.Users.PublicApi.csproj" />
     <ProjectReference Include="../../Portfolio/Project.Modules.Portfolio.PublicApi/Project.Modules.Portfolio.PublicApi.csproj" />
+    <ProjectReference Include="../../Portfolio/Project.Modules.Portfolio.IntegrationEvents/Project.Modules.Portfolio.IntegrationEvents.csproj" />
     <ProjectReference Include="../../Recommendations/Project.Modules.Recommendations.IntegrationEvents/Project.Modules.Recommendations.IntegrationEvents.csproj" />
     <ProjectReference Include="..\..\..\Common\Project.Common.Infrastructure\Project.Common.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Common\Project.Common.Presentation\Project.Common.Presentation.csproj" />
