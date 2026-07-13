@@ -8,6 +8,7 @@ using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
 using Project.Modules.Recommendations.Application.Abstractions.Data;
 using Project.Modules.Recommendations.Application.Abstractions.Holdings;
 using Project.Modules.Recommendations.Application.Abstractions.Llm;
+using Project.Modules.Recommendations.Application.Abstractions.Outcomes;
 using Project.Modules.Recommendations.Application.Recommendations.GetRecommendations;
 using Project.Modules.Recommendations.Domain.DailyRuns;
 using Project.Modules.Recommendations.Domain.Holdings;
@@ -23,6 +24,7 @@ public class GetRecommendationsQueryHandlerTests
 {
     private readonly IDailyRunRepository _dailyRunRepository;
     private readonly IUserHoldingRepository _holdingRepository;
+    private readonly IPredictionOutcomeRepository _outcomeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPortfolioApi _portfolioApi;
     private readonly ILlmClient _llmClient;
@@ -34,6 +36,9 @@ public class GetRecommendationsQueryHandlerTests
     {
         _dailyRunRepository = Substitute.For<IDailyRunRepository>();
         _holdingRepository = Substitute.For<IUserHoldingRepository>();
+        _outcomeRepository = Substitute.For<IPredictionOutcomeRepository>();
+        _outcomeRepository.GetSinceAsync(Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns((IReadOnlyList<OutcomeStat>)new List<OutcomeStat>());
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _portfolioApi = Substitute.For<IPortfolioApi>();
         _llmClient = Substitute.For<ILlmClient>();
@@ -46,6 +51,7 @@ public class GetRecommendationsQueryHandlerTests
         _handler = new GetRecommendationsQueryHandler(
             _dailyRunRepository,
             _holdingRepository,
+            _outcomeRepository,
             _unitOfWork,
             _portfolioApi,
             _llmClient,

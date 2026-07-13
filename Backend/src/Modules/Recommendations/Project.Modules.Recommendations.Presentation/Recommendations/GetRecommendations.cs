@@ -15,17 +15,17 @@ internal sealed class GetRecommendations : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/recommendations", async (ISender sender, ClaimsPrincipal claimsPrincipal) =>
+        app.MapGet("/api/recommendations", async (ISender sender, ClaimsPrincipal claimsPrincipal, string? lang) =>
         {
             Result<RecommendationResponse> result = await sender.Send(
-                new GetRecommendationsQuery(claimsPrincipal.GetUserId()));
+                new GetRecommendationsQuery(claimsPrincipal.GetUserId(), lang ?? "en"));
 
             return result.Match(Results.Ok, ApiResults.Problem);
         })
         .RequireAuthorization()
         .WithName(nameof(GetRecommendations))
         .WithSummary("Get personalized AI recommendations")
-        .WithDescription("Returns LLM-generated recommendations from the latest prediction run, personalized to the authenticated user's risk profile.")
+        .WithDescription("Returns LLM-generated, server-validated recommendations from the latest prediction run, personalized to the authenticated user's risk profile. Pass ?lang=ar for Arabic.")
         .Produces<RecommendationResponse>(StatusCodes.Status200OK)
         .ProducesProblem(StatusCodes.Status404NotFound)
         .ProducesProblem(StatusCodes.Status500InternalServerError)

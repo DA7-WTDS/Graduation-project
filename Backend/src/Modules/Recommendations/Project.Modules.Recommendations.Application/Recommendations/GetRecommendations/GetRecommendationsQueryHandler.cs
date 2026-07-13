@@ -8,6 +8,7 @@ using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
 using Project.Modules.Recommendations.Application.Abstractions.Data;
 using Project.Modules.Recommendations.Application.Abstractions.Holdings;
 using Project.Modules.Recommendations.Application.Abstractions.Llm;
+using Project.Modules.Recommendations.Application.Abstractions.Outcomes;
 using Project.Modules.Recommendations.Domain.DailyRuns;
 using Project.Modules.Recommendations.Domain.Holdings;
 using static Project.Modules.Recommendations.Domain.DailyRuns.RecommendationErrors;
@@ -17,6 +18,7 @@ namespace Project.Modules.Recommendations.Application.Recommendations.GetRecomme
 internal sealed class GetRecommendationsQueryHandler(
     IDailyRunRepository dailyRunRepository,
     IUserHoldingRepository holdingRepository,
+    IPredictionOutcomeRepository outcomeRepository,
     IUnitOfWork unitOfWork,
     IPortfolioApi portfolioApi,
     ILlmClient llmClient,
@@ -41,7 +43,8 @@ internal sealed class GetRecommendationsQueryHandler(
             return Result.Fail(ProfileNotFound(request.UserId));
         }
 
-        string cacheKey = $"recommendations:{request.UserId}:{run.GeneratedAt:yyyyMMddHHmmss}";
+        string language = string.Equals(request.Language, "ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+        string cacheKey = $"recommendations:{request.UserId}:{language}:{run.GeneratedAt:yyyyMMddHHmmss}";
         RecommendationResponse? cached = await cacheService.GetAsync<RecommendationResponse>(cacheKey, cancellationToken);
         if (cached is not null)
         {
@@ -53,9 +56,26 @@ internal sealed class GetRecommendationsQueryHandler(
         IReadOnlyList<UserHolding> existingHoldings = await holdingRepository.GetByUserIdAsync(request.UserId, cancellationToken);
         var priorHoldings = existingHoldings.Where(h => h.RunGeneratedAt < run.GeneratedAt).ToList();
 
-        string userPrompt = RecommendationPrompt.BuildUserPrompt(profile, run.Predictions, priorHoldings);
+        // Context pack extras (§ 3.6): goal framing + the ONLY performance
+        // figures the model may cite — our realized 90-day track record.
+        MonitoringProfileResponse? investorContext =
+            await portfolioApi.GetMonitoringProfileAsync(request.UserId, cancellationToken);
+        TrackRecordSnippet? trackRecord = null;
+        IReadOnlyList<OutcomeStat> outcomes =
+            await outcomeRepository.GetSinceAsync(DateTime.UtcNow.AddDays(-90), cancellationToken);
+        if (outcomes.Count > 0)
+        {
+            trackRecord = new TrackRecordSnippet(
+                outcomes.Count(o => o.DirectionHit) / (double)outcomes.Count,
+                outcomes.Count);
+        }
 
-        // LLMs occasionally emit malformed JSON; regenerate a few times before giving up.
+        string userPrompt = RecommendationPrompt.BuildUserPrompt(
+            profile, run.Predictions, priorHoldings, investorContext, trackRecord, language);
+
+        // Regenerate on malformed JSON OR on context-pack violations (invented
+        // tickers, broken allocations, risk-rule breaches); fail closed after
+        // MaxParseAttempts — nothing unverified reaches the user (§ 3.6).
         LlmRecommendationResult? parsed = null;
         for (int attempt = 1; attempt <= MaxParseAttempts && parsed is null; attempt++)
         {
@@ -75,6 +95,17 @@ internal sealed class GetRecommendationsQueryHandler(
             {
                 logger.LogWarning("LLM output failed to parse (attempt {Attempt}/{Max}) for user {UserId}",
                     attempt, MaxParseAttempts, request.UserId);
+                continue;
+            }
+
+            IReadOnlyList<string> violations = LlmResponseValidator.Validate(
+                parsed, run.Predictions, priorHoldings, profile.RiskProfile);
+            if (violations.Count > 0)
+            {
+                logger.LogWarning(
+                    "LLM output failed validation (attempt {Attempt}/{Max}) for user {UserId}: {Violations}",
+                    attempt, MaxParseAttempts, request.UserId, string.Join(" | ", violations));
+                parsed = null;
             }
         }
 

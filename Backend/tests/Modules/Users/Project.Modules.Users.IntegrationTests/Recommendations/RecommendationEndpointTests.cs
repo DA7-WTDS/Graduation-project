@@ -53,22 +53,41 @@ public sealed class RecommendationEndpointTests(IntegrationTestWebAppFactory fac
 
     private async Task IngestRunAsync()
     {
-        var record = new PredictionRecordDto
-        {
-            Ticker = "AAPL",
-            Direction = "UP",
-            ChangePct = 2.5,
-            Confidence = 0.9,
-            SentimentScore = 0.4,
-            Signal = "POSITIVE",
-            Agreement = "CONFIRMED",
-            RiskLevel = "LOW",
-            ConvictionScore = 0.85,
-            RiskFlags = ["signal_confirmed"],
-            Rationale = "UP +2.5% | sentiment POSITIVE | confirmed | no flags",
-        };
+        // Both tickers the FakeLlmClient recommends must exist in the run —
+        // the § 3.6 validator rejects out-of-universe picks (that's the point).
+        PredictionRecordDto[] records =
+        [
+            new()
+            {
+                Ticker = "AAPL",
+                Direction = "UP",
+                ChangePct = 2.5,
+                Confidence = 0.9,
+                SentimentScore = 0.4,
+                Signal = "POSITIVE",
+                Agreement = "CONFIRMED",
+                RiskLevel = "LOW",
+                ConvictionScore = 0.85,
+                RiskFlags = ["signal_confirmed"],
+                Rationale = "UP +2.5% | sentiment POSITIVE | confirmed | no flags",
+            },
+            new()
+            {
+                Ticker = "MSFT",
+                Direction = "UP",
+                ChangePct = 1.8,
+                Confidence = 0.85,
+                SentimentScore = 0.3,
+                Signal = "POSITIVE",
+                Agreement = "CONFIRMED",
+                RiskLevel = "LOW",
+                ConvictionScore = 0.8,
+                RiskFlags = ["signal_confirmed"],
+                Rationale = "UP +1.8% | sentiment POSITIVE | confirmed | no flags",
+            },
+        ];
 
-        var payload = new { generated_at = DateTime.UtcNow, count = 1, records = new[] { record } };
+        var payload = new { generated_at = DateTime.UtcNow, count = records.Length, records };
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/internal/daily-results")
         {

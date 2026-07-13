@@ -6,6 +6,10 @@ using Project.Modules.Recommendations.Domain.Holdings;
 
 namespace Project.Modules.Recommendations.Application.Recommendations.GetRecommendations;
 
+/// <summary>Realized-outcome figures fed to the LLM (§ 3.6): the ONLY
+/// performance numbers it is allowed to repeat.</summary>
+public sealed record TrackRecordSnippet(double HitRate90D, int SampleSize);
+
 internal static class RecommendationPrompt
 {
     /// <summary>JSON schema the native Gemini endpoint constrains the output to (guaranteed valid JSON).</summary>
@@ -51,19 +55,44 @@ internal static class RecommendationPrompt
         "7. Output ONLY a JSON object of the exact shape:\n" +
         "{\"summary\": string, \"picks\": [{\"ticker\": string, \"action\": string, \"allocation_pct\": number, \"reason\": string, \"risk_note\": string, \"fit\": string}]}\n" +
         "where action is one of BUY, SELL, HOLD and allocation_pct is a number 0-100. Keep reason and risk_note to one sentence each. " +
-        "Include in the summary that this is informational only and not financial advice, and note that allocation_pct is the suggested split of the user's stock allocation.";
+        "Include in the summary that this is informational only and not financial advice, and note that allocation_pct is the suggested split of the user's stock allocation.\n" +
+        "8. If the user message includes OUR REAL TRACK RECORD, you may cite those exact figures in the summary — never any other performance number.\n" +
+        "9. Write summary, reason, risk_note and fit in the language given under LANGUAGE (English or Arabic). " +
+        "For Arabic use clear Modern Standard Arabic with a calm, non-promotional tone; keep tickers, JSON keys and the action values in English.";
 
     public static string BuildUserPrompt(
         PortfolioResponse profile,
         IReadOnlyCollection<StockPrediction> predictions,
-        IReadOnlyCollection<UserHolding> holdings)
+        IReadOnlyCollection<UserHolding> holdings,
+        MonitoringProfileResponse? investorContext = null,
+        TrackRecordSnippet? trackRecord = null,
+        string language = "en")
     {
         var sb = new StringBuilder();
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"LANGUAGE: {(string.Equals(language, "ar", StringComparison.OrdinalIgnoreCase) ? "Arabic" : "English")}");
+        sb.AppendLine();
         sb.AppendLine("USER RISK PROFILE:");
         sb.AppendLine(CultureInfo.InvariantCulture, $"- Risk profile: {profile.RiskProfile}");
         sb.AppendLine(CultureInfo.InvariantCulture,
             $"- Target allocation: stocks {profile.StocksPercentage}%, bonds {profile.BondsPercentage}%, ETFs {profile.EtfsPercentage}%, cash {profile.CashPercentage}%");
+        if (investorContext?.GoalType is not null)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"- Investment goal: {investorContext.GoalType}");
+        }
+        if (investorContext?.Engagement is not null)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"- Engagement preference: {investorContext.Engagement}");
+        }
         sb.AppendLine();
+
+        if (trackRecord is not null && trackRecord.SampleSize > 0)
+        {
+            sb.AppendLine("OUR REAL TRACK RECORD (realized outcomes, honest figures — the only performance numbers you may cite):");
+            sb.AppendLine(CultureInfo.InvariantCulture,
+                $"- Last 90 days: direction hit rate {trackRecord.HitRate90D:P1} across {trackRecord.SampleSize} scored predictions.");
+            sb.AppendLine();
+        }
 
         if (holdings.Count == 0)
         {
