@@ -346,6 +346,70 @@
     color: var(--qw-text-faint);
 }
 
+/* track record */
+.plan-track {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.plan-track-window {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--qw-text-faint);
+}
+
+.plan-track-buckets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+}
+
+.plan-track-bucket {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px var(--space-md);
+    background: var(--qw-panel-2);
+    border-radius: var(--radius-md);
+}
+
+.plan-track-risk {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--qw-text-faint);
+}
+
+.plan-track-figs {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--qw-text-dim);
+}
+
+.plan-track-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--qw-text-faint);
+}
+
+.plan-track-note svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--qw-amber);
+}
+
+@media (max-width: 720px) {
+    .plan-track-buckets {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* status badges */
 .plan-badge {
     font-family: var(--font-mono);

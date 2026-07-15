@@ -5,9 +5,11 @@ import { Sparkles, Check, ShieldAlert, TrendingUp } from 'lucide-react'
 import { useGoals } from '@/features/goals/useGoals'
 import { useProposals, useCreateProposal, useAcceptProposal } from '@/features/goals/useProposals'
 import { useGoalPortfolio } from '@/features/goals/useGoalPortfolio'
+import { useTrackRecord } from '@/features/goals/useTrackRecord'
 import { Card, Button, StatTile, LoadingState, ErrorState, EmptyState, useToast } from '@/shared/ui'
 import { staggerContainer, fadeInUp } from '@/shared/motion/variants'
 import { PortfolioCard } from './PortfolioCard'
+import { TrackRecordCard } from './TrackRecordCard'
 import './Plan.css'
 
 const GOAL_LABELS = {
@@ -36,6 +38,7 @@ const Plan = () => {
 
     const { data: proposals } = useProposals(goalId)
     const { data: livePortfolio } = useGoalPortfolio(goalId)
+    const { data: trackRecord } = useTrackRecord()
     const createProposal = useCreateProposal(goalId)
     const acceptProposal = useAcceptProposal(goalId)
 
@@ -146,6 +149,13 @@ const Plan = () => {
                         )}
                     </Card>
                 </motion.div>
+
+                {/* Our realized track record — shown unedited, good or bad */}
+                {trackRecord && (
+                    <motion.div variants={fadeInUp}>
+                        <TrackRecordCard trackRecord={trackRecord} />
+                    </motion.div>
+                )}
 
                 {/* History */}
                 {proposals && proposals.length > 0 && (
