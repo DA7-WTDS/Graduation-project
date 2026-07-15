@@ -41,18 +41,37 @@ public abstract class BaseIntegrationTest(IntegrationTestWebAppFactory factory) 
     protected void Authorize(string token) =>
         Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-    protected static object SamplePortfolioBody(int stocks = 60, string riskProfile = "Moderate", decimal investment = 10000m) => new
+    /// <summary>Raw questionnaire answers — the only way to onboard now that the
+    /// legacy portfolio row is gone (§ 4.7). Defaults score to an Aggressive
+    /// long-term-wealth profile; override to shift the band.</summary>
+    protected static object SampleQuestionnaireBody(
+        string goalType = "long_term_wealth",
+        string engagement = "monthly",
+        string marketReaction = "buy_more",
+        string experience = "experienced",
+        decimal investment = 10000m) => new
+        {
+            goalId = (Guid?)null,
+            goalType,
+            horizonYears = 10,
+            investmentAmount = investment,
+            monthlyContribution = 0m,
+            hasEmergencyFund = true,
+            incomeStability = "stable",
+            savingsShare = "less_than_ten_percent",
+            marketReaction,
+            experience,
+            engagement,
+            usdComfort = "comfortable",
+            affordLossConfirmed = false,
+        };
+
+    /// <summary>Completes onboarding for the currently authorized user.</summary>
+    protected async Task<Guid> OnboardAsync(object? body = null)
     {
-        primaryGoal = "wealth",
-        timeHorizon = "long",
-        riskTolerance = 5,
-        marketReaction = "hold",
-        investmentExperience = "intermediate",
-        stocksPercentage = stocks,
-        bondsPercentage = 20,
-        etfsPercentage = 100 - stocks - 20 - 5,
-        cashPercentage = 5,
-        riskProfile,
-        investmentAmount = investment,
-    };
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/goals/questionnaire", body ?? SampleQuestionnaireBody());
+        response.EnsureSuccessStatusCode();
+        JsonElement created = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return created.GetProperty("goalId").GetGuid();
+    }
 }

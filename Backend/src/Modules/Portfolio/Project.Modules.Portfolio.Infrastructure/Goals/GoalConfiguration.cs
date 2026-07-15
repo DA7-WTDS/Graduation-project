@@ -19,6 +19,7 @@ internal sealed class GoalConfiguration : IEntityTypeConfiguration<Goal>
             .IsRequired();
 
         builder.Property(g => g.HorizonYears).IsRequired();
+        builder.Property(g => g.InvestmentAmount).HasPrecision(18, 2).IsRequired();
         builder.Property(g => g.CreatedAt).IsRequired();
         builder.Property(g => g.UpdatedAt).IsRequired(false);
     }

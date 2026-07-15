@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/shared/api/client'
 import { SignalPill, ConvictionBar, Skeleton, ErrorState, EmptyState } from '@/shared/ui'
-import { usePortfolio } from '@/features/portfolio/usePortfolio'
+import { useActiveGoal } from '@/features/goals/useActiveGoal'
 import { useRecommendations } from './useRecommendations'
 import './RecommendationsPanel.css'
 
@@ -11,15 +11,15 @@ const fmtUSD = (n: number) =>
 /**
  * The product: live LLM recommendations rendered as dense, signal-coded rows.
  * Each row: [ticker · BUY/SELL/HOLD pill · allocation bar · alloc%] + reason / risk / fit.
- * The user's investment amount (from their portfolio profile) turns each
- * allocation % into a dollar figure.
+ * The user's investment amount (from their goal) turns each allocation % into a
+ * dollar figure.
  */
 export function RecommendationsPanel() {
     const { data, isLoading, isError, error, refetch } = useRecommendations()
-    const { data: portfolio } = usePortfolio()
+    const { investmentAmount } = useActiveGoal()
     const noRun = error instanceof ApiError && error.status === 404
 
-    const investAmount = Math.max(0, portfolio?.investmentAmount ?? 0)
+    const investAmount = Math.max(0, investmentAmount)
 
     return (
         <div className="recs">

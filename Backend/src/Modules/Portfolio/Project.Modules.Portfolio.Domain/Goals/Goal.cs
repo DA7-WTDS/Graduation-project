@@ -15,10 +15,16 @@ public sealed class Goal : Entity
     public Guid UserId { get; private set; }
     public GoalType Type { get; private set; }
     public int HorizonYears { get; private set; }
+
+    /// <summary>The capital earmarked for this goal — what the optimizer sizes
+    /// positions against. Lives here (not in the answers blob) because it is a
+    /// queryable fact about the goal, not just a questionnaire response.</summary>
+    public decimal InvestmentAmount { get; private set; }
+
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    public static Goal Create(Guid userId, GoalType type, int horizonYears)
+    public static Goal Create(Guid userId, GoalType type, int horizonYears, decimal investmentAmount)
     {
         return new Goal
         {
@@ -26,16 +32,18 @@ public sealed class Goal : Entity
             UserId = userId,
             Type = type,
             HorizonYears = horizonYears,
+            InvestmentAmount = investmentAmount,
             CreatedAt = DateTime.UtcNow
         };
     }
 
     /// <summary>Retaking the questionnaire may change the goal's framing; the goal
     /// row is updated but responses/profiles are never mutated (append-only).</summary>
-    public void Redefine(GoalType type, int horizonYears)
+    public void Redefine(GoalType type, int horizonYears, decimal investmentAmount)
     {
         Type = type;
         HorizonYears = horizonYears;
+        InvestmentAmount = investmentAmount;
         UpdatedAt = DateTime.UtcNow;
     }
 }

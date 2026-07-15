@@ -69,8 +69,8 @@ public class GeminiLiveEvalTests(ITestOutputHelper output)
         StockPrediction.Create("XOM", "DOWN", -1.2, 0.7, -0.1, "NEUTRAL", null, null, null, null, "NEUTRAL", "MEDIUM", 0.5, [], "weak"),
     ];
 
-    private static PortfolioResponse Profile(string risk) =>
-        new(Guid.NewGuid(), Guid.NewGuid(), risk, 60, 20, 15, 5);
+    private static MonitoringProfileResponse Profile(string risk) =>
+        new(Guid.NewGuid(), risk, "LongTermWealth", "Monthly");
 
     private static async Task<string> CallGeminiAsync(string key, string userPrompt)
     {
@@ -102,7 +102,6 @@ public class GeminiLiveEvalTests(ITestOutputHelper output)
     {
         string prompt = RecommendationPrompt.BuildUserPrompt(
             Profile(risk), GoldenCandidates, [],
-            new MonitoringProfileResponse(Guid.NewGuid(), risk, "LongTermWealth", "Monthly"),
             new TrackRecordSnippet(0.483, 201),
             language);
 

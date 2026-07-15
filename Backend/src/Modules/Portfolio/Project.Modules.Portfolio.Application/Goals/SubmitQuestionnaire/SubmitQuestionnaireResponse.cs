@@ -12,8 +12,4 @@ public sealed record SubmitQuestionnaireResponse(
     bool SpeculativeUnlocked,
     string Engagement,
     string UsdComfort,
-    Guid PortfolioId,
-    int StocksPercentage,
-    int BondsPercentage,
-    int EtfsPercentage,
-    int CashPercentage);
+    decimal InvestmentAmount);

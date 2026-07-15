@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { fetchMyPortfolio } from '@/features/portfolio/portfolioApi'
-import { ApiError } from '@/shared/api/client'
+import { fetchGoals } from '@/features/goals/goalsApi'
 import './Auth.css'
 
 const Login = () => {
@@ -42,18 +41,14 @@ const Login = () => {
                 localStorage.removeItem('qw_remember_email')
             }
 
-            // Route by whether the user has a portfolio. Only a real 404
-            // ("no portfolio yet") sends them to onboarding; any other error
-            // shouldn't misroute an existing user, so fall through to dashboard.
+            // Route by whether the user has a scored goal. Only a definitive
+            // "no goal yet" sends them to onboarding; a failed lookup shouldn't
+            // misroute an existing user, so fall through to the dashboard.
             try {
-                await fetchMyPortfolio()
+                const goals = await fetchGoals()
+                navigate(goals.some((g) => g.profile) ? '/dashboard' : '/onboarding')
+            } catch {
                 navigate('/dashboard')
-            } catch (portfolioErr) {
-                if (portfolioErr instanceof ApiError && portfolioErr.status === 404) {
-                    navigate('/onboarding')
-                } else {
-                    navigate('/dashboard')
-                }
             }
         } catch (err) {
             console.error('Login error:', err)

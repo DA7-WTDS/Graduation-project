@@ -61,10 +61,9 @@ internal static class RecommendationPrompt
         "For Arabic use clear Modern Standard Arabic with a calm, non-promotional tone; keep tickers, JSON keys and the action values in English.";
 
     public static string BuildUserPrompt(
-        PortfolioResponse profile,
+        MonitoringProfileResponse profile,
         IReadOnlyCollection<StockPrediction> predictions,
         IReadOnlyCollection<UserHolding> holdings,
-        MonitoringProfileResponse? investorContext = null,
         TrackRecordSnippet? trackRecord = null,
         string language = "en")
     {
@@ -74,16 +73,8 @@ internal static class RecommendationPrompt
         sb.AppendLine();
         sb.AppendLine("USER RISK PROFILE:");
         sb.AppendLine(CultureInfo.InvariantCulture, $"- Risk profile: {profile.RiskProfile}");
-        sb.AppendLine(CultureInfo.InvariantCulture,
-            $"- Target allocation: stocks {profile.StocksPercentage}%, bonds {profile.BondsPercentage}%, ETFs {profile.EtfsPercentage}%, cash {profile.CashPercentage}%");
-        if (investorContext?.GoalType is not null)
-        {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"- Investment goal: {investorContext.GoalType}");
-        }
-        if (investorContext?.Engagement is not null)
-        {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"- Engagement preference: {investorContext.Engagement}");
-        }
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- Investment goal: {profile.GoalType}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"- Engagement preference: {profile.Engagement}");
         sb.AppendLine();
 
         if (trackRecord is not null && trackRecord.SampleSize > 0)

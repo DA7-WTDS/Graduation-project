@@ -1,13 +1,17 @@
 namespace Project.Modules.Portfolio.PublicApi;
 
+/// <summary>
+/// What other modules may know about a user's investing profile. Everything here
+/// is derived from the goal + versioned investor profile (Phase 2) — the legacy
+/// single-portfolio row is gone.
+/// </summary>
 public interface IPortfolioApi
 {
-    Task<PortfolioResponse?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-
-    /// <summary>Every user who has completed onboarding (has a portfolio). Used to fan out daily notifications.</summary>
-    Task<IReadOnlyList<PortfolioResponse>> GetAllAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>Monitoring context for one user (§ 3.5): risk band + goal type +
-    /// engagement from the latest investor profile. Null when the user has no portfolio.</summary>
+    /// <summary>Risk band + goal framing + engagement for one user, or null if
+    /// they have not completed the questionnaire.</summary>
     Task<MonitoringProfileResponse?> GetMonitoringProfileAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Every user who has completed onboarding (has a scored profile).
+    /// Used to fan out daily/market-wide notifications.</summary>
+    Task<IReadOnlyList<Guid>> GetProfiledUserIdsAsync(CancellationToken cancellationToken = default);
 }

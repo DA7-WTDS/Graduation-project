@@ -3,16 +3,13 @@ using FluentResults;
 using Project.Common.Application.Messaging;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Goals;
-using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Domain.Goals;
-using Project.Modules.Portfolio.Domain.Portfolios;
 using static Project.Modules.Portfolio.Domain.Goals.GoalErrors;
 
 namespace Project.Modules.Portfolio.Application.Goals.SubmitQuestionnaire;
 
 internal sealed class SubmitQuestionnaireCommandHandler(
     IGoalRepository goalRepository,
-    IPortfolioRepository portfolioRepository,
     IUnitOfWork unitOfWork)
     : ICommandHandler<SubmitQuestionnaireCommand, SubmitQuestionnaireResponse>
 {
@@ -35,7 +32,7 @@ internal sealed class SubmitQuestionnaireCommandHandler(
 
         // First submission creates the goal; a retake redefines it and appends
         // a new response + profile version. Nothing is ever overwritten.
-        Goal? goal = null;
+        Goal? goal;
         if (request.GoalId is Guid goalId)
         {
             goal = await goalRepository.GetByIdAsync(goalId, cancellationToken);
@@ -49,11 +46,11 @@ internal sealed class SubmitQuestionnaireCommandHandler(
                 return Result.Fail(UnauthorizedAccess);
             }
 
-            goal.Redefine(answers.GoalType, answers.HorizonYears);
+            goal.Redefine(answers.GoalType, answers.HorizonYears, answers.InvestmentAmount);
         }
         else
         {
-            goal = Goal.Create(request.UserId, answers.GoalType, answers.HorizonYears);
+            goal = Goal.Create(request.UserId, answers.GoalType, answers.HorizonYears, answers.InvestmentAmount);
             await goalRepository.AddGoalAsync(goal, cancellationToken);
         }
 
@@ -76,13 +73,6 @@ internal sealed class SubmitQuestionnaireCommandHandler(
             RiskScoring.Version);
         await goalRepository.AddProfileAsync(profile, cancellationToken);
 
-        // Legacy bridge: until the Phase 3 optimizer builds portfolios from
-        // templates, derive the coarse allocation the dashboard and the
-        // recommendation engine already consume — server-side now, not in React.
-        (int stocks, int bonds, int etfs, int cash) = AllocationFor(score.RiskBand);
-        Domain.Portfolios.Portfolio portfolio = await UpsertLegacyPortfolioAsync(
-            request, answers, score, stocks, bonds, etfs, cash, cancellationToken);
-
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Ok(new SubmitQuestionnaireResponse(
@@ -97,8 +87,7 @@ internal sealed class SubmitQuestionnaireCommandHandler(
             score.SpeculativeUnlocked,
             answers.Engagement.ToString(),
             answers.UsdComfort.ToString(),
-            portfolio.Id,
-            stocks, bonds, etfs, cash));
+            answers.InvestmentAmount));
     }
 
     private static Result<QuestionnaireAnswers> ParseAnswers(SubmitQuestionnaireCommand r)
@@ -173,56 +162,4 @@ internal sealed class SubmitQuestionnaireCommandHandler(
 
     private static string Allowed<TEnum>() where TEnum : struct, Enum =>
         string.Join(", ", Enum.GetNames<TEnum>());
-
-    private static (int Stocks, int Bonds, int Etfs, int Cash) AllocationFor(RiskProfile band) => band switch
-    {
-        RiskProfile.Aggressive => (60, 20, 15, 5),
-        RiskProfile.Moderate => (40, 35, 20, 5),
-        _ => (20, 50, 25, 5)
-    };
-
-    private async Task<Domain.Portfolios.Portfolio> UpsertLegacyPortfolioAsync(
-        SubmitQuestionnaireCommand request,
-        QuestionnaireAnswers answers,
-        RiskScore score,
-        int stocks, int bonds, int etfs, int cash,
-        CancellationToken cancellationToken)
-    {
-        string timeHorizon = answers.HorizonYears switch
-        {
-            < 1 => "short",
-            <= 2 => "medium",
-            _ => "long"
-        };
-
-        Domain.Portfolios.Portfolio? existing =
-            await portfolioRepository.GetByUserIdAsync(request.UserId, cancellationToken);
-
-        if (existing is not null)
-        {
-            existing.Update(
-                answers.GoalType.ToString(),
-                timeHorizon,
-                score.EffectiveRisk,
-                answers.MarketReaction.ToString(),
-                answers.Experience.ToString(),
-                stocks, bonds, etfs, cash,
-                score.RiskBand,
-                answers.InvestmentAmount);
-            return existing;
-        }
-
-        var portfolio = Domain.Portfolios.Portfolio.Create(
-            request.UserId,
-            answers.GoalType.ToString(),
-            timeHorizon,
-            score.EffectiveRisk,
-            answers.MarketReaction.ToString(),
-            answers.Experience.ToString(),
-            stocks, bonds, etfs, cash,
-            score.RiskBand,
-            answers.InvestmentAmount);
-        await portfolioRepository.AddAsync(portfolio, cancellationToken);
-        return portfolio;
-    }
 }

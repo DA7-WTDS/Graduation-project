@@ -24,27 +24,31 @@ public sealed class MarketCrashDetectedIntegrationEventHandler(
 {
     public override async Task Handle(MarketCrashDetectedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<PortfolioResponse> portfolios = await portfolioApi.GetAllAsync(cancellationToken);
-        if (portfolios.Count == 0)
+        IReadOnlyList<Guid> userIds = await portfolioApi.GetProfiledUserIdsAsync(cancellationToken);
+        if (userIds.Count == 0)
         {
-            logger.LogInformation("MarketCrash {Index}: no portfolios to notify.", integrationEvent.IndexTicker);
+            logger.LogInformation("MarketCrash {Index}: no profiled users to notify.", integrationEvent.IndexTicker);
             return;
         }
 
         string drop = integrationEvent.DropPct.ToString("P1");
         int notified = 0;
 
-        foreach (PortfolioResponse portfolio in portfolios)
+        foreach (Guid userId in userIds)
         {
             try
             {
                 MonitoringProfileResponse? profile =
-                    await portfolioApi.GetMonitoringProfileAsync(portfolio.UserId, cancellationToken);
+                    await portfolioApi.GetMonitoringProfileAsync(userId, cancellationToken);
+                if (profile is null)
+                {
+                    continue;
+                }
 
                 bool holdGuidance =
-                    string.Equals(profile?.GoalType, "Retirement", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(profile?.Engagement, "SetAndForget", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(portfolio.RiskProfile, "Conservative", StringComparison.OrdinalIgnoreCase);
+                    string.Equals(profile.GoalType, "Retirement", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(profile.Engagement, "SetAndForget", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(profile.RiskProfile, "Conservative", StringComparison.OrdinalIgnoreCase);
 
                 string message = holdGuidance
                     ? $"The market fell {drop} over the last {integrationEvent.WindowDays} trading days. " +
@@ -55,7 +59,7 @@ public sealed class MarketCrashDetectedIntegrationEventHandler(
                       "your risk limits are enforced automatically, and dips can surface tactical opportunities.";
 
                 Result<Guid> result = await sender.Send(new CreateNotificationCommand(
-                    portfolio.UserId,
+                    userId,
                     $"Market alert: {drop} in {integrationEvent.WindowDays} days",
                     message,
                     NotificationType.Warning), cancellationToken);
@@ -67,16 +71,16 @@ public sealed class MarketCrashDetectedIntegrationEventHandler(
                 else
                 {
                     logger.LogError("MarketCrash: failed to notify user {UserId}: {Error}",
-                        portfolio.UserId, result.Errors[0].Message);
+                        userId, result.Errors[0].Message);
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "MarketCrash: exception notifying user {UserId}", portfolio.UserId);
+                logger.LogError(ex, "MarketCrash: exception notifying user {UserId}", userId);
             }
         }
 
         logger.LogInformation("MarketCrash {Index} {Drop}: notified {Count}/{Total} users.",
-            integrationEvent.IndexTicker, drop, notified, portfolios.Count);
+            integrationEvent.IndexTicker, drop, notified, userIds.Count);
     }
 }

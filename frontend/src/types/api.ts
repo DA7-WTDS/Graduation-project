@@ -23,25 +23,6 @@ export interface RecommendationResponse {
     generated_at: string
 }
 
-/** GET /api/portfolios/me */
-export interface Portfolio {
-    id: string
-    userId: string
-    primaryGoal: string
-    timeHorizon: string
-    riskTolerance: number
-    marketReaction: string
-    investmentExperience: string
-    stocksPercentage: number
-    bondsPercentage: number
-    etfsPercentage: number
-    cashPercentage: number
-    riskProfile: RiskProfile
-    investmentAmount: number
-    createdAt: string
-    updatedAt?: string | null
-}
-
 /** GET /api/users/profile */
 export interface UserProfile {
     id: string

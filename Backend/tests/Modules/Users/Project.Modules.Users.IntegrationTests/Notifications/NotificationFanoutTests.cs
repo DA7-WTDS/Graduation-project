@@ -10,7 +10,7 @@ using Project.Modules.Users.IntegrationTests.Infrastructure;
 
 namespace Project.Modules.Users.IntegrationTests.Notifications;
 
-// Covers FR-18: when a daily run is ingested, every user with a portfolio gets a
+// Covers FR-18: when a daily run is ingested, every onboarded user gets a
 // personalised "new recommendations are ready" notification. The integration event is
 // consumed into the inbox and the fan-out runs from a background job, so this test drives
 // the real fan-out handler directly against the containerised database (cross-module:
@@ -18,16 +18,16 @@ namespace Project.Modules.Users.IntegrationTests.Notifications;
 public sealed class NotificationFanoutTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
-    public async Task A_daily_run_fans_out_one_notification_per_user_with_a_portfolio()
+    public async Task A_daily_run_fans_out_one_notification_per_onboarded_user()
     {
-        // Two users, each with a portfolio.
+        // Two users, each with a scored goal.
         (_, string tokenA) = await RegisterAndLoginAsync("fan-a@quantwise.test");
         Authorize(tokenA);
-        (await Client.PostAsJsonAsync("/api/portfolios", SamplePortfolioBody())).EnsureSuccessStatusCode();
+        await OnboardAsync();
 
         (_, string tokenB) = await RegisterAndLoginAsync("fan-b@quantwise.test");
         Authorize(tokenB);
-        (await Client.PostAsJsonAsync("/api/portfolios", SamplePortfolioBody())).EnsureSuccessStatusCode();
+        await OnboardAsync();
 
         // Run the real fan-out handler for an ingested daily run.
         using (IServiceScope scope = Factory.Services.CreateScope())
@@ -39,7 +39,7 @@ public sealed class NotificationFanoutTests(IntegrationTestWebAppFactory factory
             await handler.Handle(@event, CancellationToken.None);
         }
 
-        // One notification per portfolio was persisted.
+        // One notification per onboarded user was persisted.
         using (IServiceScope scope = Factory.Services.CreateScope())
         {
             NotificationsDbContext db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();

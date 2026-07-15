@@ -90,8 +90,8 @@ public class GetRecommendationsQueryHandlerTests
         _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
             .Returns(run);
 
-        _portfolioApi.GetByUserIdAsync(query.UserId, Arg.Any<CancellationToken>())
-            .Returns((PortfolioResponse)null);
+        _portfolioApi.GetMonitoringProfileAsync(query.UserId, Arg.Any<CancellationToken>())
+            .Returns((MonitoringProfileResponse)null);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -115,8 +115,8 @@ public class GetRecommendationsQueryHandlerTests
         _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
             .Returns(run);
 
-        var portfolio = new PortfolioResponse(Guid.NewGuid(), query.UserId, "Aggressive", 80, 10, 5, 5);
-        _portfolioApi.GetByUserIdAsync(query.UserId, Arg.Any<CancellationToken>())
+        var portfolio = new MonitoringProfileResponse(query.UserId, "Aggressive", "LongTermWealth", "Monthly");
+        _portfolioApi.GetMonitoringProfileAsync(query.UserId, Arg.Any<CancellationToken>())
             .Returns(portfolio);
 
         var cachedResponse = new RecommendationResponse("Summary", new List<RecommendationItem>(), DateTime.UtcNow);
@@ -147,8 +147,8 @@ public class GetRecommendationsQueryHandlerTests
         _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
             .Returns(run);
 
-        var portfolio = new PortfolioResponse(Guid.NewGuid(), query.UserId, "Aggressive", 80, 10, 5, 5);
-        _portfolioApi.GetByUserIdAsync(query.UserId, Arg.Any<CancellationToken>())
+        var portfolio = new MonitoringProfileResponse(query.UserId, "Aggressive", "LongTermWealth", "Monthly");
+        _portfolioApi.GetMonitoringProfileAsync(query.UserId, Arg.Any<CancellationToken>())
             .Returns(portfolio);
 
         _cacheService.GetAsync<RecommendationResponse>(Arg.Any<string>(), Arg.Any<CancellationToken>())

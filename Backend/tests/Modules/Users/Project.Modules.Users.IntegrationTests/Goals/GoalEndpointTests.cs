@@ -9,8 +9,7 @@ using Project.Modules.Users.IntegrationTests.Infrastructure;
 namespace Project.Modules.Users.IntegrationTests.Goals;
 
 // Phase 2 questionnaire flow: raw answers in, versioned server-scored profile out.
-// Answers and profiles are append-only (the suitability record); the legacy
-// portfolio row is bridged server-side so the dashboard keeps working.
+// Answers and profiles are append-only — this is the FRA suitability record.
 public sealed class GoalEndpointTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     private static object QuestionnaireBody(
@@ -50,7 +49,8 @@ public sealed class GoalEndpointTests(IntegrationTestWebAppFactory factory) : Ba
         body.GetProperty("riskBand").GetString().Should().Be("Aggressive");
         body.GetProperty("effectiveRisk").GetInt32().Should().Be(100);
         body.GetProperty("speculativeUnlocked").GetBoolean().Should().BeFalse();
-        body.GetProperty("stocksPercentage").GetInt32().Should().Be(60);
+        // The amount is a fact about the goal now — the optimizer sizes against it.
+        body.GetProperty("investmentAmount").GetDecimal().Should().Be(10000m);
     }
 
     [Fact]
@@ -88,15 +88,16 @@ public sealed class GoalEndpointTests(IntegrationTestWebAppFactory factory) : Ba
         body.GetProperty("profileVersion").GetInt32().Should().Be(2);
         body.GetProperty("riskBand").GetString().Should().Be("Conservative");
 
-        // Append-only storage: both responses and both profile versions survive.
+        // Append-only storage: both responses and both profile versions survive,
+        // and the retake updates the single goal in place rather than forking it.
         using IServiceScope scope = Factory.Services.CreateScope();
         PortfolioDbContext db = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>();
         db.Set<Project.Modules.Portfolio.Domain.Goals.QuestionnaireResponse>()
             .Count(q => q.GoalId == goalId).Should().Be(2);
         db.Set<Project.Modules.Portfolio.Domain.Goals.InvestorProfile>()
             .Count(p => p.GoalId == goalId).Should().Be(2);
-        db.Set<Project.Modules.Portfolio.Domain.Portfolios.Portfolio>()
-            .Count().Should().Be(1);
+        db.Set<Project.Modules.Portfolio.Domain.Goals.Goal>()
+            .Count(g => g.Id == goalId).Should().Be(1);
     }
 
     [Fact]

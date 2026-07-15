@@ -55,6 +55,7 @@ export interface Goal {
     id: string
     type: string
     horizonYears: number
+    investmentAmount: number
     createdAt: string
     updatedAt: string | null
     profile: GoalProfile | null

@@ -17,6 +17,7 @@ public sealed record GoalResponse(
     Guid Id,
     string Type,
     int HorizonYears,
+    decimal InvestmentAmount,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     GoalProfileResponse? Profile);

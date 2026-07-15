@@ -1,7 +1,14 @@
-import { usePortfolio } from '@/features/portfolio/usePortfolio'
+import { useActiveGoal } from '@/features/goals/useActiveGoal'
 import { LoadingState, EmptyState } from '@/shared/ui'
 import { useRecommendations } from './useRecommendations'
 import './TargetMix.css'
+
+const GOAL_LABELS: Record<string, string> = {
+    Retirement: 'Retirement',
+    LongTermWealth: 'Long-term wealth',
+    MediumTermGoal: 'Medium-term goal',
+    SpeculationLearning: 'Speculation & learning',
+}
 
 const fmtUSD = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
@@ -15,10 +22,10 @@ const MIX_PALETTE = ['var(--qw-amber)', '#FFC23A', 'var(--qw-amber-dim)', '#C989
  * stored investment amount. Shared by the Dashboard and Portfolios pages.
  */
 export function TargetMix() {
-    const { data: portfolio } = usePortfolio()
+    const { goal, investmentAmount } = useActiveGoal()
     const recs = useRecommendations()
 
-    const investAmount = Math.max(0, portfolio?.investmentAmount ?? 0)
+    const investAmount = Math.max(0, investmentAmount)
 
     const holdings = (() => {
         const buys = (recs.data?.picks ?? [])
@@ -37,8 +44,8 @@ export function TargetMix() {
                 <span className="qw-mix-sub">
                     {investAmount > 0
                         ? `Investing ${fmtUSD(investAmount)}`
-                        : portfolio
-                            ? `${portfolio.primaryGoal} · ${portfolio.timeHorizon}`
+                        : goal
+                            ? `${GOAL_LABELS[goal.type] ?? goal.type} · ${goal.horizonYears}y`
                             : ''}
                 </span>
             </div>

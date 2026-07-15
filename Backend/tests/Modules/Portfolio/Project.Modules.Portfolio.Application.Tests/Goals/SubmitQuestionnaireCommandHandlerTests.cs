@@ -2,27 +2,24 @@ using FluentAssertions;
 using NSubstitute;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Application.Abstractions.Goals;
-using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Application.Goals.SubmitQuestionnaire;
 using Project.Modules.Portfolio.Domain.Goals;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using PortfolioEntity = Project.Modules.Portfolio.Domain.Portfolios.Portfolio;
 
 namespace Project.Modules.Portfolio.Application.Tests.Goals;
 
 public class SubmitQuestionnaireCommandHandlerTests
 {
     private readonly IGoalRepository _goalRepository = Substitute.For<IGoalRepository>();
-    private readonly IPortfolioRepository _portfolioRepository = Substitute.For<IPortfolioRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly SubmitQuestionnaireCommandHandler _handler;
 
     public SubmitQuestionnaireCommandHandlerTests()
     {
-        _handler = new SubmitQuestionnaireCommandHandler(_goalRepository, _portfolioRepository, _unitOfWork);
+        _handler = new SubmitQuestionnaireCommandHandler(_goalRepository, _unitOfWork);
     }
 
     private static SubmitQuestionnaireCommand Command(
@@ -69,34 +66,23 @@ public class SubmitQuestionnaireCommandHandlerTests
     }
 
     [Fact]
-    public async Task Submission_bridges_a_legacy_portfolio_with_server_derived_allocation()
+    public async Task The_amount_is_stored_on_the_goal_for_the_optimizer_to_size_against()
     {
         var userId = Guid.NewGuid();
-        _portfolioRepository.GetByUserIdAsync(userId, Arg.Any<CancellationToken>())
-            .Returns((PortfolioEntity?)null);
 
         var result = await _handler.Handle(Command(userId), CancellationToken.None);
 
-        // Aggressive band → the same coarse split the old client-side calc produced.
-        result.Value.StocksPercentage.Should().Be(60);
-        result.Value.BondsPercentage.Should().Be(20);
-        result.Value.EtfsPercentage.Should().Be(15);
-        result.Value.CashPercentage.Should().Be(5);
-
-        await _portfolioRepository.Received(1).AddAsync(
-            Arg.Is<PortfolioEntity>(p =>
-                p.UserId == userId
-                && p.StocksPercentage == 60
-                && p.RiskProfile == Project.Modules.Portfolio.Domain.Portfolios.RiskProfile.Aggressive
-                && p.InvestmentAmount == 10000m),
+        result.Value.InvestmentAmount.Should().Be(10000m);
+        await _goalRepository.Received(1).AddGoalAsync(
+            Arg.Is<Goal>(g => g.InvestmentAmount == 10000m),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Retake_appends_the_next_profile_version_and_updates_the_existing_portfolio()
+    public async Task Retake_appends_the_next_profile_version_and_redefines_the_goal_in_place()
     {
         var userId = Guid.NewGuid();
-        Goal goal = Goal.Create(userId, GoalType.Retirement, 10);
+        Goal goal = Goal.Create(userId, GoalType.Retirement, 10, 5000m);
         _goalRepository.GetByIdAsync(goal.Id, Arg.Any<CancellationToken>()).Returns(goal);
 
         var previousProfile = InvestorProfile.Create(
@@ -105,30 +91,22 @@ public class SubmitQuestionnaireCommandHandlerTests
             EngagementLevel.Monthly, UsdComfort.Neutral, RiskScoring.Version);
         _goalRepository.GetLatestProfileAsync(goal.Id, Arg.Any<CancellationToken>()).Returns(previousProfile);
 
-        PortfolioEntity existingPortfolio = PortfolioEntity.Create(
-            userId, "Retirement", "long", 50, "HoldSteady", "Beginner",
-            40, 35, 20, 5, Project.Modules.Portfolio.Domain.Portfolios.RiskProfile.Moderate, 5000m);
-        _portfolioRepository.GetByUserIdAsync(userId, Arg.Any<CancellationToken>())
-            .Returns(existingPortfolio);
-
         var result = await _handler.Handle(
             Command(userId, goalId: goal.Id, goalType: "long_term_wealth"), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.ProfileVersion.Should().Be(3);
-        goal.Type.Should().Be(GoalType.LongTermWealth);
 
-        // Existing portfolio row mutated in place — never a second row per user.
-        await _portfolioRepository.DidNotReceive().AddAsync(
-            Arg.Any<PortfolioEntity>(), Arg.Any<CancellationToken>());
-        existingPortfolio.StocksPercentage.Should().Be(60);
-        existingPortfolio.InvestmentAmount.Should().Be(10000m);
+        // The goal is redefined in place — never forked into a second row.
+        goal.Type.Should().Be(GoalType.LongTermWealth);
+        goal.InvestmentAmount.Should().Be(10000m);
+        await _goalRepository.DidNotReceive().AddGoalAsync(Arg.Any<Goal>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Retaking_someone_elses_goal_is_rejected()
     {
-        Goal goal = Goal.Create(Guid.NewGuid(), GoalType.Retirement, 10);
+        Goal goal = Goal.Create(Guid.NewGuid(), GoalType.Retirement, 10, 10000m);
         _goalRepository.GetByIdAsync(goal.Id, Arg.Any<CancellationToken>()).Returns(goal);
 
         var result = await _handler.Handle(

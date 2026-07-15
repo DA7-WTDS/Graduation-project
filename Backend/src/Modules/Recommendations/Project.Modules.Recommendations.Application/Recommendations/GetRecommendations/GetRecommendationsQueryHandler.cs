@@ -37,7 +37,7 @@ internal sealed class GetRecommendationsQueryHandler(
             return Result.Fail(NoRunAvailable);
         }
 
-        PortfolioResponse? profile = await portfolioApi.GetByUserIdAsync(request.UserId, cancellationToken);
+        MonitoringProfileResponse? profile = await portfolioApi.GetMonitoringProfileAsync(request.UserId, cancellationToken);
         if (profile is null)
         {
             return Result.Fail(ProfileNotFound(request.UserId));
@@ -56,10 +56,8 @@ internal sealed class GetRecommendationsQueryHandler(
         IReadOnlyList<UserHolding> existingHoldings = await holdingRepository.GetByUserIdAsync(request.UserId, cancellationToken);
         var priorHoldings = existingHoldings.Where(h => h.RunGeneratedAt < run.GeneratedAt).ToList();
 
-        // Context pack extras (§ 3.6): goal framing + the ONLY performance
-        // figures the model may cite — our realized 90-day track record.
-        MonitoringProfileResponse? investorContext =
-            await portfolioApi.GetMonitoringProfileAsync(request.UserId, cancellationToken);
+        // Context pack extras (§ 3.6): the ONLY performance figures the model
+        // may cite — our realized 90-day track record.
         TrackRecordSnippet? trackRecord = null;
         IReadOnlyList<OutcomeStat> outcomes =
             await outcomeRepository.GetSinceAsync(DateTime.UtcNow.AddDays(-90), cancellationToken);
@@ -71,7 +69,7 @@ internal sealed class GetRecommendationsQueryHandler(
         }
 
         string userPrompt = RecommendationPrompt.BuildUserPrompt(
-            profile, run.Predictions, priorHoldings, investorContext, trackRecord, language);
+            profile, run.Predictions, priorHoldings, trackRecord, language);
 
         // Regenerate on malformed JSON OR on context-pack violations (invented
         // tickers, broken allocations, risk-rule breaches); fail closed after

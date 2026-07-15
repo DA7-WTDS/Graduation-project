@@ -18,7 +18,6 @@ namespace Project.Modules.Portfolio.Infrastructure.Database;
 public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
     : DbContext(options), IUnitOfWork
 {
-    internal DbSet<Domain.Portfolios.Portfolio> Portfolios { get; set; }
     internal DbSet<Goal> Goals { get; set; }
     internal DbSet<QuestionnaireResponse> QuestionnaireResponses { get; set; }
     internal DbSet<InvestorProfile> InvestorProfiles { get; set; }
@@ -30,7 +29,6 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schemas.Portfolio);
-        modelBuilder.ApplyConfiguration(new PortfolioConfiguration());
         modelBuilder.ApplyConfiguration(new GoalConfiguration());
         modelBuilder.ApplyConfiguration(new QuestionnaireResponseConfiguration());
         modelBuilder.ApplyConfiguration(new InvestorProfileConfiguration());

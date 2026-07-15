@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { usePortfolio } from '@/features/portfolio/usePortfolio'
+import { useActiveGoal } from '@/features/goals/useActiveGoal'
 import { useNotifications, formatRelativeTime } from '@/features/notifications/useNotifications'
 import { RecommendationsPanel } from '@/features/recommendations/RecommendationsPanel'
 import { TargetMix } from '@/features/recommendations/TargetMix'
@@ -9,9 +9,16 @@ import { Card, StatTile, Button, LoadingState, ErrorState, EmptyState } from '@/
 import { staggerContainer, fadeInUp } from '@/shared/motion/variants'
 import './Dashboard.css'
 
+const GOAL_LABELS = {
+    Retirement: 'Retirement',
+    LongTermWealth: 'Long-term wealth',
+    MediumTermGoal: 'Medium-term goal',
+    SpeculationLearning: 'Speculation & learning',
+}
+
 const Dashboard = () => {
     const navigate = useNavigate()
-    const { data: portfolio, isLoading, isError } = usePortfolio()
+    const { goal, profile, isOnboarded, isLoading, isError } = useActiveGoal()
     const { notifications, markAsRead } = useNotifications()
 
     return (
@@ -28,13 +35,13 @@ const Dashboard = () => {
                 </motion.header>
 
                 {isLoading ? (
-                    <motion.div variants={fadeInUp}><Card><LoadingState label="Loading portfolio…" /></Card></motion.div>
+                    <motion.div variants={fadeInUp}><Card><LoadingState label="Loading your goal…" /></Card></motion.div>
                 ) : isError ? (
-                    <motion.div variants={fadeInUp}><Card><ErrorState message="Failed to load your portfolio." /></Card></motion.div>
-                ) : !portfolio ? (
+                    <motion.div variants={fadeInUp}><Card><ErrorState message="Failed to load your goal." /></Card></motion.div>
+                ) : !isOnboarded ? (
                     <motion.div variants={fadeInUp}>
                         <Card className="dash-onboard">
-                            <span className="dash-eyebrow">No portfolio yet</span>
+                            <span className="dash-eyebrow">No goal yet</span>
                             <p className="dash-onboard-copy">
                                 Complete the questionnaire to get personalized, risk-graded picks.
                             </p>
@@ -46,10 +53,10 @@ const Dashboard = () => {
                 ) : (
                     <>
                         <motion.div className="dash-tiles" variants={fadeInUp}>
-                            <StatTile label="Risk Profile" value={portfolio.riskProfile} valueColor="var(--qw-amber)" />
-                            <StatTile label="Risk Tolerance" value={`${portfolio.riskTolerance}%`} />
-                            <StatTile label="Time Horizon" value={portfolio.timeHorizon} />
-                            <StatTile label="Experience" value={portfolio.investmentExperience} />
+                            <StatTile label="Risk Profile" value={profile.riskBand} valueColor="var(--qw-amber)" />
+                            <StatTile label="Effective Risk" value={`${profile.effectiveRisk}/100`} />
+                            <StatTile label="Goal" value={GOAL_LABELS[goal.type] ?? goal.type} />
+                            <StatTile label="Horizon" value={`${goal.horizonYears} years`} />
                         </motion.div>
 
                         <motion.div variants={fadeInUp}>

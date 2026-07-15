@@ -20,7 +20,7 @@ public sealed class RecommendationEndpointTests(IntegrationTestWebAppFactory fac
 
         (_, string token) = await RegisterAndLoginAsync("rec@quantwise.test");
         Authorize(token);
-        (await Client.PostAsJsonAsync("/api/portfolios", SamplePortfolioBody())).EnsureSuccessStatusCode();
+        await OnboardAsync();
 
         var fake = (FakeLlmClient)Factory.Services.GetRequiredService<ILlmClient>();
         int before = fake.Calls;
@@ -44,7 +44,7 @@ public sealed class RecommendationEndpointTests(IntegrationTestWebAppFactory fac
     {
         (_, string token) = await RegisterAndLoginAsync("norun@quantwise.test");
         Authorize(token);
-        (await Client.PostAsJsonAsync("/api/portfolios", SamplePortfolioBody())).EnsureSuccessStatusCode();
+        await OnboardAsync();
 
         HttpResponseMessage response = await Client.GetAsync("/api/recommendations");
 

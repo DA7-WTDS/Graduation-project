@@ -1,7 +1,6 @@
 using FluentResults;
 using Project.Modules.Portfolio.Application.Abstractions.Goals;
 using Project.Modules.Portfolio.Application.Abstractions.Instruments;
-using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Application.Abstractions.Strategies;
 using Project.Modules.Portfolio.Domain.Allocation;
 using Project.Modules.Portfolio.Domain.Goals;
@@ -32,7 +31,6 @@ public sealed class PortfolioProposalBuilder(
     IGoalRepository goalRepository,
     IStrategyTemplateRepository templateRepository,
     IInstrumentRepository instrumentRepository,
-    IPortfolioRepository portfolioRepository,
     IRecommendationsApi recommendationsApi)
 {
     private const string Market = "us"; // second instance per D5 when EGX activates
@@ -74,12 +72,9 @@ public sealed class PortfolioProposalBuilder(
                 r.Signal, r.Rsi14, r.PctVsSma50))
             .ToList();
 
-        decimal amount = (await portfolioRepository.GetByUserIdAsync(userId, cancellationToken))
-            ?.InvestmentAmount ?? 0m;
-
         AllocationResult allocation = AllocationOptimizer.Build(
-            template.GetBuckets(), profile.RiskBand, instruments, rankings, amount);
+            template.GetBuckets(), profile.RiskBand, instruments, rankings, goal.InvestmentAmount);
 
-        return Result.Ok(new BuiltAllocation(goal, template, profile, amount, allocation));
+        return Result.Ok(new BuiltAllocation(goal, template, profile, goal.InvestmentAmount, allocation));
     }
 }

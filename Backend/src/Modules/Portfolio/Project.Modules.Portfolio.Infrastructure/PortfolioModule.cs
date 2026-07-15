@@ -62,7 +62,6 @@ public static class PortfolioModule
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<PortfolioDbContext>());
 
         // Register Repositories
-        services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         services.AddScoped<IGoalRepository, GoalRepository>();
         services.AddScoped<IInstrumentRepository, InstrumentRepository>();
         services.AddScoped<IStrategyTemplateRepository, StrategyTemplateRepository>();

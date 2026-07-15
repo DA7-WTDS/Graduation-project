@@ -25,30 +25,36 @@ public sealed class DailyRunIngestedIntegrationEventHandler(
 {
     public override async Task Handle(DailyRunIngestedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<PortfolioResponse> portfolios = await portfolioApi.GetAllAsync(cancellationToken);
+        IReadOnlyList<Guid> userIds = await portfolioApi.GetProfiledUserIdsAsync(cancellationToken);
 
-        if (portfolios.Count == 0)
+        if (userIds.Count == 0)
         {
-            logger.LogInformation("DailyRunIngested {DailyRunId}: no portfolios to notify.", integrationEvent.DailyRunId);
+            logger.LogInformation("DailyRunIngested {DailyRunId}: no profiled users to notify.", integrationEvent.DailyRunId);
             return;
         }
 
         string runDate = integrationEvent.GeneratedAt.ToString("MMMM d", CultureInfo.InvariantCulture);
         int notified = 0;
 
-        foreach (PortfolioResponse portfolio in portfolios)
+        foreach (Guid userId in userIds)
         {
             try
             {
-                UserResponse? user = await usersApi.GetAsync(portfolio.UserId, cancellationToken);
+                MonitoringProfileResponse? profile = await portfolioApi.GetMonitoringProfileAsync(userId, cancellationToken);
+                if (profile is null)
+                {
+                    continue;
+                }
+
+                UserResponse? user = await usersApi.GetAsync(userId, cancellationToken);
                 string firstName = string.IsNullOrWhiteSpace(user?.FirstName) ? "there" : user!.FirstName;
 
                 string message =
-                    $"Hi {firstName}, your fresh {portfolio.RiskProfile}-tuned picks for {runDate} are ready. " +
+                    $"Hi {firstName}, your fresh {profile.RiskProfile}-tuned picks for {runDate} are ready. " +
                     "Open your dashboard to see what to buy, hold, or sell today.";
 
                 Result<Guid> result = await sender.Send(new CreateNotificationCommand(
-                    portfolio.UserId,
+                    userId,
                     "New recommendations are ready",
                     message,
                     NotificationType.Info), cancellationToken);
@@ -56,7 +62,7 @@ public sealed class DailyRunIngestedIntegrationEventHandler(
                 if (result.IsFailed)
                 {
                     logger.LogError("Failed to create recommendations notification for user {UserId}: {Error}",
-                        portfolio.UserId, result.Errors[0].Message);
+                        userId, result.Errors[0].Message);
                 }
                 else
                 {
@@ -65,11 +71,11 @@ public sealed class DailyRunIngestedIntegrationEventHandler(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Exception creating recommendations notification for user {UserId}", portfolio.UserId);
+                logger.LogError(ex, "Exception creating recommendations notification for user {UserId}", userId);
             }
         }
 
         logger.LogInformation("DailyRunIngested {DailyRunId}: notified {Count}/{Total} users.",
-            integrationEvent.DailyRunId, notified, portfolios.Count);
+            integrationEvent.DailyRunId, notified, userIds.Count);
     }
 }

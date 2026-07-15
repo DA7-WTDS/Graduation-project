@@ -21,6 +21,7 @@ internal sealed class GetGoalsQueryHandler(IGoalRepository goalRepository)
                 goal.Id,
                 goal.Type.ToString(),
                 goal.HorizonYears,
+                goal.InvestmentAmount,
                 goal.CreatedAt,
                 goal.UpdatedAt,
                 profile is null ? null : new GoalProfileResponse(
