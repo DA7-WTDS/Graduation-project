@@ -245,6 +245,107 @@
     font-size: var(--font-size-small);
 }
 
+/* live portfolio card */
+.plan-live {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.plan-live-valued {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--qw-text-faint);
+}
+
+.plan-alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--qw-panel-2);
+    border-left: 2px solid var(--qw-text-dim);
+    font-size: var(--font-size-small);
+    color: var(--qw-text-dim);
+}
+
+.plan-alert-warn {
+    border-left-color: var(--qw-amber);
+    background: var(--qw-amber-glow);
+}
+
+.plan-alert svg {
+    flex-shrink: 0;
+    color: var(--qw-amber);
+}
+
+.plan-live-positions {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--qw-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.plan-live-row {
+    display: grid;
+    grid-template-columns: 14px 1fr 72px 72px 72px 88px;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 9px var(--space-md);
+    background: var(--qw-panel);
+    font-size: 13px;
+}
+
+.plan-live-row .num {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+.plan-live-head-row {
+    background: var(--qw-panel-2);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--qw-text-faint);
+}
+
+.plan-live-head-row .num {
+    font-family: inherit;
+}
+
+.plan-live-target {
+    color: var(--qw-text-dim);
+}
+
+.plan-live-actual {
+    color: var(--qw-amber);
+}
+
+.plan-live-drift {
+    color: var(--qw-text-faint);
+}
+
+.plan-live-drift.wide {
+    color: var(--color-danger);
+}
+
+.plan-live-value {
+    color: var(--qw-text-dim);
+}
+
+.plan-live-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 12px;
+    color: var(--qw-text-faint);
+}
+
 /* status badges */
 .plan-badge {
     font-family: var(--font-mono);

@@ -4,8 +4,10 @@ import { motion } from 'motion/react'
 import { Sparkles, Check, ShieldAlert, TrendingUp } from 'lucide-react'
 import { useGoals } from '@/features/goals/useGoals'
 import { useProposals, useCreateProposal, useAcceptProposal } from '@/features/goals/useProposals'
+import { useGoalPortfolio } from '@/features/goals/useGoalPortfolio'
 import { Card, Button, StatTile, LoadingState, ErrorState, EmptyState, useToast } from '@/shared/ui'
 import { staggerContainer, fadeInUp } from '@/shared/motion/variants'
+import { PortfolioCard } from './PortfolioCard'
 import './Plan.css'
 
 const GOAL_LABELS = {
@@ -33,6 +35,7 @@ const Plan = () => {
     const goalId = goal?.id
 
     const { data: proposals } = useProposals(goalId)
+    const { data: livePortfolio } = useGoalPortfolio(goalId)
     const createProposal = useCreateProposal(goalId)
     const acceptProposal = useAcceptProposal(goalId)
 
@@ -104,6 +107,13 @@ const Plan = () => {
                     <motion.p className="plan-spec" variants={fadeInUp}>
                         <TrendingUp size={14} aria-hidden="true" /> Speculative opportunities unlocked — always capped and clearly labeled.
                     </motion.p>
+                )}
+
+                {/* Live portfolio — only once something has been accepted */}
+                {livePortfolio && (
+                    <motion.div variants={fadeInUp}>
+                        <PortfolioCard portfolio={livePortfolio} />
+                    </motion.div>
                 )}
 
                 {/* Generate / review */}
