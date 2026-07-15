@@ -75,6 +75,9 @@ public sealed class GoalPortfolio : Entity
     public DateTime InceptionDate { get; private set; }
     public DateTime? ClosedAt { get; private set; }
 
+    /// <summary>When the last periodic digest went out; null until the first one.</summary>
+    public DateTime? LastDigestAt { get; private set; }
+
     public IReadOnlyList<PortfolioHolding> Holdings => _holdings;
 
     public static GoalPortfolio Open(
@@ -145,6 +148,8 @@ public sealed class GoalPortfolio : Entity
 
         return false;
     }
+
+    public void MarkDigestSent(DateTime at) => LastDigestAt = at;
 
     public bool EvaluateDriftAlert(double maxDrift, double driftThreshold)
     {

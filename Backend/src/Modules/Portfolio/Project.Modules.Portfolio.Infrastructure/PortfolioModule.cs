@@ -86,6 +86,8 @@ public static class PortfolioModule
         services.ConfigureOptions<ConfigureRefreshInstrumentStatsJob>();
         services.ConfigureOptions<ConfigurePortfolioValuationJob>();
         services.Configure<PortfolioValuationOptions>(configuration.GetSection("Portfolio:Valuation"));
+        services.ConfigureOptions<ConfigurePortfolioDigestJob>();
+        services.Configure<PortfolioDigestOptions>(configuration.GetSection("Portfolio:Digest"));
 
         // Instrument registry refresh — typed HTTP client against the pipeline
         services.Configure<InstrumentsOptions>(configuration.GetSection("Portfolio:Instruments"));

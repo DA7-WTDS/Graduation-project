@@ -89,5 +89,6 @@ public static class NotificationsModule
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<ConvictionReversalDetectedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDrawdownDetectedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDriftDetectedIntegrationEvent>>();
+        registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDigestDueIntegrationEvent>>();
     }
 }

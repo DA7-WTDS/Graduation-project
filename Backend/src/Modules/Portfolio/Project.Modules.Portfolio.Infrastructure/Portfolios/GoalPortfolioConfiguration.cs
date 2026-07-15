@@ -28,6 +28,7 @@ internal sealed class GoalPortfolioConfiguration : IEntityTypeConfiguration<Goal
 
         builder.Property(p => p.InceptionDate).IsRequired();
         builder.Property(p => p.ClosedAt).IsRequired(false);
+        builder.Property(p => p.LastDigestAt).IsRequired(false);
 
         // One active portfolio per goal (closed ones stay for history).
         builder.HasIndex(p => new { p.GoalId, p.Status });
