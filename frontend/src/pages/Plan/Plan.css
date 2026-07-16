@@ -180,13 +180,13 @@
 
 .plan-pos-weight {
     font-family: var(--font-mono);
-    text-align: right;
+    text-align: end;
     color: var(--qw-amber);
 }
 
 .plan-pos-value {
     font-family: var(--font-mono);
-    text-align: right;
+    text-align: end;
     color: var(--qw-text-dim);
 }
 
@@ -266,13 +266,13 @@
     padding: 10px var(--space-md);
     border-radius: var(--radius-md);
     background: var(--qw-panel-2);
-    border-left: 2px solid var(--qw-text-dim);
+    border-inline-start: 2px solid var(--qw-text-dim);
     font-size: var(--font-size-small);
     color: var(--qw-text-dim);
 }
 
 .plan-alert-warn {
-    border-left-color: var(--qw-amber);
+    border-inline-start-color: var(--qw-amber);
     background: var(--qw-amber-glow);
 }
 
@@ -301,7 +301,7 @@
 }
 
 .plan-live-row .num {
-    text-align: right;
+    text-align: end;
     font-family: var(--font-mono);
 }
 
@@ -454,7 +454,7 @@
     border: 1px solid transparent;
     border-radius: var(--radius-md);
     cursor: pointer;
-    text-align: left;
+    text-align: start;
     color: var(--qw-text);
     transition: border-color 0.15s ease;
 }

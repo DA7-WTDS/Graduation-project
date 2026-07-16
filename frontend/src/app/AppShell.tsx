@@ -5,15 +5,16 @@ import { useAuth } from '@/context/AuthContext'
 import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { Backdrop } from '@/shared/visuals'
 import { useToast } from '@/shared/ui'
+import { useLanguage } from '@/shared/i18n'
 import type { UserProfile } from '@/types/api'
 import './AppShell.css'
 
 const navItems = [
-    { to: '/dashboard', label: 'Dashboard' },
-    { to: '/plan', label: 'Plan' },
-    { to: '/portfolios', label: 'Portfolios' },
-    { to: '/simulator', label: 'Learning' },
-    { to: '/market', label: 'Market' },
+    { to: '/dashboard', key: 'nav.dashboard' },
+    { to: '/plan', key: 'nav.plan' },
+    { to: '/portfolios', key: 'nav.portfolios' },
+    { to: '/simulator', key: 'nav.learning' },
+    { to: '/market', key: 'nav.market' },
 ]
 
 /**
@@ -25,6 +26,7 @@ export default function AppShell() {
     const { user, logout } = useAuth() as { user: UserProfile | null; logout: () => void }
     const navigate = useNavigate()
     const toast = useToast()
+    const { t, toggle, lang } = useLanguage()
     const initials = user ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}` : '?'
 
     const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -63,12 +65,21 @@ export default function AppShell() {
                             to={item.to}
                             className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}
                         >
-                            {item.label}
+                            {t(item.key)}
                         </NavLink>
                     ))}
                 </nav>
 
                 <div className="app-nav-right">
+                    <button
+                        type="button"
+                        className="app-lang-toggle"
+                        onClick={toggle}
+                        title={t('lang.switch')}
+                        aria-label={`Switch language to ${lang === 'ar' ? 'English' : 'Arabic'}`}
+                    >
+                        {t('lang.switch')}
+                    </button>
                     <NotificationBell />
                     <div className="app-account">
                         <button
@@ -88,7 +99,7 @@ export default function AppShell() {
                                 <div className="app-account-menu" role="menu">
                                     <div className="app-account-head">
                                         <span className="app-account-name">
-                                            {user ? `${user.firstName} ${user.lastName}` : 'Account'}
+                                            {user ? `${user.firstName} ${user.lastName}` : t('nav.account')}
                                         </span>
                                         {user?.email && <span className="app-account-email">{user.email}</span>}
                                     </div>
@@ -98,7 +109,7 @@ export default function AppShell() {
                                         role="menuitem"
                                         onClick={() => setAccountOpen(false)}
                                     >
-                                        <User size={15} strokeWidth={1.75} /> Profile
+                                        <User size={15} strokeWidth={1.75} /> {t('nav.profile')}
                                     </Link>
                                     <button
                                         type="button"
@@ -106,7 +117,7 @@ export default function AppShell() {
                                         role="menuitem"
                                         onClick={handleLogout}
                                     >
-                                        <LogOut size={15} strokeWidth={1.75} /> Log out
+                                        <LogOut size={15} strokeWidth={1.75} /> {t('nav.logout')}
                                     </button>
                                 </div>
                             </>
@@ -126,7 +137,7 @@ export default function AppShell() {
                                 className={({ isActive }) => `app-mobile-link${isActive ? ' active' : ''}`}
                                 onClick={() => setMobileNavOpen(false)}
                             >
-                                {item.label}
+                                {t(item.key)}
                             </NavLink>
                         ))}
                     </nav>

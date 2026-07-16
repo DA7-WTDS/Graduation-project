@@ -8,16 +8,19 @@ import './index.css'
 import { AuthProvider } from './context/AuthContext'
 import { queryClient } from './shared/api/queryClient'
 import { ToastProvider } from './shared/ui'
+import { LanguageProvider } from './shared/i18n'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <QueryClientProvider client={queryClient}>
             <MotionConfig reducedMotion="user">
-                <AuthProvider>
-                    <ToastProvider>
-                        <App />
-                    </ToastProvider>
-                </AuthProvider>
+                <LanguageProvider>
+                    <AuthProvider>
+                        <ToastProvider>
+                            <App />
+                        </ToastProvider>
+                    </AuthProvider>
+                </LanguageProvider>
             </MotionConfig>
         </QueryClientProvider>
     </React.StrictMode>,

@@ -1,6 +1,7 @@
 import React from 'react'
 import { TrendingDown, Scale, CalendarClock } from 'lucide-react'
 import { Card, StatTile } from '@/shared/ui'
+import { useLanguage } from '@/shared/i18n'
 
 const money = (n) => `$${Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 const pct1 = (n) => `${(Number(n) * 100).toFixed(1)}%`
@@ -20,28 +21,32 @@ const SLEEVE_COLORS = {
  * Everything here is server-computed — the client only formats.
  */
 export const PortfolioCard = ({ portfolio }) => {
+    const { t } = useLanguage()
     const positions = portfolio.positions
 
     return (
         <Card className="plan-live">
             <div className="plan-card-head">
-                <span className="plan-label">Your portfolio</span>
+                <span className="plan-label">{t('live.title')}</span>
                 <span className="plan-live-valued">
                     {portfolio.pricesComplete
-                        ? 'Live · registry closes'
-                        : `Last valued ${portfolio.valuedAt ? date(portfolio.valuedAt) : 'not yet'}`}
+                        ? t('live.live')
+                        : `${portfolio.valuedAt ? date(portfolio.valuedAt) : '—'}`}
                 </span>
             </div>
 
             <div className="plan-tiles">
-                <StatTile label="Value" value={money(portfolio.nav)} valueColor="var(--qw-amber)" />
+                <StatTile label={t('live.value')} value={money(portfolio.nav)} valueColor="var(--qw-amber)" />
                 <StatTile
-                    label="Total Return"
+                    label={t('live.totalReturn')}
                     value={signedPct(portfolio.totalReturnPct)}
                     valueColor={portfolio.totalReturnPct >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}
                 />
-                <StatTile label="From High" value={portfolio.drawdownPct > 0 ? `−${pct1(portfolio.drawdownPct)}` : 'At high'} />
-                <StatTile label="Next Review" value={date(portfolio.nextReviewDate)} />
+                <StatTile
+                    label={t('live.fromHigh')}
+                    value={portfolio.drawdownPct > 0 ? `−${pct1(portfolio.drawdownPct)}` : t('live.atHigh')}
+                />
+                <StatTile label={t('live.nextReview')} value={date(portfolio.nextReviewDate)} />
             </div>
 
             {portfolio.drawdownAlertActive && (
@@ -60,11 +65,11 @@ export const PortfolioCard = ({ portfolio }) => {
             <div className="plan-live-positions">
                 <div className="plan-live-row plan-live-head-row">
                     <span />
-                    <span>Symbol</span>
-                    <span className="num">Target</span>
-                    <span className="num">Actual</span>
-                    <span className="num">Drift</span>
-                    <span className="num">Value</span>
+                    <span>{t('live.symbol')}</span>
+                    <span className="num">{t('live.target')}</span>
+                    <span className="num">{t('live.actual')}</span>
+                    <span className="num">{t('live.drift')}</span>
+                    <span className="num">{t('live.value')}</span>
                 </div>
                 {positions.map((p) => (
                     <div className="plan-live-row" key={p.symbol}>
@@ -82,8 +87,8 @@ export const PortfolioCard = ({ portfolio }) => {
 
             <p className="plan-live-foot">
                 <CalendarClock size={13} aria-hidden="true" />
-                {portfolio.templateName} · started {date(portfolio.inceptionDate)} · rebalances{' '}
-                {portfolio.rebalanceCadence.replace('_', '-')}
+                {portfolio.templateName} · {t('live.started')} {date(portfolio.inceptionDate)} ·{' '}
+                {t('live.rebalances')} {portfolio.rebalanceCadence.replace('_', '-')}
             </p>
         </Card>
     )

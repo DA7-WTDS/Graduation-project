@@ -1,6 +1,7 @@
 import React from 'react'
 import { Target } from 'lucide-react'
 import { Card, StatTile, EmptyState } from '@/shared/ui'
+import { useLanguage } from '@/shared/i18n'
 
 const pct = (n) => `${Number(n).toFixed(1)}%`
 const signedPct = (n) => `${n >= 0 ? '+' : ''}${Number(n).toFixed(2)}%`
@@ -12,18 +13,16 @@ const signedPct = (n) => `${n >= 0 ? '+' : ''}${Number(n).toFixed(2)}%`
  * number stays on screen.
  */
 export const TrackRecordCard = ({ trackRecord }) => {
+    const { t } = useLanguage()
     const window = trackRecord.windows?.find((w) => w.windowDays === 90) ?? trackRecord.windows?.[0]
 
     if (!window || window.count === 0) {
         return (
             <Card className="plan-track">
                 <div className="plan-card-head">
-                    <span className="plan-label">Our track record</span>
+                    <span className="plan-label">{t('track.title')}</span>
                 </div>
-                <EmptyState
-                    title="Not enough scored predictions yet"
-                    hint="Predictions are scored once their 30-day horizon matures. This fills in as outcomes land."
-                />
+                <EmptyState title={t('track.empty')} hint={t('track.emptyHint')} />
             </Card>
         )
     }
@@ -31,19 +30,19 @@ export const TrackRecordCard = ({ trackRecord }) => {
     return (
         <Card className="plan-track">
             <div className="plan-card-head">
-                <span className="plan-label">Our track record</span>
-                <span className="plan-track-window">last {window.windowDays} days · {window.count} scored</span>
+                <span className="plan-label">{t('track.title')}</span>
+                <span className="plan-track-window">{window.windowDays}d · {window.count}</span>
             </div>
 
             <div className="plan-tiles">
-                <StatTile label="Direction Hit Rate" value={pct(window.hitRatePct)} valueColor="var(--qw-amber)" />
+                <StatTile label={t('track.hitRate')} value={pct(window.hitRatePct)} valueColor="var(--qw-amber)" />
                 <StatTile
-                    label="Avg Realized Return"
+                    label={t('track.avgReturn')}
                     value={signedPct(window.avgRealizedReturnPct)}
                     valueColor={window.avgRealizedReturnPct >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}
                 />
-                <StatTile label="Predictions Scored" value={window.count.toLocaleString()} />
-                <StatTile label="All Time" value={trackRecord.totalScored.toLocaleString()} />
+                <StatTile label={t('track.scored')} value={window.count.toLocaleString()} />
+                <StatTile label={t('track.allTime')} value={trackRecord.totalScored.toLocaleString()} />
             </div>
 
             {window.byRiskLevel?.length > 0 && (
@@ -61,8 +60,7 @@ export const TrackRecordCard = ({ trackRecord }) => {
 
             <p className="plan-track-note">
                 <Target size={13} aria-hidden="true" />
-                Every prediction is scored against what the market actually did 30 days later — wins and losses alike.
-                Past results never guarantee future ones. Informational only, not financial advice.
+                {t('track.note')}
             </p>
         </Card>
     )
