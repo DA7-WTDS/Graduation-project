@@ -15,7 +15,17 @@ internal sealed class DailyRunConfiguration : IEntityTypeConfiguration<DailyRun>
         builder.Property(r => r.Count).IsRequired();
         builder.Property(r => r.CreatedAt).IsRequired();
 
+        // § 6.2 kill-switch lifecycle. Stored as text for pg_admin readability.
+        builder.Property(r => r.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+        builder.Property(r => r.StatusReason).HasMaxLength(2000);
+        builder.Property(r => r.StatusChangedAt).IsRequired();
+
         builder.HasIndex(r => r.GeneratedAt);
+        // Serves the hot query: latest run WHERE status = 'Published'.
+        builder.HasIndex(r => new { r.Status, r.GeneratedAt });
 
         builder.HasMany(r => r.Predictions)
             .WithOne()

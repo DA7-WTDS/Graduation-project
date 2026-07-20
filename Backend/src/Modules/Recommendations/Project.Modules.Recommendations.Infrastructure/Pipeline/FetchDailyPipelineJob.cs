@@ -61,10 +61,18 @@ internal sealed class FetchDailyPipelineJob(
             payload.Count,
             payload.GeneratedAt);
 
+        bool gatesPassed = !string.Equals(payload.Status, "quarantined", StringComparison.OrdinalIgnoreCase);
+        if (!gatesPassed)
+        {
+            logger.LogError(
+                "FetchDailyPipelineJob — pipeline quality gates FAILED; run will be quarantined: {Failures}",
+                string.Join("; ", payload.GateFailures));
+        }
+
         // Dispatch in-process — MediatR, no HTTP.
         // IngestDailyRunCommand is idempotent on GeneratedAt (same timestamp = returns existing run id).
         var result = await sender.Send(
-            new IngestDailyRunCommand(payload.GeneratedAt, payload.Records),
+            new IngestDailyRunCommand(payload.GeneratedAt, payload.Records, gatesPassed, payload.GateFailures),
             context.CancellationToken);
 
         if (result.IsSuccess)

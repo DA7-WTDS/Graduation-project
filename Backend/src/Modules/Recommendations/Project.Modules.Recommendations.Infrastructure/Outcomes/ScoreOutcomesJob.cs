@@ -46,7 +46,10 @@ internal sealed class ScoreOutcomesJob(
         List<PendingPrediction> pending = await (
             from p in dbContext.StockPredictions
             join r in dbContext.DailyRuns on p.DailyRunId equals r.Id
-            where r.GeneratedAt <= cutoff
+            // Published-only (§ 6.2): the track record reflects what users were
+            // actually served — quarantined/pending runs never enter it.
+            where r.Status == Domain.DailyRuns.DailyRunStatus.Published
+               && r.GeneratedAt <= cutoff
                && !dbContext.PredictionOutcomes.Any(o => o.StockPredictionId == p.Id)
             orderby r.GeneratedAt
             select new PendingPrediction(p.Id, p.Ticker, p.Direction, p.ChangePct, p.RiskLevel, r.GeneratedAt))

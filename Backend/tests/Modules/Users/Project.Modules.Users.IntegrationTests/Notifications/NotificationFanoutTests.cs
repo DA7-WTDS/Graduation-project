@@ -10,15 +10,16 @@ using Project.Modules.Users.IntegrationTests.Infrastructure;
 
 namespace Project.Modules.Users.IntegrationTests.Notifications;
 
-// Covers FR-18: when a daily run is ingested, every onboarded user gets a
-// personalised "new recommendations are ready" notification. The integration event is
-// consumed into the inbox and the fan-out runs from a background job, so this test drives
-// the real fan-out handler directly against the containerised database (cross-module:
+// Covers FR-18: when a daily run is published (§ 6.2 — never on mere ingestion),
+// every onboarded user gets a personalised "new recommendations are ready"
+// notification. The integration event is consumed into the inbox and the fan-out
+// runs from a background job, so this test drives the real fan-out handler
+// directly against the containerised database (cross-module:
 // Recommendations event -> Portfolio + Users public APIs -> Notifications persistence).
 public sealed class NotificationFanoutTests(IntegrationTestWebAppFactory factory) : BaseIntegrationTest(factory)
 {
     [Fact]
-    public async Task A_daily_run_fans_out_one_notification_per_onboarded_user()
+    public async Task A_published_daily_run_fans_out_one_notification_per_onboarded_user()
     {
         // Two users, each with a scored goal.
         (_, string tokenA) = await RegisterAndLoginAsync("fan-a@quantwise.test");
@@ -29,11 +30,11 @@ public sealed class NotificationFanoutTests(IntegrationTestWebAppFactory factory
         Authorize(tokenB);
         await OnboardAsync();
 
-        // Run the real fan-out handler for an ingested daily run.
+        // Run the real fan-out handler for a published daily run.
         using (IServiceScope scope = Factory.Services.CreateScope())
         {
-            var handler = scope.ServiceProvider.GetRequiredService<DailyRunIngestedIntegrationEventHandler>();
-            var @event = new DailyRunIngestedIntegrationEvent(
+            var handler = scope.ServiceProvider.GetRequiredService<DailyRunPublishedIntegrationEventHandler>();
+            var @event = new DailyRunPublishedIntegrationEvent(
                 Guid.NewGuid(), DateTime.UtcNow, Guid.NewGuid(), DateTime.UtcNow);
 
             await handler.Handle(@event, CancellationToken.None);

@@ -1,7 +1,9 @@
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using Project.Modules.Recommendations.Application.Abstractions.Data;
 using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
+using Project.Modules.Recommendations.Application.Configuration;
 using Project.Modules.Recommendations.Application.DailyRuns.Ingest;
 using Project.Modules.Recommendations.Domain.DailyRuns;
 using System;
@@ -15,6 +17,7 @@ namespace Project.Modules.Recommendations.Application.Tests.DailyRuns.Ingest;
 public class IngestDailyRunCommandHandlerTests
 {
     private readonly IDailyRunRepository _dailyRunRepository;
+    private readonly IngestOptions _ingestOptions = new();
     private readonly IUnitOfWork _unitOfWork;
     private readonly IngestDailyRunCommandHandler _handler;
 
@@ -23,7 +26,7 @@ public class IngestDailyRunCommandHandlerTests
         _dailyRunRepository = Substitute.For<IDailyRunRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
 
-        _handler = new IngestDailyRunCommandHandler(_dailyRunRepository, _unitOfWork);
+        _handler = new IngestDailyRunCommandHandler(_dailyRunRepository, Options.Create(_ingestOptions), _unitOfWork);
     }
 
     [Fact]
@@ -86,5 +89,55 @@ public class IngestDailyRunCommandHandlerTests
 
         await _dailyRunRepository.Received(1).AddAsync(Arg.Any<DailyRun>(), Arg.Any<CancellationToken>());
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    private static PredictionRecordDto Record() => new()
+    {
+        Ticker = "AAPL", Direction = "UP", ChangePct = 5.0, Confidence = 0.8, SentimentScore = 0.5,
+        Signal = "POSITIVE", Agreement = "CONFIRMED", RiskLevel = "LOW", ConvictionScore = 0.95,
+        RiskFlags = new[] { "None" }, Rationale = "test"
+    };
+
+    [Fact]
+    public async Task Handle_Should_LandAsPublished_WhenGatesPassAndAutoApprove()
+    {
+        DailyRun? captured = null;
+        _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        var command = new IngestDailyRunCommand(DateTime.UtcNow, new List<PredictionRecordDto> { Record() });
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        captured!.Status.Should().Be(DailyRunStatus.Published);
+    }
+
+    [Fact]
+    public async Task Handle_Should_LandAsPendingReview_WhenManualApprovalRequired()
+    {
+        _ingestOptions.RequireManualApproval = true;
+        DailyRun? captured = null;
+        _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        var command = new IngestDailyRunCommand(DateTime.UtcNow, new List<PredictionRecordDto> { Record() });
+        await _handler.Handle(command, CancellationToken.None);
+
+        captured!.Status.Should().Be(DailyRunStatus.PendingReview);
+    }
+
+    [Fact]
+    public async Task Handle_Should_LandAsQuarantined_WhenGatesFailed_EvenWithAutoApprove()
+    {
+        DailyRun? captured = null;
+        _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        var command = new IngestDailyRunCommand(
+            DateTime.UtcNow,
+            new List<PredictionRecordDto> { Record() },
+            GatesPassed: false,
+            GateFailures: new[] { "coverage: 40/100 (40%, min 60%)" });
+        await _handler.Handle(command, CancellationToken.None);
+
+        captured!.Status.Should().Be(DailyRunStatus.Quarantined);
+        captured.StatusReason.Should().Contain("coverage");
     }
 }

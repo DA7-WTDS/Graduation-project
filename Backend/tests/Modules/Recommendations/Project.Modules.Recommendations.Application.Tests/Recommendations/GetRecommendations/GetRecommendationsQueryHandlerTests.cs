@@ -65,7 +65,7 @@ public class GetRecommendationsQueryHandlerTests
         // Arrange
         var query = new GetRecommendationsQuery(Guid.NewGuid());
 
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>())
             .Returns((DailyRun)null);
 
         // Act
@@ -87,7 +87,7 @@ public class GetRecommendationsQueryHandlerTests
         };
         var run = DailyRun.Create(DateTime.UtcNow, predictions);
 
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>())
             .Returns(run);
 
         _portfolioApi.GetMonitoringProfileAsync(query.UserId, Arg.Any<CancellationToken>())
@@ -112,7 +112,7 @@ public class GetRecommendationsQueryHandlerTests
         };
         var run = DailyRun.Create(DateTime.UtcNow, predictions);
 
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>())
             .Returns(run);
 
         var portfolio = new MonitoringProfileResponse(query.UserId, "Aggressive", "LongTermWealth", "Monthly");
@@ -144,7 +144,7 @@ public class GetRecommendationsQueryHandlerTests
         };
         var run = DailyRun.Create(DateTime.UtcNow, predictions);
 
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>())
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>())
             .Returns(run);
 
         var portfolio = new MonitoringProfileResponse(query.UserId, "Aggressive", "LongTermWealth", "Monthly");

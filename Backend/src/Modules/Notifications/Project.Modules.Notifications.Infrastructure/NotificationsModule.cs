@@ -85,6 +85,7 @@ public static class NotificationsModule
     {
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<UserCreatedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<DailyRunIngestedIntegrationEvent>>();
+        registrationConfigurator.AddConsumer<IntegrationEventConsumer<DailyRunPublishedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<MarketCrashDetectedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<ConvictionReversalDetectedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDrawdownDetectedIntegrationEvent>>();

@@ -6,4 +6,6 @@ public sealed record DailyRunIngestedDomainEvent(
     Guid Id,
     DateTime OccurredOnUtc,
     Guid DailyRunId,
-    DateTime GeneratedAt) : DomainEvent(Id, OccurredOnUtc);
+    DateTime GeneratedAt,
+    string Status,
+    string? StatusReason) : DomainEvent(Id, OccurredOnUtc);

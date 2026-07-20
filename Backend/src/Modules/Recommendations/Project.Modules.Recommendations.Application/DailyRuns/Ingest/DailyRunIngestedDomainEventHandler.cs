@@ -22,7 +22,9 @@ internal sealed class DailyRunIngestedDomainEventHandler(
                 domainEvent.Id,
                 domainEvent.OccurredOnUtc,
                 domainEvent.DailyRunId,
-                domainEvent.GeneratedAt), cancellationToken);
+                domainEvent.GeneratedAt,
+                domainEvent.Status,
+                domainEvent.StatusReason), cancellationToken);
 
             logger.LogInformation("DailyRunIngestedIntegrationEvent published successfully for run {DailyRunId}", domainEvent.DailyRunId);
         }

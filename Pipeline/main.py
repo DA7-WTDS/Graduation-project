@@ -30,6 +30,7 @@ from pydantic import BaseModel
 from core.data_provider import get_provider
 from core.features import compute_features
 from core.lstm import LSTMBackbone
+from core.quality_gates import run_quality_gates
 from risk_rules import apply_risk_rules
 
 warnings.filterwarnings("ignore")
@@ -146,9 +147,13 @@ class ScoreRecord(BaseModel):
 
 
 class ScoreResponse(BaseModel):
-    generated_at: str
-    count:        int
-    records:      list[ScoreRecord]
+    generated_at:  str
+    count:         int
+    records:       list[ScoreRecord]
+    # Data-quality gate outcome (§ 6.2). "quarantined" runs are persisted by the
+    # backend for audit but never served to the optimizer or users.
+    status:        Literal["ok", "quarantined"] = "ok"
+    gate_failures: list[str] = []
 
 
 # LSTM DEFINITION lives in core/lstm.py (shared with training).
@@ -645,10 +650,34 @@ def score():
         for r in enriched
     ]
 
+    # Data-quality gates (§ 6.2): run between scoring and ingest. A failing run
+    # still ships — flagged quarantined so the backend persists it for audit
+    # while keeping it invisible to the optimizer and users.
+    last_price_date = None
+    for frame in ticker_frames.values():
+        if frame is not None and len(frame) > 0:
+            frame_max = frame.index.max()
+            frame_max = frame_max.date() if hasattr(frame_max, "date") else frame_max
+            if last_price_date is None or frame_max > last_price_date:
+                last_price_date = frame_max
+
+    gate_report = run_quality_gates(
+        records=[r.model_dump() for r in records],
+        universe_size=len(tickers),
+        last_price_date=last_price_date,
+        config=_provider.config,
+    )
+    for check in gate_report.checks:
+        log.info(f"quality gate [{'PASS' if check.passed else 'FAIL'}] {check.name}: {check.detail}")
+    if not gate_report.passed:
+        log.error(f"Quality gates FAILED — run will ship as quarantined: {gate_report.failures}")
+
     response = ScoreResponse(
-        generated_at = datetime.now(timezone.utc).isoformat(),
-        count        = len(records),
-        records      = records,
+        generated_at  = datetime.now(timezone.utc).isoformat(),
+        count         = len(records),
+        records       = records,
+        status        = "ok" if gate_report.passed else "quarantined",
+        gate_failures = gate_report.failures,
     )
 
     # Persist a copy of the exact response JSON beside this file (overwritten each run).

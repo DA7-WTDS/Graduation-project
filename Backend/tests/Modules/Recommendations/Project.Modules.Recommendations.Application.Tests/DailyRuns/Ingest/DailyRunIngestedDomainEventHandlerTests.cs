@@ -31,17 +31,20 @@ public class DailyRunIngestedDomainEventHandlerTests
     public async Task HandleAsync_Should_PublishIntegrationEvent()
     {
         // Arrange
-        var domainEvent = new DailyRunIngestedDomainEvent(Guid.NewGuid(), DateTime.UtcNow, Guid.NewGuid(), DateTime.UtcNow);
+        var domainEvent = new DailyRunIngestedDomainEvent(
+            Guid.NewGuid(), DateTime.UtcNow, Guid.NewGuid(), DateTime.UtcNow, "Quarantined", "coverage too low");
 
         // Act
         await _handler.HandleAsync(domainEvent, CancellationToken.None);
 
         // Assert
         await _eventBus.Received(1).PublishAsync(
-            Arg.Is<DailyRunIngestedIntegrationEvent>(e => 
+            Arg.Is<DailyRunIngestedIntegrationEvent>(e =>
                 e.Id == domainEvent.Id &&
                 e.DailyRunId == domainEvent.DailyRunId &&
-                e.GeneratedAt == domainEvent.GeneratedAt), 
+                e.GeneratedAt == domainEvent.GeneratedAt &&
+                e.Status == "Quarantined" &&
+                e.StatusReason == "coverage too low"),
             Arg.Any<CancellationToken>());
     }
 
@@ -49,7 +52,8 @@ public class DailyRunIngestedDomainEventHandlerTests
     public async Task HandleAsync_Should_Throw_WhenPublishFails()
     {
         // Arrange
-        var domainEvent = new DailyRunIngestedDomainEvent(Guid.NewGuid(), DateTime.UtcNow, Guid.NewGuid(), DateTime.UtcNow);
+        var domainEvent = new DailyRunIngestedDomainEvent(
+            Guid.NewGuid(), DateTime.UtcNow, Guid.NewGuid(), DateTime.UtcNow, "Published", null);
         var expectedException = new Exception("EventBus error");
 
         _eventBus.PublishAsync(Arg.Any<IIntegrationEvent>(), Arg.Any<CancellationToken>())

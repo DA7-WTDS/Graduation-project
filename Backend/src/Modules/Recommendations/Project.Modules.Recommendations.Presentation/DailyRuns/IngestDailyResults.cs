@@ -29,8 +29,10 @@ internal sealed class IngestDailyResults : IEndpoint
                 return Results.Problem(title: "Unauthorized", statusCode: StatusCodes.Status401Unauthorized);
             }
 
+            bool gatesPassed = !string.Equals(request.Status, "quarantined", StringComparison.OrdinalIgnoreCase);
+
             Result<Guid> result = await sender.Send(
-                new IngestDailyRunCommand(request.GeneratedAt, request.Records));
+                new IngestDailyRunCommand(request.GeneratedAt, request.Records, gatesPassed, request.GateFailures));
 
             return result.Match(
                 runId => Results.Ok(new { runId, request.Count }),
@@ -50,5 +52,9 @@ internal sealed class IngestDailyResults : IEndpoint
         [JsonPropertyName("generated_at")] public DateTime GeneratedAt { get; init; }
         [JsonPropertyName("count")] public int Count { get; init; }
         [JsonPropertyName("records")] public List<PredictionRecordDto> Records { get; init; } = [];
+
+        // § 6.2 quality-gate verdict ("ok" | "quarantined"); absent = ok.
+        [JsonPropertyName("status")] public string Status { get; init; } = "ok";
+        [JsonPropertyName("gate_failures")] public List<string> GateFailures { get; init; } = [];
     }
 }

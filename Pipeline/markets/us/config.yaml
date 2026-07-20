@@ -16,3 +16,12 @@ universe:
 fetch:
   period: 6mo
   interval: 1d
+
+# Data-quality gates (§ 6.2) — a run failing any check ships as `quarantined`:
+# persisted for audit, invisible to the optimizer and users.
+quality:
+  min_coverage: 0.60             # scored tickers >= 60% of universe
+  max_staleness_trading_days: 1  # newest close may lag by <= 1 trading session
+  max_abs_change_pct: 25.0       # no 30d prediction beyond +/-25%
+  min_feature_coverage: 0.80     # rsi_14 + pct_vs_sma50 non-null on >= 80%
+  sentiment_required: true       # at least one record with analyst/news data

@@ -20,3 +20,12 @@ universe:
 fetch:
   period: 6mo
   interval: 1d
+
+# Data-quality gates (§ 6.2). EGX starts stricter on coverage (thin-liquidity
+# names drop out often) and looser on sentiment (no Arabic feed at launch).
+quality:
+  min_coverage: 0.70
+  max_staleness_trading_days: 1
+  max_abs_change_pct: 20.0       # EGX has 10-20% daily price limits
+  min_feature_coverage: 0.80
+  sentiment_required: false

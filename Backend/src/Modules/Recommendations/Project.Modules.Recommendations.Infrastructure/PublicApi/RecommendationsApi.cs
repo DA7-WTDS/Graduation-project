@@ -12,8 +12,11 @@ internal sealed class RecommendationsApi(RecommendationsDbContext dbContext) : I
 {
     public async Task<Guid?> GetLatestDailyRunIdAsync(CancellationToken cancellationToken = default)
     {
+        // Published-only (§ 6.2): the optimizer never sees a quarantined,
+        // pending or rolled-back run.
         var latestRun = await dbContext.DailyRuns
             .AsNoTracking()
+            .Where(r => r.Status == Domain.DailyRuns.DailyRunStatus.Published)
             .OrderByDescending(r => r.GeneratedAt)
             .Select(r => (Guid?)r.Id)
             .FirstOrDefaultAsync(cancellationToken);

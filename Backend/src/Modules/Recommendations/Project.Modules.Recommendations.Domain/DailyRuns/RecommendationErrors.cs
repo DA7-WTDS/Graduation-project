@@ -25,4 +25,12 @@ public static class RecommendationErrors
     public static Error Unauthorized =>
         new Error("Invalid or missing pipeline key.")
             .WithErrorType(ErrorType.Unauthorized);
+
+    public static Error RunNotFound(Guid runId) =>
+        new Error($"Daily run {runId} was not found.")
+            .WithErrorType(ErrorType.NotFound);
+
+    public static Error InvalidStatusTransition(DailyRunStatus from, DailyRunStatus to) =>
+        new Error($"Cannot move a daily run from {from} to {to}.")
+            .WithErrorType(ErrorType.Validation);
 }

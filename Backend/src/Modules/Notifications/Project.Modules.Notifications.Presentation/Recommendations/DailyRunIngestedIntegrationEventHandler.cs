@@ -5,77 +5,77 @@ using Microsoft.Extensions.Logging;
 using Project.Common.Application.EventBus;
 using Project.Modules.Notifications.Application.Notifications.CreateNotification;
 using Project.Modules.Notifications.Domain.Notifications;
-using Project.Modules.Portfolio.PublicApi;
 using Project.Modules.Recommendations.IntegrationEvents;
 using Project.Modules.Users.PublicApi;
 
 namespace Project.Modules.Notifications.Presentation.Recommendations;
 
 /// <summary>
-/// Fans out a personalized "new recommendations are ready" notification to every
-/// user with a portfolio whenever the Recommendations module ingests a fresh
-/// daily run from the pipeline.
+/// § 6.2 ops alert: when a run lands anywhere other than Published (quarantined
+/// by the quality gates, or pending manual approval), every Admin user gets a
+/// notification so a human reviews it. User-facing fanout lives in
+/// <see cref="DailyRunPublishedIntegrationEventHandler"/>.
 /// </summary>
 public sealed class DailyRunIngestedIntegrationEventHandler(
     ISender sender,
-    IPortfolioApi portfolioApi,
     IUsersApi usersApi,
     ILogger<DailyRunIngestedIntegrationEventHandler> logger)
     : IntegrationEventHandler<DailyRunIngestedIntegrationEvent>
 {
     public override async Task Handle(DailyRunIngestedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<Guid> userIds = await portfolioApi.GetProfiledUserIdsAsync(cancellationToken);
-
-        if (userIds.Count == 0)
+        if (string.Equals(integrationEvent.Status, "Published", StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogInformation("DailyRunIngested {DailyRunId}: no profiled users to notify.", integrationEvent.DailyRunId);
+            // Clean auto-published run — the Published event drives the user fanout.
             return;
         }
 
+        bool quarantined = string.Equals(integrationEvent.Status, "Quarantined", StringComparison.OrdinalIgnoreCase);
         string runDate = integrationEvent.GeneratedAt.ToString("MMMM d", CultureInfo.InvariantCulture);
-        int notified = 0;
 
-        foreach (Guid userId in userIds)
+        string title = quarantined
+            ? "Daily run QUARANTINED — data-quality gates failed"
+            : "Daily run pending review";
+
+        string message = quarantined
+            ? $"The {runDate} pipeline run failed quality gates and was quarantined: " +
+              $"{integrationEvent.StatusReason ?? "no reason recorded"}. It is invisible to users. " +
+              $"Review it and publish or leave it quarantined (run {integrationEvent.DailyRunId})."
+            : $"The {runDate} pipeline run passed quality gates and is awaiting manual approval " +
+              $"(run {integrationEvent.DailyRunId}). Users keep seeing the previous published run until you publish it.";
+
+        IReadOnlyList<Guid> adminIds = await usersApi.GetAdminUserIdsAsync(cancellationToken);
+
+        if (adminIds.Count == 0)
         {
-            try
+            logger.LogWarning(
+                "DailyRunIngested {DailyRunId} landed as {Status} but there are no Admin users to alert. Reason: {Reason}",
+                integrationEvent.DailyRunId, integrationEvent.Status, integrationEvent.StatusReason);
+            return;
+        }
+
+        int notified = 0;
+        foreach (Guid adminId in adminIds)
+        {
+            Result<Guid> result = await sender.Send(new CreateNotificationCommand(
+                adminId,
+                title,
+                message,
+                NotificationType.Warning), cancellationToken);
+
+            if (result.IsFailed)
             {
-                MonitoringProfileResponse? profile = await portfolioApi.GetMonitoringProfileAsync(userId, cancellationToken);
-                if (profile is null)
-                {
-                    continue;
-                }
-
-                UserResponse? user = await usersApi.GetAsync(userId, cancellationToken);
-                string firstName = string.IsNullOrWhiteSpace(user?.FirstName) ? "there" : user!.FirstName;
-
-                string message =
-                    $"Hi {firstName}, your fresh {profile.RiskProfile}-tuned picks for {runDate} are ready. " +
-                    "Open your dashboard to see what to buy, hold, or sell today.";
-
-                Result<Guid> result = await sender.Send(new CreateNotificationCommand(
-                    userId,
-                    "New recommendations are ready",
-                    message,
-                    NotificationType.Info), cancellationToken);
-
-                if (result.IsFailed)
-                {
-                    logger.LogError("Failed to create recommendations notification for user {UserId}: {Error}",
-                        userId, result.Errors[0].Message);
-                }
-                else
-                {
-                    notified++;
-                }
+                logger.LogError("Failed to create ops alert for admin {AdminId}: {Error}",
+                    adminId, result.Errors[0].Message);
             }
-            catch (Exception ex)
+            else
             {
-                logger.LogError(ex, "Exception creating recommendations notification for user {UserId}", userId);
+                notified++;
             }
         }
 
-        logger.LogInformation("DailyRunIngested {DailyRunId}: notified {Count}/{Total} users.",
-            integrationEvent.DailyRunId, notified, userIds.Count);
+        logger.LogInformation(
+            "DailyRunIngested {DailyRunId} ({Status}): ops alert sent to {Count}/{Total} admins.",
+            integrationEvent.DailyRunId, integrationEvent.Status, notified, adminIds.Count);
     }
 }

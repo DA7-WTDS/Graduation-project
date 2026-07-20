@@ -25,7 +25,7 @@ public class GetLatestPredictionsQueryHandlerTests
     [Fact]
     public async Task Handle_Should_ReturnFailure_WhenNoRun()
     {
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>()).Returns((DailyRun)null);
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>()).Returns((DailyRun)null);
 
         var result = await _handler.Handle(new GetLatestPredictionsQuery(), CancellationToken.None);
 
@@ -36,7 +36,7 @@ public class GetLatestPredictionsQueryHandlerTests
     public async Task Handle_Should_ReturnFailure_WhenRunHasNoPredictions()
     {
         var run = DailyRun.Create(DateTime.UtcNow, new List<StockPrediction>());
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>()).Returns(run);
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>()).Returns(run);
 
         var result = await _handler.Handle(new GetLatestPredictionsQuery(), CancellationToken.None);
 
@@ -51,7 +51,7 @@ public class GetLatestPredictionsQueryHandlerTests
             Prediction("LOWC", 0.40),
             Prediction("HIGHC", 0.95),
         });
-        _dailyRunRepository.GetLatestAsync(true, Arg.Any<CancellationToken>()).Returns(run);
+        _dailyRunRepository.GetLatestPublishedAsync(true, Arg.Any<CancellationToken>()).Returns(run);
 
         var result = await _handler.Handle(new GetLatestPredictionsQuery(), CancellationToken.None);
 

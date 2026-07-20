@@ -1,7 +1,9 @@
 using FluentResults;
+using Microsoft.Extensions.Options;
 using Project.Common.Application.Messaging;
 using Project.Modules.Recommendations.Application.Abstractions.Data;
 using Project.Modules.Recommendations.Application.Abstractions.DailyRuns;
+using Project.Modules.Recommendations.Application.Configuration;
 using Project.Modules.Recommendations.Domain.DailyRuns;
 using static Project.Modules.Recommendations.Domain.DailyRuns.RecommendationErrors;
 
@@ -9,6 +11,7 @@ namespace Project.Modules.Recommendations.Application.DailyRuns.Ingest;
 
 internal sealed class IngestDailyRunCommandHandler(
     IDailyRunRepository dailyRunRepository,
+    IOptions<IngestOptions> ingestOptions,
     IUnitOfWork unitOfWork)
     : ICommandHandler<IngestDailyRunCommand, Guid>
 {
@@ -55,7 +58,25 @@ internal sealed class IngestDailyRunCommandHandler(
             r.Rsi14,
             r.PctVsSma50));
 
-        DailyRun run = DailyRun.Create(generatedAtUtc, predictions);
+        // § 6.2 landing state: failed gates always quarantine; clean runs either
+        // publish immediately or wait for an operator, per RequireManualApproval.
+        DailyRunStatus status;
+        string? statusReason = null;
+        if (!request.GatesPassed)
+        {
+            status = DailyRunStatus.Quarantined;
+            statusReason = request.GateFailures is { Count: > 0 }
+                ? string.Join("; ", request.GateFailures)
+                : "Pipeline quality gates failed.";
+        }
+        else
+        {
+            status = ingestOptions.Value.RequireManualApproval
+                ? DailyRunStatus.PendingReview
+                : DailyRunStatus.Published;
+        }
+
+        DailyRun run = DailyRun.Create(generatedAtUtc, predictions, status, statusReason);
 
         await dailyRunRepository.AddAsync(run, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

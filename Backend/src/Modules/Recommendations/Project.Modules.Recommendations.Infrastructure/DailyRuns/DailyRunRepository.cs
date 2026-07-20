@@ -7,7 +7,7 @@ namespace Project.Modules.Recommendations.Infrastructure.DailyRuns;
 
 internal sealed class DailyRunRepository(RecommendationsDbContext dbContext) : IDailyRunRepository
 {
-    public async Task<DailyRun?> GetLatestAsync(bool includePredictions = false, CancellationToken cancellationToken = default)
+    public async Task<DailyRun?> GetLatestPublishedAsync(bool includePredictions = false, CancellationToken cancellationToken = default)
     {
         IQueryable<DailyRun> query = dbContext.DailyRuns.AsNoTracking();
 
@@ -16,15 +16,32 @@ internal sealed class DailyRunRepository(RecommendationsDbContext dbContext) : I
             query = query.Include(r => r.Predictions);
         }
 
+        // The one WHERE clause that makes the whole system kill-switch-aware (§ 6.2).
         return await query
+            .Where(r => r.Status == DailyRunStatus.Published)
             .OrderByDescending(r => r.GeneratedAt)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<DailyRun?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.DailyRuns
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
     public async Task<DailyRun?> GetByGeneratedAtAsync(DateTime generatedAt, CancellationToken cancellationToken = default)
     {
         return await dbContext.DailyRuns
             .FirstOrDefaultAsync(r => r.GeneratedAt == generatedAt, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DailyRun>> GetRecentAsync(int take, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.DailyRuns
+            .AsNoTracking()
+            .OrderByDescending(r => r.GeneratedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<DailyRun> AddAsync(DailyRun entity, CancellationToken cancellationToken = default)

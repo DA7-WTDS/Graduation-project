@@ -6,5 +6,7 @@ public sealed record DailyRunIngestedIntegrationEvent(
     Guid Id,
     DateTime OccurredOnUtc,
     Guid DailyRunId,
-    DateTime GeneratedAt
+    DateTime GeneratedAt,
+    string Status,
+    string? StatusReason
 ) : IntegrationEvent(Id, OccurredOnUtc);

@@ -11,7 +11,7 @@ internal sealed class GetLatestPredictionsQueryHandler(IDailyRunRepository daily
 {
     public async Task<Result<PredictionsResponse>> Handle(GetLatestPredictionsQuery request, CancellationToken cancellationToken)
     {
-        DailyRun? run = await dailyRunRepository.GetLatestAsync(includePredictions: true, cancellationToken);
+        DailyRun? run = await dailyRunRepository.GetLatestPublishedAsync(includePredictions: true, cancellationToken);
         if (run is null || run.Predictions.Count == 0)
         {
             return Result.Fail(NoRunAvailable);
