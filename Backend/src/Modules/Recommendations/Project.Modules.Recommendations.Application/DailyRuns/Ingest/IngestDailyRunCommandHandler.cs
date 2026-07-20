@@ -56,7 +56,11 @@ internal sealed class IngestDailyRunCommandHandler(
             r.RiskFlags,
             r.Rationale,
             r.Rsi14,
-            r.PctVsSma50));
+            r.PctVsSma50,
+            // Stored verbatim as jsonb; the backend never interprets its shape.
+            r.Features?.GetRawText(),
+            r.ModelVersion,
+            r.ScalerHash));
 
         // § 6.2 landing state: failed gates always quarantine; clean runs either
         // publish immediately or wait for an operator, per RequireManualApproval.

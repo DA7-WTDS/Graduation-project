@@ -30,6 +30,16 @@ public static class RecommendationErrors
         new Error($"Daily run {runId} was not found.")
             .WithErrorType(ErrorType.NotFound);
 
+    public static Error PredictionNotFound(Guid predictionId) =>
+        new Error($"Prediction {predictionId} was not found.")
+            .WithErrorType(ErrorType.NotFound);
+
+    // Problem, not Validation: this is not a field error, and the caller needs to
+    // read *why* the audit cannot run (Validation hides the message by design).
+    public static Error PredictionNotReproducible(Guid predictionId) =>
+        new Error($"Prediction {predictionId} has no stored feature snapshot — it predates § 6.3 audit capture.")
+            .WithErrorType(ErrorType.Problem);
+
     public static Error InvalidStatusTransition(DailyRunStatus from, DailyRunStatus to) =>
         new Error($"Cannot move a daily run from {from} to {to}.")
             .WithErrorType(ErrorType.Validation);

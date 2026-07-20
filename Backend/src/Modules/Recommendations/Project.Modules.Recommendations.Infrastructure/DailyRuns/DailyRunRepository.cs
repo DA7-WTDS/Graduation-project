@@ -44,6 +44,16 @@ internal sealed class DailyRunRepository(RecommendationsDbContext dbContext) : I
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PredictionAudit?> GetPredictionForAuditAsync(Guid predictionId, CancellationToken cancellationToken = default)
+    {
+        return await (
+            from p in dbContext.StockPredictions.AsNoTracking()
+            join r in dbContext.DailyRuns.AsNoTracking() on p.DailyRunId equals r.Id
+            where p.Id == predictionId
+            select new PredictionAudit(p, r.GeneratedAt, r.Status.ToString()))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<DailyRun> AddAsync(DailyRun entity, CancellationToken cancellationToken = default)
     {
         var result = await dbContext.DailyRuns.AddAsync(entity, cancellationToken);

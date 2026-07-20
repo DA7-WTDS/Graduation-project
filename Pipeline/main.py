@@ -6,6 +6,7 @@
 # nn.LSTM's oneDNN kernel is non-deterministic off the main thread; disabling it
 # forces the thread-safe native RNN path.
 
+import hashlib
 import json
 import logging
 import os
@@ -72,6 +73,28 @@ MC_SEED      = 1234
 Z_REF        = 1.0
 MC_STD_REF   = 0.015
 
+# Feature-vector snapshotting (§ 6.3). Model identity is content-addressed —
+# hashed from the artifacts actually loaded — so it can never drift out of sync
+# with a hand-maintained version string. Scalers are hashed separately because a
+# scaler swap invalidates stored vectors even when the model is unchanged.
+SNAPSHOT_SCHEMA  = 1
+SNAPSHOT_DECIMALS = 6  # scaled features live in ~[-3,3]; 6dp reproduces to 4dp output
+
+
+def _sha256_files(*paths: Path, length: int = 16) -> str:
+    h = hashlib.sha256()
+    for p in sorted(paths, key=lambda x: x.name):
+        try:
+            h.update(p.read_bytes())
+        except OSError as e:
+            log.warning(f"hash: could not read {p.name} — {e}")
+            h.update(p.name.encode())
+    return h.hexdigest()[:length]
+
+
+MODEL_VERSION = _sha256_files(LSTM_PATH, XGB_PATH, CONFIG_PATH)
+SCALER_HASH   = _sha256_files(FEATURE_SCALER_PATH, TECH_SCALER_PATH, TARGET_STATS_PATH)
+
 # Serialises LSTM train()/eval() toggle during MC-dropout across concurrent requests.
 _model_lock = threading.Lock()
 
@@ -102,6 +125,10 @@ class TickerPrediction(BaseModel):
     # Tactical dip-buyer inputs (§ 3.4): oversold state at prediction time.
     rsi_14:        float | None = None
     pct_vs_sma50:  float | None = None
+    # Audit snapshot (§ 6.3): the exact scaled inputs + artifact identity.
+    features:      dict | None = None
+    model_version: str | None = None
+    scaler_hash:   str | None = None
 
 
 class TickerSentiment(BaseModel):
@@ -144,6 +171,10 @@ class ScoreRecord(BaseModel):
     rationale:        str
     rsi_14:           float | None = None
     pct_vs_sma50:     float | None = None
+    # Audit snapshot (§ 6.3) — carried through to the backend for storage.
+    features:         dict | None = None
+    model_version:    str | None = None
+    scaler_hash:      str | None = None
 
 
 class ScoreResponse(BaseModel):
@@ -217,6 +248,57 @@ _state = _AppState()
 
 # PREDICTION — LSTM + XGBoost
 
+def _infer(lstm_window: np.ndarray, tech_last: np.ndarray) -> tuple[str, float, float]:
+    """Deterministic inference core: scaled model inputs -> (direction, change_pct, confidence).
+
+    Shared by live scoring and the § 6.3 reproduce endpoint, so an audit exercises
+    the *exact* code path that produced the original prediction rather than a
+    reimplementation that could silently drift.
+
+    `lstm_window` is [LOOK_BACK, len(FEATURE_COLS)] and `tech_last` is
+    [1, len(TECH_COLS)] — both already scaled by the fitted scalers.
+    """
+    lstm_input = torch.tensor(lstm_window, dtype=torch.float32).unsqueeze(0)
+
+    with torch.no_grad():
+        _, hidden = _state.lstm(lstm_input)
+    z_pred = float(_state.xgb_model.predict(np.concatenate([hidden.numpy(), tech_last], axis=1))[0])
+    raw_pred = z_pred * _state.target_stats["std"] + _state.target_stats["mean"]
+
+    direction  = "UP" if raw_pred > 0 else "DOWN"
+    change_pct = round(raw_pred * 100, 4)
+
+    signal_strength = min(abs(z_pred) / Z_REF, 1.0)
+
+    mc = []
+    with _model_lock:
+        torch.manual_seed(MC_SEED)
+        _state.lstm.train()
+        try:
+            lstm_input_batched = lstm_input.repeat(MC_SAMPLES, 1, 1)   # [30, 60, 5]
+            with torch.no_grad():
+                _, hiddens = _state.lstm(lstm_input_batched)            # single batched pass
+            tech_lasts = np.repeat(tech_last, MC_SAMPLES, axis=0)
+            xgb_inputs = np.concatenate([hiddens.numpy(), tech_lasts], axis=1)
+            preds_z    = _state.xgb_model.predict(xgb_inputs)
+            mc = (preds_z * _state.target_stats["std"] + _state.target_stats["mean"]).tolist()
+        finally:
+            _state.lstm.eval()
+    mc_std = float(np.std(mc)) if mc else 0.0
+    if mc_std < 1e-6:
+        # MC-dropout is a no-op for single-layer LSTM (dropout=0.0 on 1 layer)
+        log.debug("MC samples are identical (single-layer LSTM, dropout inactive). Stability fixed at 1.0.")
+    stability = float(np.exp(-mc_std / MC_STD_REF))
+
+    data_quality = float(
+        0.5 * (np.abs(lstm_window) <= 1.0).mean()
+        + 0.5 * (np.abs(tech_last) <= 1.0).mean()
+    )
+    confidence = round(float(np.sqrt(signal_strength * stability) * data_quality), 4)
+
+    return direction, change_pct, confidence
+
+
 def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPrediction | None:
     """Run LSTM+XGBoost inference for a single ticker. Returns None on any failure."""
     try:
@@ -252,47 +334,18 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
         tech_scaled    = _state.tech_scaler.transform(df[TECH_COLS].values)
 
         lstm_window = feature_scaled[-LOOK_BACK:]
-        lstm_input  = torch.tensor(lstm_window, dtype=torch.float32).unsqueeze(0)
         tech_last   = tech_scaled[-1].reshape(1, -1)
 
-        def _z_from(hidden_np):
-            return float(_state.xgb_model.predict(np.concatenate([hidden_np, tech_last], axis=1))[0])
+        direction, change_pct, confidence = _infer(lstm_window, tech_last)
 
-        with torch.no_grad():
-            _, hidden = _state.lstm(lstm_input)
-        z_pred   = _z_from(hidden.numpy())
-        raw_pred = z_pred * _state.target_stats["std"] + _state.target_stats["mean"]
-
-        direction  = "UP" if raw_pred > 0 else "DOWN"
-        change_pct = round(raw_pred * 100, 4)
-
-        signal_strength = min(abs(z_pred) / Z_REF, 1.0)
-
-        mc = []
-        with _model_lock:
-            torch.manual_seed(MC_SEED)
-            _state.lstm.train()
-            try:
-                lstm_input_batched = lstm_input.repeat(MC_SAMPLES, 1, 1)   # [30, 60, 5]
-                with torch.no_grad():
-                    _, hiddens = _state.lstm(lstm_input_batched)            # single batched pass
-                tech_lasts = np.repeat(tech_last, MC_SAMPLES, axis=0)
-                xgb_inputs = np.concatenate([hiddens.numpy(), tech_lasts], axis=1)
-                preds_z    = _state.xgb_model.predict(xgb_inputs)
-                mc = (preds_z * _state.target_stats["std"] + _state.target_stats["mean"]).tolist()
-            finally:
-                _state.lstm.eval()
-        mc_std    = float(np.std(mc)) if mc else 0.0
-        if mc_std < 1e-6:
-            # MC-dropout is a no-op for single-layer LSTM (dropout=0.0 on 1 layer)
-            log.debug(f"{ticker}: MC samples are identical (single-layer LSTM, dropout inactive). Stability fixed at 1.0.")
-        stability = float(np.exp(-mc_std / MC_STD_REF))
-
-        data_quality = float(
-            0.5 * (np.abs(lstm_window) <= 1.0).mean()
-            + 0.5 * (np.abs(tech_last) <= 1.0).mean()
-        )
-        confidence = round(float(np.sqrt(signal_strength * stability) * data_quality), 4)
+        # Feature snapshot (§ 6.3): the exact scaled inputs this prediction was
+        # made from. Stored so any prediction can be re-run and audited later —
+        # impossible to reconstruct after the fact, so it is captured here.
+        features = {
+            "v":           SNAPSHOT_SCHEMA,
+            "lstm_window": np.round(lstm_window, SNAPSHOT_DECIMALS).tolist(),
+            "tech_last":   np.round(tech_last[0], SNAPSHOT_DECIMALS).tolist(),
+        }
 
         # Tactical dip-buyer inputs (§ 3.4): last RSI-14 (already in the feature
         # frame) and distance from the 50-DMA. Best effort — never fails a prediction.
@@ -308,13 +361,16 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
             log.debug(f"{ticker}: tactical signals unavailable — {tac_err}")
 
         return TickerPrediction(
-            ticker       = ticker,
-            direction    = direction,
-            change_pct   = change_pct,
-            confidence   = confidence,
-            predicted_at = datetime.now(timezone.utc).isoformat(),
-            rsi_14       = rsi_14,
-            pct_vs_sma50 = pct_vs_sma50,
+            ticker        = ticker,
+            direction     = direction,
+            change_pct    = change_pct,
+            confidence    = confidence,
+            predicted_at  = datetime.now(timezone.utc).isoformat(),
+            rsi_14        = rsi_14,
+            pct_vs_sma50  = pct_vs_sma50,
+            features      = features,
+            model_version = MODEL_VERSION,
+            scaler_hash   = SCALER_HASH,
         )
 
     except Exception as e:
@@ -537,6 +593,98 @@ def instrument_stats(req: InstrumentStatsRequest):
     )
 
 
+class ReproduceRequest(BaseModel):
+    """A stored § 6.3 snapshot, replayed."""
+    features:      dict
+    model_version: str | None = None
+    scaler_hash:   str | None = None
+    # Originally-served values, if the caller wants an equality verdict.
+    expected_direction:  str | None = None
+    expected_change_pct: float | None = None
+    expected_confidence: float | None = None
+
+
+class ReproduceResponse(BaseModel):
+    direction:   str
+    change_pct:  float
+    confidence:  float
+    # Artifact identity now vs at prediction time.
+    model_version:         str
+    scaler_hash:           str
+    model_version_matches: bool | None = None
+    scaler_hash_matches:   bool | None = None
+    # Null when the caller supplied nothing to compare against.
+    matches:     bool | None = None
+    mismatches:  list[str] = []
+
+
+@app.post("/api/reproduce", response_model=ReproduceResponse)
+def reproduce(req: ReproduceRequest):
+    """Re-run inference on a stored feature snapshot (IMPLEMENTATION_PLAN § 6.3).
+
+    This is the audit answer and the debugging tool in one: it replays the exact
+    scaled inputs through `_infer` — the same function live scoring uses — so a
+    mismatch means something really did change, not that an audit path drifted.
+
+    A differing `model_version` is reported rather than rejected: reproducing an
+    old prediction under today's artifacts is exactly how you demonstrate what a
+    model change did.
+    """
+    if _state.lstm is None:
+        raise HTTPException(status_code=503, detail="Models not loaded yet.")
+
+    f = req.features or {}
+    if f.get("v") != SNAPSHOT_SCHEMA:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported snapshot schema {f.get('v')!r}; this build reads v{SNAPSHOT_SCHEMA}.")
+
+    try:
+        lstm_window = np.asarray(f["lstm_window"], dtype=np.float64)
+        tech_last   = np.asarray(f["tech_last"], dtype=np.float64).reshape(1, -1)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Malformed snapshot: {e}")
+
+    expected_shape = (LOOK_BACK, len(FEATURE_COLS))
+    if lstm_window.shape != expected_shape:
+        raise HTTPException(
+            status_code=400,
+            detail=f"lstm_window is {lstm_window.shape}, expected {expected_shape}.")
+    if tech_last.shape[1] != len(TECH_COLS):
+        raise HTTPException(
+            status_code=400,
+            detail=f"tech_last has {tech_last.shape[1]} features, expected {len(TECH_COLS)}.")
+
+    direction, change_pct, confidence = _infer(lstm_window, tech_last)
+
+    mismatches: list[str] = []
+    compared = False
+    if req.expected_direction is not None:
+        compared = True
+        if req.expected_direction != direction:
+            mismatches.append(f"direction: stored {req.expected_direction}, recomputed {direction}")
+    if req.expected_change_pct is not None:
+        compared = True
+        if abs(req.expected_change_pct - change_pct) > 1e-4:
+            mismatches.append(f"change_pct: stored {req.expected_change_pct}, recomputed {change_pct}")
+    if req.expected_confidence is not None:
+        compared = True
+        if abs(req.expected_confidence - confidence) > 1e-4:
+            mismatches.append(f"confidence: stored {req.expected_confidence}, recomputed {confidence}")
+
+    return ReproduceResponse(
+        direction             = direction,
+        change_pct            = change_pct,
+        confidence            = confidence,
+        model_version         = MODEL_VERSION,
+        scaler_hash           = SCALER_HASH,
+        model_version_matches = None if req.model_version is None else req.model_version == MODEL_VERSION,
+        scaler_hash_matches   = None if req.scaler_hash is None else req.scaler_hash == SCALER_HASH,
+        matches               = (not mismatches) if compared else None,
+        mismatches            = mismatches,
+    )
+
+
 @app.post("/api/score", response_model=ScoreResponse)
 def score():
     if _state.lstm is None:
@@ -646,6 +794,9 @@ def score():
             rationale        = r["rationale"],
             rsi_14           = r.get("rsi_14"),
             pct_vs_sma50     = r.get("pct_vs_sma50"),
+            features         = r.get("features"),
+            model_version    = r.get("model_version"),
+            scaler_hash      = r.get("scaler_hash"),
         )
         for r in enriched
     ]

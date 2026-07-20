@@ -20,7 +20,17 @@ internal sealed class StockPredictionConfiguration : IEntityTypeConfiguration<St
         builder.Property(p => p.Rationale).IsRequired();
         builder.Property(p => p.RiskFlags).HasColumnType("text[]");
 
+        // Audit snapshot (§ 6.3). ~3.4 KB/prediction; jsonb keeps it queryable
+        // if we ever need to mine stored inputs. Ignore the derived flag.
+        builder.Property(p => p.FeaturesJson).HasColumnType("jsonb");
+        builder.Property(p => p.ModelVersion).HasMaxLength(64);
+        builder.Property(p => p.ScalerHash).HasMaxLength(64);
+        builder.Ignore(p => p.IsReproducible);
+
         builder.HasIndex(p => p.Ticker);
         builder.HasIndex(p => p.RiskLevel);
+        // Answers "which predictions came from artifact X?" — the question you
+        // ask the moment a model change is suspected.
+        builder.HasIndex(p => p.ModelVersion);
     }
 }

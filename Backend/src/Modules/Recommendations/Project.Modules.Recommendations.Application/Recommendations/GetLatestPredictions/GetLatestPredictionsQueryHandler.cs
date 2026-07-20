@@ -20,6 +20,7 @@ internal sealed class GetLatestPredictionsQueryHandler(IDailyRunRepository daily
         var predictions = run.Predictions
             .OrderByDescending(p => p.ConvictionScore)
             .Select(p => new PredictionItem(
+                p.Id,
                 p.Ticker,
                 p.Direction,
                 p.ChangePct,

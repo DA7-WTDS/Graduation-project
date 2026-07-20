@@ -33,6 +33,17 @@ public sealed class StockPrediction : Entity
     public double? Rsi14 { get; private set; }
     public double? PctVsSma50 { get; private set; }
 
+    // Audit snapshot (§ 6.3): the exact scaled inputs this prediction was made
+    // from (jsonb, opaque to the backend) and the artifacts that produced it.
+    // Nullable — predictions ingested before § 6.3 have no snapshot, and a
+    // pipeline that fails to emit one must never fail the ingest.
+    public string? FeaturesJson { get; private set; }
+    public string? ModelVersion { get; private set; }
+    public string? ScalerHash { get; private set; }
+
+    /// <summary>True when this prediction carries enough to be re-run and audited.</summary>
+    public bool IsReproducible => FeaturesJson is not null;
+
     public static StockPrediction Create(
         string ticker,
         string direction,
@@ -50,7 +61,10 @@ public sealed class StockPrediction : Entity
         string[] riskFlags,
         string rationale,
         double? rsi14 = null,
-        double? pctVsSma50 = null)
+        double? pctVsSma50 = null,
+        string? featuresJson = null,
+        string? modelVersion = null,
+        string? scalerHash = null)
     {
         return new StockPrediction
         {
@@ -71,7 +85,10 @@ public sealed class StockPrediction : Entity
             RiskFlags = riskFlags ?? [],
             Rationale = rationale,
             Rsi14 = rsi14,
-            PctVsSma50 = pctVsSma50
+            PctVsSma50 = pctVsSma50,
+            FeaturesJson = featuresJson,
+            ModelVersion = modelVersion,
+            ScalerHash = scalerHash
         };
     }
 }

@@ -18,6 +18,7 @@ using Project.Modules.Recommendations.Infrastructure.Database;
 using Project.Modules.Recommendations.Infrastructure.Holdings;
 using Project.Modules.Recommendations.Infrastructure.Llm;
 using Project.Modules.Recommendations.Application.Abstractions.Outcomes;
+using Project.Modules.Recommendations.Application.Abstractions.Pipeline;
 using Project.Modules.Recommendations.Infrastructure.Outbox;
 using Project.Modules.Recommendations.Infrastructure.Inbox;
 using Project.Modules.Recommendations.Infrastructure.Outcomes;
@@ -92,6 +93,14 @@ public static class RecommendationsModule
         // Outcome scorer (IMPLEMENTATION_PLAN § 0.3) — same pipeline base URL, own client.
         services.Configure<OutcomesOptions>(configuration.GetSection("Recommendations:Outcomes"));
         services.AddHttpClient<ScoreOutcomesJob>((sp, client) =>
+        {
+            PipelineOptions o = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
+            client.BaseAddress = new Uri(o.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+        });
+
+        // Prediction audit (§ 6.3) — replays stored feature snapshots.
+        services.AddHttpClient<IPipelineReproducer, PipelineReproducer>((sp, client) =>
         {
             PipelineOptions o = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
             client.BaseAddress = new Uri(o.BaseUrl);

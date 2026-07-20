@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Project.Modules.Recommendations.Application.DailyRuns.Ingest;
@@ -25,4 +26,11 @@ public sealed record PredictionRecordDto
     [JsonPropertyName("rationale")]        public string Rationale { get; init; } = string.Empty;
     [JsonPropertyName("rsi_14")]           public double? Rsi14 { get; init; }
     [JsonPropertyName("pct_vs_sma50")]     public double? PctVsSma50 { get; init; }
+
+    // Audit snapshot (§ 6.3): the exact scaled model inputs plus the identity of
+    // the artifacts that produced this prediction. Kept opaque here — the backend
+    // stores and returns it verbatim; only the pipeline interprets its shape.
+    [JsonPropertyName("features")]         public JsonElement? Features { get; init; }
+    [JsonPropertyName("model_version")]    public string? ModelVersion { get; init; }
+    [JsonPropertyName("scaler_hash")]      public string? ScalerHash { get; init; }
 }

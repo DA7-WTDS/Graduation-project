@@ -6,6 +6,9 @@ public sealed record PredictionsResponse(
     IReadOnlyList<PredictionItem> Predictions);
 
 public sealed record PredictionItem(
+    // Id makes a prediction addressable by the § 6.3 reproduce endpoint —
+    // without it an audit trail exists but cannot be walked.
+    Guid Id,
     string Ticker,
     string Direction,
     double ChangePct,

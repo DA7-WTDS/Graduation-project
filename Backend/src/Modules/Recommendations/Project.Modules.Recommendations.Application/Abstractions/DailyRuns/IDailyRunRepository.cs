@@ -16,4 +16,10 @@ public interface IDailyRunRepository : IRepository<DailyRun>
 
     /// <summary>Most recent runs regardless of status — the operator's review list.</summary>
     Task<IReadOnlyList<DailyRun>> GetRecentAsync(int take, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// One prediction plus its run's timestamp, for § 6.3 audit. Deliberately not
+    /// status-filtered: auditing a quarantined or rolled-back run is the point.
+    /// </summary>
+    Task<PredictionAudit?> GetPredictionForAuditAsync(Guid predictionId, CancellationToken cancellationToken = default);
 }

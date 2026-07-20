@@ -10,6 +10,7 @@ using Npgsql;
 using Project.Modules.Notifications.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Recommendations.Application.Abstractions.Llm;
+using Project.Modules.Recommendations.Application.Abstractions.Pipeline;
 using Project.Modules.Recommendations.Infrastructure.Database;
 using Project.Modules.Users.Infrastructure.Database;
 using Respawn;
@@ -76,6 +77,10 @@ public sealed class IntegrationTestWebAppFactory : WebApplicationFactory<Program
             // Never call the real Gemini API.
             services.RemoveAll<ILlmClient>();
             services.AddSingleton<ILlmClient, FakeLlmClient>();
+
+            // Never call the real pipeline for § 6.3 prediction audits.
+            services.RemoveAll<IPipelineReproducer>();
+            services.AddSingleton<IPipelineReproducer, FakePipelineReproducer>();
 
             // Determinism: no broker, no background jobs writing to the DB mid-test.
             services.RemoveHostedServices("Quartz", "MassTransit");
