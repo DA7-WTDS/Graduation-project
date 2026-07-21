@@ -14,12 +14,14 @@ using Project.Modules.Portfolio.Application.Abstractions.Instruments;
 using Project.Modules.Portfolio.Application.Abstractions.Portfolios;
 using Project.Modules.Portfolio.Application.Abstractions.Proposals;
 using Project.Modules.Portfolio.Application.Abstractions.Strategies;
+using Project.Modules.Portfolio.Application.Abstractions.Shadow;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Goals;
 using Project.Modules.Portfolio.Infrastructure.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.Proposals;
 using Project.Modules.Portfolio.Infrastructure.Strategies;
+using Project.Modules.Portfolio.Infrastructure.Shadow;
 using Project.Modules.Portfolio.Infrastructure.PublicApi;
 using Project.Modules.Portfolio.Infrastructure.Outbox;
 using Project.Modules.Portfolio.Infrastructure.Inbox;
@@ -68,6 +70,7 @@ public static class PortfolioModule
 
         services.AddScoped<IPortfolioProposalRepository, PortfolioProposalRepository>();
         services.AddScoped<IGoalPortfolioRepository, GoalPortfolioRepository>();
+        services.AddScoped<IShadowPortfolioRepository, ShadowPortfolioRepository>();
 
         // Shared goal→optimizer pipeline (draft preview + proposal creation).
         services.AddScoped<Application.Allocation.PortfolioProposalBuilder>();
@@ -87,6 +90,10 @@ public static class PortfolioModule
         services.Configure<PortfolioValuationOptions>(configuration.GetSection("Portfolio:Valuation"));
         services.ConfigureOptions<ConfigurePortfolioDigestJob>();
         services.Configure<PortfolioDigestOptions>(configuration.GetSection("Portfolio:Digest"));
+        services.ConfigureOptions<ConfigureShadowPortfolioJob>();
+        services.Configure<ShadowPortfolioOptions>(configuration.GetSection("Portfolio:Shadow"));
+        services.Configure<Application.Shadow.GetShadowTrackRecord.ShadowTrackRecordOptions>(
+            configuration.GetSection("Portfolio:Shadow"));
 
         // Instrument registry refresh — typed HTTP client against the pipeline
         services.Configure<InstrumentsOptions>(configuration.GetSection("Portfolio:Instruments"));

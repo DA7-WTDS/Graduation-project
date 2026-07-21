@@ -4,12 +4,14 @@ using Project.Modules.Portfolio.Domain.Goals;
 using Project.Modules.Portfolio.Domain.Instruments;
 using Project.Modules.Portfolio.Domain.Strategies;
 using Project.Modules.Portfolio.Domain.Proposals;
+using Project.Modules.Portfolio.Domain.Shadow;
 using Project.Modules.Portfolio.Application.Abstractions.Data;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.Goals;
 using Project.Modules.Portfolio.Infrastructure.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Strategies;
 using Project.Modules.Portfolio.Infrastructure.Proposals;
+using Project.Modules.Portfolio.Infrastructure.Shadow;
 using Project.Common.Infrastructure.Outbox;
 using Project.Common.Infrastructure.Inbox;
 
@@ -25,6 +27,8 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
     internal DbSet<StrategyTemplate> StrategyTemplates { get; set; }
     internal DbSet<PortfolioProposal> PortfolioProposals { get; set; }
     internal DbSet<GoalPortfolio> GoalPortfolios { get; set; }
+    internal DbSet<ShadowPortfolio> ShadowPortfolios { get; set; }
+    internal DbSet<ShadowSnapshot> ShadowSnapshots { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +41,9 @@ public class PortfolioDbContext(DbContextOptions<PortfolioDbContext> options)
         modelBuilder.ApplyConfiguration(new PortfolioProposalConfiguration());
         modelBuilder.ApplyConfiguration(new GoalPortfolioConfiguration());
         modelBuilder.ApplyConfiguration(new PortfolioHoldingConfiguration());
+        modelBuilder.ApplyConfiguration(new ShadowPortfolioConfiguration());
+        modelBuilder.ApplyConfiguration(new ShadowPositionConfiguration());
+        modelBuilder.ApplyConfiguration(new ShadowSnapshotConfiguration());
 
         modelBuilder.ApplyConfiguration(new InboxMessageConfiguration());
         modelBuilder.ApplyConfiguration(new InboxMessageConsumerConfiguration());
