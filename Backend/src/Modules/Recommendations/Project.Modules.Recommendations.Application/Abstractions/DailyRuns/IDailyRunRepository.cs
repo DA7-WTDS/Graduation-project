@@ -12,7 +12,9 @@ public interface IDailyRunRepository : IRepository<DailyRun>
     Task<DailyRun?> GetLatestPublishedAsync(bool includePredictions = false, CancellationToken cancellationToken = default);
 
     Task<DailyRun?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<DailyRun?> GetByGeneratedAtAsync(DateTime generatedAt, CancellationToken cancellationToken = default);
+    Task<DailyRun?> GetByGeneratedAtAsync(
+        DateTime generatedAt, string market = "us", bool simulated = false,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Most recent runs regardless of status — the operator's review list.</summary>
     Task<IReadOnlyList<DailyRun>> GetRecentAsync(int take, CancellationToken cancellationToken = default);

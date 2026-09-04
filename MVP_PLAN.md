@@ -215,6 +215,31 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
         accident does not.
       - **New:** `test_replay_window.py` (10 tests). Pipeline suites now 87 green.
 - [ ] **Fidelity lane**: `market=us_sim` ingest (separate key), `DailyRun.Status = Simulated` (never servable), date-parameterized `ShadowPortfolioJob` consuming sim runs with historical fills via `/api/closes`; instant outcome marking (horizons elapsed); notifications gated off for `us_sim`.
+      - ✅ **Ingest half done 2026-09-04.** `DailyRunStatus.Simulated` + a `Market` column
+        (migration `AddSimulatedRunsAndMarket`; `market` defaults to `us` so existing rows
+        backfill).
+        - **Deviation from the plan text, deliberately:** the plan says `market=us_sim`.
+          Implemented instead as `Market="us"` + `Status=Simulated`, because overloading
+          the market field with provenance means EGX later needs `egx` *and* `egx_sim`,
+          doubling the taxonomy. Provenance is a lifecycle state, which is what
+          `DailyRunStatus` already is.
+        - **Simulated is terminal by construction**: `ChangeStatus`'s transition table has
+          no arm into or out of it, so no operator action can promote a manufactured run
+          into something a user sees. A replayed run that fails gates stays *Simulated*
+          rather than *Quarantined* — Quarantined is operator-promotable, Simulated is not.
+        - **Replayed runs raise no ingest event.** That event fans out to an ops alert per
+          Admin; a year-long backfill would have delivered several hundred, which is how
+          an alert channel gets muted along with the alerts that matter.
+        - **Idempotency hazard found in the audit and fixed.** `GetByGeneratedAtAsync` had
+          no status filter, and the § C backfill covers a year that live runs also occupy.
+          A replay would have found the live run for that timestamp, returned ITS id, and
+          been silently dropped — leaving gaps in the manufactured history that nothing
+          reports. Now scoped by (timestamp, market, is-replay), with an index to match.
+        - `MarketMonitorJob` now excludes Simulated runs: a reversal alert derived from a
+          backfilled run would tell a user about a flip that happened months ago.
+        - 6 new handler tests. Backend suites 194 green.
+      - Still to do: the sim ingest key, date-parameterised `ShadowPortfolioJob`, instant
+        outcome marking, and SIM/LIVE provenance through to the track-record page.
 - [x] **Track-record UI page** — ✅ done 2026-09-04. Public route `/track-record`,
       anonymous like the endpoints behind it (aggregates only, no user or position data).
       - Two tabs, because there are genuinely two track records and they answer different

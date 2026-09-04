@@ -33,7 +33,8 @@ internal sealed class IngestDailyRunCommandHandler(
         };
 
         // Idempotent: a retried run with the same timestamp returns the existing run.
-        DailyRun? existing = await dailyRunRepository.GetByGeneratedAtAsync(generatedAtUtc, cancellationToken);
+        DailyRun? existing = await dailyRunRepository.GetByGeneratedAtAsync(
+            generatedAtUtc, request.Market, request.Simulated, cancellationToken);
         if (existing is not null)
         {
             return Result.Ok(existing.Id);
@@ -66,7 +67,17 @@ internal sealed class IngestDailyRunCommandHandler(
         // publish immediately or wait for an operator, per RequireManualApproval.
         DailyRunStatus status;
         string? statusReason = null;
-        if (!request.GatesPassed)
+        if (request.Simulated)
+        {
+            // A replay of a past date (§ C). Terminal and never servable, whatever the
+            // approval mode or gate verdict says — a manufactured record must not be able
+            // to reach a user via an operator clicking approve.
+            status = DailyRunStatus.Simulated;
+            statusReason = request.GatesPassed
+                ? "Point-in-time replay."
+                : $"Point-in-time replay; gates failed: {string.Join("; ", request.GateFailures ?? [])}";
+        }
+        else if (!request.GatesPassed)
         {
             status = DailyRunStatus.Quarantined;
             statusReason = request.GateFailures is { Count: > 0 }
@@ -80,7 +91,7 @@ internal sealed class IngestDailyRunCommandHandler(
                 : DailyRunStatus.Published;
         }
 
-        DailyRun run = DailyRun.Create(generatedAtUtc, predictions, status, statusReason);
+        DailyRun run = DailyRun.Create(generatedAtUtc, predictions, status, statusReason, request.Market);
 
         await dailyRunRepository.AddAsync(run, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

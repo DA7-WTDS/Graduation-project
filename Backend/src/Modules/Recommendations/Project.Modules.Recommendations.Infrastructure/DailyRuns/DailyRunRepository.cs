@@ -29,10 +29,24 @@ internal sealed class DailyRunRepository(RecommendationsDbContext dbContext) : I
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
-    public async Task<DailyRun?> GetByGeneratedAtAsync(DateTime generatedAt, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The ingest idempotency lookup, scoped by market AND by whether the run is a
+    /// replay.
+    ///
+    /// Without that scoping a backfilled replay of a past date collides with the live
+    /// run for the same timestamp: the ingest sees "already exists", returns the LIVE
+    /// run's id, and silently drops the replayed one. The § C backfill covers a year that
+    /// live runs also occupy, so this is the normal case rather than an edge one.
+    /// </summary>
+    public async Task<DailyRun?> GetByGeneratedAtAsync(
+        DateTime generatedAt, string market = "us", bool simulated = false, CancellationToken cancellationToken = default)
     {
         return await dbContext.DailyRuns
-            .FirstOrDefaultAsync(r => r.GeneratedAt == generatedAt, cancellationToken);
+            .FirstOrDefaultAsync(
+                r => r.GeneratedAt == generatedAt
+                  && r.Market == market
+                  && (r.Status == DailyRunStatus.Simulated) == simulated,
+                cancellationToken);
     }
 
     public async Task<IReadOnlyList<DailyRun>> GetRecentAsync(int take, CancellationToken cancellationToken = default)

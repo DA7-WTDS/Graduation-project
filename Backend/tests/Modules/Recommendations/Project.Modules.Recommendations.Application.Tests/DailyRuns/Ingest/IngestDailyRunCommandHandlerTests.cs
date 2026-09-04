@@ -50,7 +50,7 @@ public class IngestDailyRunCommandHandlerTests
         var command = new IngestDailyRunCommand(DateTime.UtcNow, new List<PredictionRecordDto> { new() });
         var existingRun = DailyRun.Create(command.GeneratedAt, new List<StockPrediction>());
 
-        _dailyRunRepository.GetByGeneratedAtAsync(command.GeneratedAt, Arg.Any<CancellationToken>())
+        _dailyRunRepository.GetByGeneratedAtAsync(command.GeneratedAt, Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(existingRun);
 
         // Act
@@ -77,7 +77,7 @@ public class IngestDailyRunCommandHandlerTests
         };
         var command = new IngestDailyRunCommand(DateTime.UtcNow, new List<PredictionRecordDto> { record });
 
-        _dailyRunRepository.GetByGeneratedAtAsync(command.GeneratedAt, Arg.Any<CancellationToken>())
+        _dailyRunRepository.GetByGeneratedAtAsync(command.GeneratedAt, Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns((DailyRun)null);
 
         // Act
@@ -140,4 +140,100 @@ public class IngestDailyRunCommandHandlerTests
         captured!.Status.Should().Be(DailyRunStatus.Quarantined);
         captured.StatusReason.Should().Contain("coverage");
     }
+
+    // ---- § C fidelity lane: replayed runs -------------------------------------
+
+    [Fact]
+    public async Task Simulated_run_lands_as_Simulated_even_when_manual_approval_is_on()
+    {
+        _ingestOptions.RequireManualApproval = true;
+        var command = new IngestDailyRunCommand(
+            DateTime.UtcNow, new List<PredictionRecordDto> { new() }, Simulated: true);
+
+        DailyRun? captured = null;
+        await _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        captured!.Status.Should().Be(DailyRunStatus.Simulated);
+    }
+
+    [Fact]
+    public async Task A_replayed_run_that_failed_gates_is_still_Simulated_not_Quarantined()
+    {
+        // Quarantined is promotable by an operator; Simulated is not. A manufactured
+        // record must never be one approval click away from a user.
+        var command = new IngestDailyRunCommand(
+            DateTime.UtcNow, new List<PredictionRecordDto> { new() },
+            GatesPassed: false, GateFailures: new List<string> { "coverage" }, Simulated: true);
+
+        DailyRun? captured = null;
+        await _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        captured!.Status.Should().Be(DailyRunStatus.Simulated);
+        captured.StatusReason.Should().Contain("coverage");
+    }
+
+    [Fact]
+    public async Task A_replayed_run_raises_no_ingest_event()
+    {
+        // The ingest event fans out to an ops alert per Admin. Backfilling a year would
+        // deliver several hundred, which is how an alert channel gets muted for good.
+        var command = new IngestDailyRunCommand(
+            DateTime.UtcNow, new List<PredictionRecordDto> { new() }, Simulated: true);
+
+        DailyRun? captured = null;
+        await _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        captured!.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_live_run_still_raises_its_ingest_event()
+    {
+        var command = new IngestDailyRunCommand(DateTime.UtcNow, new List<PredictionRecordDto> { new() });
+
+        DailyRun? captured = null;
+        await _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        captured!.DomainEvents.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Idempotency_is_scoped_so_a_replay_does_not_collide_with_the_live_run()
+    {
+        // The § C backfill covers a year that live runs also occupy. If the lookup were
+        // not scoped, the replay would find the live run, return ITS id, and be silently
+        // dropped — leaving a gap in the manufactured history that nothing reports.
+        var generatedAt = DateTime.UtcNow;
+        var command = new IngestDailyRunCommand(
+            generatedAt, new List<PredictionRecordDto> { new() }, Simulated: true);
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        await _dailyRunRepository.Received(1).GetByGeneratedAtAsync(
+            Arg.Any<DateTime>(), Arg.Any<string>(), true, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Market_is_carried_onto_the_run()
+    {
+        var command = new IngestDailyRunCommand(
+            DateTime.UtcNow, new List<PredictionRecordDto> { new() }, Market: "egx");
+
+        DailyRun? captured = null;
+        await _dailyRunRepository.AddAsync(Arg.Do<DailyRun>(r => captured = r), Arg.Any<CancellationToken>());
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        captured!.Market.Should().Be("egx");
+    }
+
 }

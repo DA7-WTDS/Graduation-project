@@ -17,4 +17,15 @@ public enum DailyRunStatus
 
     /// <summary>Was published, then pulled by an operator after the fact.</summary>
     RolledBack,
+
+    /// <summary>
+    /// A point-in-time replay of a past date (MVP_PLAN § C fidelity lane), ingested so the
+    /// real optimizer and shadow jobs produce the track record rather than a Python
+    /// reimplementation of them.
+    ///
+    /// NEVER servable, and terminal: the transition table in DailyRun.ChangeStatus has no
+    /// arm into or out of Simulated, so no operator action can promote a replayed run into
+    /// something a user sees.
+    /// </summary>
+    Simulated,
 }

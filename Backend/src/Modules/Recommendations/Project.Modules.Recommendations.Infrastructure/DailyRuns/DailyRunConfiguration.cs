@@ -13,6 +13,9 @@ internal sealed class DailyRunConfiguration : IEntityTypeConfiguration<DailyRun>
 
         builder.Property(r => r.GeneratedAt).IsRequired();
         builder.Property(r => r.Count).IsRequired();
+
+        // D4: one codebase, one run stream per market.
+        builder.Property(r => r.Market).HasMaxLength(16).IsRequired().HasDefaultValue("us");
         builder.Property(r => r.CreatedAt).IsRequired();
 
         // § 6.2 kill-switch lifecycle. Stored as text for pg_admin readability.
@@ -26,6 +29,9 @@ internal sealed class DailyRunConfiguration : IEntityTypeConfiguration<DailyRun>
         builder.HasIndex(r => r.GeneratedAt);
         // Serves the hot query: latest run WHERE status = 'Published'.
         builder.HasIndex(r => new { r.Status, r.GeneratedAt });
+        // Serves the ingest idempotency lookup, which is scoped by market and by
+        // whether the run is a replay (see DailyRunRepository.GetByGeneratedAtAsync).
+        builder.HasIndex(r => new { r.Market, r.GeneratedAt, r.Status });
 
         builder.HasMany(r => r.Predictions)
             .WithOne()

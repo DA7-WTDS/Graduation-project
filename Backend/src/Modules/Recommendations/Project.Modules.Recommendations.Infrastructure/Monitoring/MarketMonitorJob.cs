@@ -95,6 +95,10 @@ internal sealed class MarketMonitorJob(
     {
         var lastRuns = await dbContext.DailyRuns
             .AsNoTracking()
+            // Replayed runs are history, not signal. A backfill inserts runs dated across
+            // the past year, and a reversal alert derived from one would be telling a user
+            // about a flip that happened months ago.
+            .Where(r => r.Status != Domain.DailyRuns.DailyRunStatus.Simulated)
             .OrderByDescending(r => r.GeneratedAt)
             .Take(2)
             .Select(r => new { r.Id, r.GeneratedAt })

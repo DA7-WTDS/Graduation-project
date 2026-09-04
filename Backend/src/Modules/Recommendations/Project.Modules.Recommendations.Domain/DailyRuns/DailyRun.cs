@@ -20,6 +20,9 @@ public sealed class DailyRun : Entity
 
     public Guid Id { get; private set; }
     public DateTime GeneratedAt { get; private set; }
+
+    /// <summary>Which market produced this run (D4: one codebase, per-market instances).</summary>
+    public string Market { get; private set; } = "us";
     public int Count { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DailyRunStatus Status { get; private set; }
@@ -32,7 +35,8 @@ public sealed class DailyRun : Entity
         DateTime generatedAt,
         IEnumerable<StockPrediction> predictions,
         DailyRunStatus status = DailyRunStatus.Published,
-        string? statusReason = null)
+        string? statusReason = null,
+        string market = "us")
     {
         if (status == DailyRunStatus.RolledBack)
         {
@@ -47,13 +51,20 @@ public sealed class DailyRun : Entity
             Status = status,
             StatusReason = statusReason,
             StatusChangedAt = DateTime.UtcNow,
+            Market = market,
         };
 
         run._predictions.AddRange(predictions);
         run.Count = run._predictions.Count;
 
-        run.Raise(new DailyRunIngestedDomainEvent(
-            Guid.NewGuid(), DateTime.UtcNow, run.Id, run.GeneratedAt, status.ToString(), statusReason));
+        // Replayed runs raise nothing. The ingest event fans out to an ops alert for
+        // every Admin, and a backfill of a year would deliver several hundred of them —
+        // which is how an alert channel gets muted, taking the real alerts with it.
+        if (status != DailyRunStatus.Simulated)
+        {
+            run.Raise(new DailyRunIngestedDomainEvent(
+                Guid.NewGuid(), DateTime.UtcNow, run.Id, run.GeneratedAt, status.ToString(), statusReason));
+        }
 
         if (status == DailyRunStatus.Published)
         {
