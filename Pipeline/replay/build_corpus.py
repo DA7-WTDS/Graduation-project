@@ -46,9 +46,16 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.data_provider import get_provider                                    # noqa: E402
-from markets.us.provider import FINNHUB_BASE, _finnhub_throttle, _yf_throttle  # noqa: E402
 from training.eval_sentiment_llm import load_dotenv_upward                  # noqa: E402
+
+# BEFORE the provider import, not after: markets.us.provider binds FINNHUB_API_KEY at
+# module scope, so importing it first leaves the key empty and every profile/consensus
+# call silently returns nothing.
+load_dotenv_upward()
+
+from core.data_provider import get_provider                                    # noqa: E402
+from markets.us.provider import (FINNHUB_BASE, _finnhub_profile_name,          # noqa: E402
+                                 _finnhub_throttle, _yf_throttle)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -71,7 +78,6 @@ INITIAL_SLICE_DAYS = 14
 
 def _api_key() -> str:
     import os
-    load_dotenv_upward()   # Pipeline/.env and the repo-root .env, same as the probe
     key = (os.getenv("FINNHUB_API_KEY") or "").strip()
     if not key:
         raise SystemExit(
@@ -258,6 +264,12 @@ def build(market: str, tickers: list[str], start: date, end: date, refresh: bool
         total_calls += calls
         actions = fetch_actions(ticker)
         consensus = fetch_consensus(ticker, key)
+        # The live path filters headlines for company relevance using the profile name
+        # (markets/us/provider._company_keywords). Replay has to apply the same filter or
+        # it scores a different headline set than live did — so the name is captured here,
+        # once, rather than re-fetched per replay date.
+        name = _finnhub_profile_name(ticker)
+        total_calls += 1
         total_calls += 1
 
         pd.DataFrame(news, columns=["ticker", "published_at", "headline", "source", "url"]).to_parquet(news_path, index=False)
@@ -272,6 +284,7 @@ def build(market: str, tickers: list[str], start: date, end: date, refresh: bool
             "action_rows": len(actions),
             "action_first": actions[0]["graded_at"] if actions else None,
             "consensus_buckets": len(consensus),
+            "company_name": name,
             "skipped": False,
         }
         log.info(

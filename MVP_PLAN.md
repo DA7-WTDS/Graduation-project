@@ -144,7 +144,41 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
       past the retention horizon, and its action probe measures the premium Finnhub endpoint
       rather than the yfinance substitute § C.0 actually recommends. Live re-checks confirm
       both sources work.
-- [ ] **Fast-lane replay engine** (`Pipeline/replay/`): point-in-time features → batch champion scoring over OOS window → `ScoreRecord`-shaped Parquet per date (price+news+actions+consensus; PT excluded).
+- [x] **Fast-lane replay engine** — ✅ done 2026-09-04, `replay/score_asof.py`.
+      End-to-end verified: 30 tickers → corpus → 8 replayed trading days, all written, through
+      the real champion, the real composite and the real `risk_rules`.
+      - **Cutoff is t+1 01:00 UTC**, matching the live post-close cron, not midnight on t
+        (§ C.2 rule 2). Midnight would silently discard the after-close news the live run
+        genuinely saw. Tested directly.
+      - **Leakage guards are tested, not asserted.** The corpus holds everything up to
+        today, so the point-in-time filter is the only thing between a replayed date and
+        tomorrow's headlines. Tests plant future headlines and a future downgrade and check
+        neither reaches the score.
+      - Fidelity to live, not an approximation of it: the same 14-day news window, the same
+        relevance filter and `NEWS_MIN_RELEVANT` floor (so replay does not score news on days
+        live had none), and `MIN_RECORDS` still drops a thin day rather than publishing it.
+      - `core/analyst_actions.py` extracted for the same reason as the composite: live parsed
+        a yfinance frame and scored inline, replay slices a ledger. Now one scorer, verified
+        behaviour-identical over 300 randomized ledgers.
+      - FinBERT scores each unique headline once across the whole run (877 unique for a
+        3-day × 30-ticker window, versus ~2,250 repeated lookups) — what makes an overnight
+        CPU pass feasible (§ C.3).
+      - Output is `ScoreRecord`-shaped Parquet per date, ready for the fidelity lane. The
+        manifest labels it **research, not the published number** (§ C.2 rule 4).
+
+      **Two findings worth carrying into the methodology page:**
+      1. `change_pct` is byte-identical with and without the news component, confirming
+         sentiment affects only risk grading and never the prediction. Adding news moved
+         `sentiment_score` on 100% of rows, flipped the signal on 10% and the risk level on
+         11% — so news matters to grading, materially.
+      2. **Replayed sentiment is structurally bullish.** Analyst consensus is almost never
+         negative, and over 240 replayed records there were **zero NEGATIVE signals** even
+         with news on. Every DOWN prediction therefore reads as `signal_contradiction` → HIGH
+         risk (34/90 rows). Live has the same bias; replay just makes it visible. This needs
+         stating before any SIM segment is shown publicly, and it is an argument for the
+         § D A/B being about grading quality, not just IC.
+
+      - **New:** `test_replay_scorer.py` (12 tests, no network). Pipeline suites now 77 green.
 - [ ] **Fidelity lane**: `market=us_sim` ingest (separate key), `DailyRun.Status = Simulated` (never servable), date-parameterized `ShadowPortfolioJob` consuming sim runs with historical fills via `/api/closes`; instant outcome marking (horizons elapsed); notifications gated off for `us_sim`.
 - [x] **Track-record UI page** — ✅ done 2026-09-04. Public route `/track-record`,
       anonymous like the endpoints behind it (aggregates only, no user or position data).

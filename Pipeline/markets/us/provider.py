@@ -19,6 +19,7 @@ import requests
 import yfinance as yf
 
 from core.data_provider import MarketDataProvider
+from core.analyst_actions import ActionRow, GRADE_MAP, SENTIMENT_WINDOW_DAYS, score_actions
 
 log = logging.getLogger(__name__)
 
@@ -116,7 +117,11 @@ _FALLBACK_TICKERS = [
 
 # ---- sentiment-gather helpers (analyst + news; vendor parsing) ----
 
-SENTIMENT_WINDOW_DAYS = 30
+# Window and rating vocabulary live in core.analyst_actions, shared with the 
+# point-in-time replay lane (MVP_PLAN § C) so both score through one implementation.
+# SENTIMENT_WINDOW_DAYS, GRADE_MAP and the scoring itself are imported from
+# core.analyst_actions, shared with the point-in-time replay lane (MVP_PLAN § C)
+# so live and replay cannot score through two different implementations.
 NEWS_LIMIT = 25
 NEWS_MIN_RELEVANT = 3
 
@@ -124,16 +129,7 @@ _NAME_STOPWORDS = {
     "the", "inc", "co", "corp", "corporation", "company", "ltd",
     "plc", "group", "holdings", "com", "class", "incorporated", "llc", "sa", "nv", "ag", "and",
 }
-_GRADE_MAP = {
-    "strong buy": 1.0, "conviction buy": 1.0, "buy": 0.6, "outperform": 0.6,
-    "overweight": 0.6, "accumulate": 0.5, "add": 0.5, "positive": 0.6,
-    "market outperform": 0.6, "sector outperform": 0.6, "long-term buy": 0.5,
-    "hold": 0.0, "neutral": 0.0, "equal-weight": 0.0, "equalweight": 0.0,
-    "market perform": 0.0, "sector perform": 0.0, "in-line": 0.0, "peer perform": 0.0,
-    "reduce": -0.5, "sell": -0.6, "underperform": -0.6, "underweight": -0.6,
-    "negative": -0.6, "market underperform": -0.6, "sector underperform": -0.6,
-    "strong sell": -1.0,
-}
+_GRADE_MAP = GRADE_MAP
 _ACTION_LABEL = {"up": "upgrade", "down": "downgrade", "init": "initiated",
                  "main": "maintained", "reit": "reiterated"}
 
@@ -206,12 +202,14 @@ def _consensus(tk, ticker: str) -> tuple[float | None, str | None, int]:
 
 
 def _recent_actions(tk, now):
+    """Fetch + parse the vendor frame; the scoring itself is core.analyst_actions."""
     try:
         _yf_throttle(); ud = tk.get_upgrades_downgrades()
     except Exception:
         ud = None
     if ud is None or len(ud) == 0:
         return None, "none", None, 0, None
+
     ud = ud.reset_index()
     ud.columns = [str(c).lower().replace(" ", "") for c in ud.columns]
     dcol = _find_col(ud.columns, "gradedate") or _find_col(ud.columns, "date") or ud.columns[0]
@@ -219,29 +217,22 @@ def _recent_actions(tk, now):
         ud[dcol] = pd.to_datetime(ud[dcol], utc=True).dt.tz_convert(None)
     except Exception:
         ud[dcol] = pd.to_datetime(ud[dcol], errors="coerce")
-    ud = ud.dropna(subset=[dcol]).sort_values(dcol)
+    ud = ud.dropna(subset=[dcol])
     if ud.empty:
         return None, "none", None, 0, None
-    latest        = ud.iloc[-1]
-    latest_action = _ACTION_LABEL.get(str(latest.get("action", "")).lower(), str(latest.get("action", "")) or "none")
-    latest_firm   = latest.get("firm") if "firm" in ud.columns else None
-    days_since    = int((now - latest[dcol]).days)
-    cutoff = now - pd.Timedelta(days=SENTIMENT_WINDOW_DAYS)
-    recent = ud[ud[dcol] >= cutoff]
-    if recent.empty:
-        return None, latest_action, (latest_firm or None), 0, days_since
-    num = den = 0.0
-    for _, r in recent.iterrows():
-        days_ago = max(0, (now - r[dcol]).days)
-        w        = max(0.1, 1.0 - days_ago / SENTIMENT_WINDOW_DAYS)
-        act      = str(r.get("action", "")).lower()
-        act_dir  = 1.0 if act == "up" else -1.0 if act == "down" else 0.0
-        grade    = _GRADE_MAP.get(str(r.get("tograde", "")).lower())
-        row_score = act_dir if grade is None else 0.5 * act_dir + 0.5 * grade
-        num += w * row_score
-        den += w
-    action_score = round(num / den, 3) if den else None
-    return action_score, latest_action, (latest_firm or None), int(len(recent)), days_since
+
+    rows = [
+        ActionRow(
+            graded_at = r[dcol].to_pydatetime(),
+            action    = str(r.get("action", "") or ""),
+            to_grade  = str(r.get("tograde", "") or ""),
+            firm      = str(r.get("firm", "") or "") if "firm" in ud.columns else None,
+        )
+        for _, r in ud.iterrows()
+    ]
+
+    s = score_actions(rows, now.to_pydatetime() if hasattr(now, "to_pydatetime") else now)
+    return s.action_score, s.latest_action, s.latest_firm, s.recent_count, s.days_since_latest
 
 
 def _price_targets(tk):
