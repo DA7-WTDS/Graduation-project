@@ -58,6 +58,8 @@ from training.eval_sentiment_llm import load_dotenv_upward                  # no
 load_dotenv_upward()
 
 from core.data_provider import get_provider                                    # noqa: E402
+from core.news_store import append as store_news, normalize as normalize_news  # noqa: E402
+from core.news_store import summary as news_summary                          # noqa: E402
 from markets.us.provider import (FINNHUB_BASE, _finnhub_profile_name,          # noqa: E402
                                  _finnhub_throttle, _yf_throttle)
 from replay.window import default_corpus_window, news_horizon, oos_boundary  # noqa: E402
@@ -266,6 +268,15 @@ def build(market: str, tickers: list[str], start: date, end: date, refresh: bool
 
         log.info(f"[{n}/{len(tickers)}] {ticker}: fetching...")
         news, calls = fetch_news(ticker, start, end, key)
+        # Into the permanent archive as well as the replay shard. The shard is a
+        # snapshot that --refresh overwrites; the store is the thing that keeps.
+        archived = store_news(
+            normalize_news(
+                ticker=ticker, headline=n["headline"], published_at=n["published_at"],
+                source=n.get("source"), url=n.get("url"),
+            )
+            for n in news
+        )
         total_calls += calls
         actions = fetch_actions(ticker)
         consensus = fetch_consensus(ticker, key)
@@ -289,6 +300,7 @@ def build(market: str, tickers: list[str], start: date, end: date, refresh: bool
             "action_rows": len(actions),
             "action_first": actions[0]["graded_at"] if actions else None,
             "consensus_buckets": len(consensus),
+            "archived_to_store": archived["written"],
             "company_name": name,
             "skipped": False,
         }
@@ -307,6 +319,7 @@ def build(market: str, tickers: list[str], start: date, end: date, refresh: bool
         "tickers": len(tickers),
         "total_api_calls": total_calls,
         "news_coverage_starts": min(firsts) if firsts else None,
+        "news_store": news_summary(),
         "price_targets": "EXCLUDED — vendors expose current-only; using them at a past date leaks (§ C.2 rule 3)",
         "per_ticker": per_ticker,
         # Keyed by kind/name: all three shards for a ticker share a filename, so

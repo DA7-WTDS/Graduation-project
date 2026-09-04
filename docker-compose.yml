@@ -13,11 +13,15 @@ services:
       # the vendor's ~12-month news horizon, so it lives on a volume, not in the
       # container filesystem (MVP_PLAN § B).
       - SENTIMENT_PANEL_DIR=/opt/sentiment-panel
+      # Raw headlines. Finnhub's retention is rolling, so anything not archived
+      # here before it ages out is gone permanently — this volume is the archive.
+      - NEWS_STORE_DIR=/opt/news-store
     ports:
       - "8000:8000"          # .NET FetchDailyPipelineJob calls localhost:8000/api/score
     volumes:
       - yf_cache_pipeline:/opt/yf-cache
       - sentiment_panel:/opt/sentiment-panel
+      - news_store:/opt/news-store
     networks:
       - project-network
 
@@ -151,6 +155,7 @@ volumes:
   rabbitmq_data:
   yf_cache_pipeline:
   sentiment_panel:
+  news_store:
 
 
 networks:

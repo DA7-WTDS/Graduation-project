@@ -270,6 +270,13 @@ def _filter_relevant(titles: list[str], pats) -> list[str]:
 
 
 def _finnhub_raw_headlines(ticker: str):
+    """Recent company news as full records.
+
+    Returns dicts rather than bare titles so the timestamp, source and id — which
+    the response already contains — survive as far as the news store. Scoring still
+    uses only the headline text; discarding the rest was throwing away the one
+    input that cannot be refetched once retention rolls past it.
+    """
     if not FINNHUB_API_KEY:
         return None
     try:
@@ -287,43 +294,69 @@ def _finnhub_raw_headlines(ticker: str):
         if not isinstance(data, list):
             return None
         items  = sorted(data, key=lambda x: x.get("datetime", 0), reverse=True)
-        titles, seen = [], set()
+        out, seen = [], set()
         for it in items:
             h = (it.get("headline") or "").strip()
             if h and h.lower() not in seen:
-                seen.add(h.lower()); titles.append(h)
-            if len(titles) >= FINNHUB_FETCH_MAX:
+                seen.add(h.lower())
+                out.append({
+                    "headline": h,
+                    "published_at": it.get("datetime"),
+                    "source": it.get("source"),
+                    "url": it.get("url"),
+                    "vendor_id": it.get("id"),
+                })
+            if len(out) >= FINNHUB_FETCH_MAX:
                 break
-        return titles
+        return out
     except Exception as e:
         log.warning(f"{ticker}: Finnhub news failed — {e}")
         return None
 
 
-def _yfinance_raw_headlines(tk) -> list[str]:
+def _yfinance_raw_headlines(tk) -> list[dict]:
+    """Fallback feed, normalized to the same record shape. Items whose publish
+    time cannot be read still score (the text is there) but carry no timestamp,
+    so the store drops them rather than guessing when they appeared."""
     try:
         _yf_throttle(); news = tk.news
     except Exception:
         return []
-    titles = []
+    out = []
     for item in (news or []):
-        if not isinstance(item, dict): continue
-        title   = None
-        content = item.get("content")
-        if isinstance(content, dict): title = content.get("title")
-        title = title or item.get("title")
-        if title and isinstance(title, str): titles.append(title.strip())
-    return titles
+        if not isinstance(item, dict):
+            continue
+        content = item.get("content") if isinstance(item.get("content"), dict) else {}
+        title = content.get("title") or item.get("title")
+        if not title or not isinstance(title, str):
+            continue
+        out.append({
+            "headline": title.strip(),
+            "published_at": content.get("pubDate") or item.get("providerPublishTime"),
+            "source": (content.get("provider") or {}).get("displayName") if isinstance(content.get("provider"), dict) else None,
+            "url": content.get("canonicalUrl", {}).get("url") if isinstance(content.get("canonicalUrl"), dict) else item.get("link"),
+            "vendor_id": item.get("id") or item.get("uuid"),
+        })
+    return out
 
 
-def _news_titles_for(tk, ticker: str, name: str) -> list[str]:
+def _news_titles_for(tk, ticker: str, name: str) -> tuple[list[str], list[dict]]:
+    """(titles used for scoring, ALL fetched records for the store).
+
+    The store keeps everything fetched, not just the relevant/capped subset:
+    relevance filtering and the 25-headline cap are scoring decisions that may
+    change, whereas the archive should hold what the vendor actually said.
+    """
     raw = _finnhub_raw_headlines(ticker)
     if raw is None:
         raw = _yfinance_raw_headlines(tk)
-    relevant = _filter_relevant(raw, _company_keywords(ticker, name))
+    records = raw or []
+
+    titles = [r["headline"] for r in records]
+    relevant = _filter_relevant(titles, _company_keywords(ticker, name))
     if len(relevant) < NEWS_MIN_RELEVANT:
-        return []
-    return relevant[:NEWS_LIMIT]
+        return [], records
+    return relevant[:NEWS_LIMIT], records
 
 
 # ---- the provider ----
@@ -446,13 +479,13 @@ class USMarketDataProvider(MarketDataProvider):
             avg, rating_label, n_analysts = _consensus(tk, ticker)
             action_score, latest_action, latest_firm, win_count, days_since = _recent_actions(tk, now)
             pt_cur, pt_mean, pt_up = _price_targets(tk)
-            titles = _news_titles_for(tk, ticker, name)
+            titles, news_items = _news_titles_for(tk, ticker, name)
             return {
                 "ticker": ticker, "avg": avg, "rating_label": rating_label, "n_analysts": n_analysts,
                 "action_score": action_score, "latest_action": latest_action, "latest_firm": latest_firm,
                 "win_count": win_count, "days_since": days_since,
                 "pt_cur": pt_cur, "pt_mean": pt_mean, "pt_up": pt_up,
-                "titles": titles,
+                "titles": titles, "news_items": news_items,
             }
         except Exception as e:
             log.error(f"{ticker}: gather failed — {e}")

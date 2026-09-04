@@ -41,6 +41,24 @@ in-network service DNS names (`postgres`, `redis`, `rabbitmq`, `pipeline`).
      published daily run), it raises a `ShadowRunBlockedIntegrationEvent` →
      every Admin user gets an ops notification. Silence never looks like success.
 
+## Two un-backfillable stores, not one
+
+The nightly run writes two things that cannot be recreated later, for different
+reasons. Both need their volumes mounted.
+
+| | volume | holds | why it cannot be rebuilt |
+|---|---|---|---|
+| Sentiment panel | `sentiment_panel` | derived scores per (ticker, date) | needs the vendor state of that day |
+| **News store** | `news_store` | **raw headline text** | Finnhub retains ~12 months, rolling |
+
+They are deliberately separate. The panel holds one model's *reading* of the news;
+the store holds the news. Swap FinBERT for the Gemini extractor (§ 1.6) and every
+stored score is stale while the text is still perfectly good — so scores are
+recomputable and text is not.
+
+Check both in `/health` (`sentiment_panel` and `news_store` each report
+`days`/`first`/`last`). If `last` is not yesterday, that clock has stalled.
+
 ## The sentiment panel is a clock, not a cache
 
 Each `/api/score` run appends a row per ticker to an append-only Parquet panel

@@ -360,6 +360,29 @@ Follow-ups surfaced by the swap:
 
 1. **Full-universe daily sentiment panel** (Parquet, append-only, partitioned by date).
 2. **Shadow track-record age** on production infra — gaps look worse than shortness.
+3. **Raw news archive** (`core/news_store.py`, added 2026-09-04) — the headline TEXT,
+   append-only, partitioned by publication date.
+   - Separate from clock 1 on purpose: the panel stores derived **scores**, the store
+     stores **text**. Swap FinBERT for the Gemini extractor (§ 1.6) and every stored
+     score is stale while the text is still good. Scores are recomputable; text is not.
+   - Closes a real leak: the nightly run was already downloading headlines, scoring
+     them and **discarding the text** — throwing away the one input in the system that
+     cannot be re-acquired once Finnhub's ~12-month retention rolls past it.
+   - Fed from both ends: the § C corpus backfill writes historical headlines into it,
+     and the nightly run appends forward. The replay corpus stays a per-run snapshot
+     (`--refresh` overwrites it); the store is the thing that keeps.
+   - Archival guarantees, each pinned by a test: re-appending a batch is a no-op;
+     appending to an existing day merges rather than truncates (the nightly run
+     legitimately adds to yesterday's partition); a later backfill cannot rewrite
+     `first_seen_at`; and a headline with no readable timestamp is **dropped rather
+     than stamped with now** — guessing would place it in the wrong partition and
+     expose it to a replay date that could not have seen it.
+   - The same story under two tickers is two rows: a piece about a supplier is
+     genuinely news for both names, and collapsing them loses it from one window.
+   - `NEWS_STORE_DIR` + a `news_store` compose volume; `/health` reports coverage.
+   - Verified live: 1,423 headlines, 11 partitions, 3 tickers, zero uid collisions,
+     and re-appending the whole archive to itself wrote 0 rows.
+   - **New:** `test_news_store.py` (13 tests). Pipeline suites now 102 green.
 Both are investor-facing assets precisely because they cannot be bought retroactively.
 
 ---

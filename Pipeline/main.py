@@ -45,6 +45,7 @@ from core.lstm import LSTMBackbone
 from core.quality_gates import run_quality_gates
 from core import sentiment_scoring
 from core.sentiment_panel import append_daily, panel_summary
+from core.news_store import append as store_news, normalize as normalize_news, summary as news_summary
 from risk_rules import apply_risk_rules
 
 warnings.filterwarnings("ignore")
@@ -583,6 +584,7 @@ def health():
         # unless something reports it, and gaps cannot be backfilled past the vendor's
         # ~12-month news horizon. Surface it where uptime checks already look.
         "sentiment_panel": panel_summary(),
+        "news_store":      news_summary(),
         "time":          datetime.now(timezone.utc).isoformat(),
     }
 
@@ -859,6 +861,10 @@ def score():
     log.info(f"Running sentiment ({SENTIMENT_WORKERS} workers)...")
     sentiments: list[TickerSentiment] = []
 
+    # Raw headline records are collected as they arrive and archived below. The
+    # vendor's retention is rolling, so a headline not stored tonight is gone.
+    news_records: list[dict] = []
+
     with ThreadPoolExecutor(max_workers=SENTIMENT_WORKERS) as ex:
         future_to_ticker = {ex.submit(_provider.gather_ticker_context, t): t for t in predicted_tickers}
         for fut in as_completed(future_to_ticker):
@@ -867,6 +873,18 @@ def score():
                 g = fut.result()
             except Exception:
                 g = None
+            if g:
+                for item in g.get("news_items") or []:
+                    row = normalize_news(
+                        ticker       = ticker,
+                        headline     = item.get("headline"),
+                        published_at = item.get("published_at"),
+                        source       = item.get("source"),
+                        url          = item.get("url"),
+                        vendor_id    = item.get("vendor_id"),
+                    )
+                    if row:
+                        news_records.append(row)
             s = _score_gathered(g) if g is not None else None
             if s:
                 sentiments.append(s)
@@ -874,6 +892,17 @@ def score():
                 log.warning(f"{ticker}: sentiment skipped.")
 
     log.info(f"Sentiment: {len(sentiments)}/{len(predicted_tickers)} succeeded.")
+
+    # News store (§ C): permanent archive of the raw text. Best effort — an archive
+    # write must never cost us the run, but a failure here is logged loudly
+    # because what is missed tonight cannot be refetched once retention rolls.
+    try:
+        stats = store_news(news_records)
+        log.info(
+            f"News store: {stats['written']} new headlines archived "
+            f"({stats['duplicates']} already held, {stats['undated']} undated and dropped).")
+    except Exception as e:
+        log.error(f"News store append FAILED (run continues) — {e}")
 
     # Append this run to the panel BEFORE risk rules and gates. The panel records what
     # the vendors said today, which stays true and worth keeping even when the run is
