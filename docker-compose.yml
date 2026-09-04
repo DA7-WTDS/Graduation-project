@@ -9,10 +9,15 @@ services:
       - ./Pipeline/.env
     environment:
       - YF_CACHE_DIR=/opt/yf-cache
+      # The daily sentiment panel is an append-only asset that cannot be rebuilt past
+      # the vendor's ~12-month news horizon, so it lives on a volume, not in the
+      # container filesystem (MVP_PLAN § B).
+      - SENTIMENT_PANEL_DIR=/opt/sentiment-panel
     ports:
       - "8000:8000"          # .NET FetchDailyPipelineJob calls localhost:8000/api/score
     volumes:
       - yf_cache_pipeline:/opt/yf-cache
+      - sentiment_panel:/opt/sentiment-panel
     networks:
       - project-network
 
@@ -145,6 +150,7 @@ volumes:
   pgadmin_data:
   rabbitmq_data:
   yf_cache_pipeline:
+  sentiment_panel:
 
 
 networks:

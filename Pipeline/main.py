@@ -43,6 +43,7 @@ from core.data_provider import get_provider
 from core.features import compute_features
 from core.lstm import LSTMBackbone
 from core.quality_gates import run_quality_gates
+from core.sentiment_panel import append_daily, panel_summary
 from risk_rules import apply_risk_rules
 
 warnings.filterwarnings("ignore")
@@ -134,6 +135,13 @@ RANKING_VERSION = _sha256_files(RANKING_XGB_PATH, RANKING_CALIBRATOR_PATH, RANKI
 _model_lock = threading.Lock()
 
 SENTIMENT_WORKERS = int(os.getenv("SENTIMENT_WORKERS", "8"))
+
+# How many names get sentiment each run. 0 = the whole universe, which is the point:
+# a panel gathered only for the model's top picks is conditioned on the model's own
+# output and cannot answer whether sentiment adds anything (MVP_PLAN § B / § D).
+# Non-zero caps the shortlist by predicted strength — an escape hatch for vendor rate
+# limits, not the normal setting.
+SENTIMENT_TOP_N = int(os.getenv("SENTIMENT_TOP_N", "0"))
 
 # Market data access — vendor code lives behind MarketDataProvider
 # (core/data_provider.py). Which market this instance serves is env-driven;
@@ -577,6 +585,10 @@ def health():
         "ranking":       "loaded" if _state.ranking_model is not None else "not loaded",
         "finbert":       "loaded" if _state.finbert is not None else "not loaded (news disabled)",
         "finnhub":       "enabled" if FINNHUB_API_KEY else "disabled (set FINNHUB_API_KEY)",
+        # The panel is a compounding asset (MVP_PLAN § B); a gap in it is invisible
+        # unless something reports it, and gaps cannot be backfilled past the vendor's
+        # ~12-month news horizon. Surface it where uptime checks already look.
+        "sentiment_panel": panel_summary(),
         "time":          datetime.now(timezone.utc).isoformat(),
     }
 
@@ -832,21 +844,23 @@ def score():
     if not predictions:
         raise HTTPException(status_code=500, detail="All predictions failed.")
 
-    # Run FinBERT only on top 35 candidates by projected return (skips ~65% of inference)
-    sorted_preds = sorted(
-        [p for p in predictions if p.change_pct > 0],
-        key=lambda x: (x.change_pct, x.confidence),
-        reverse=True,
-    )
-    if len(sorted_preds) < 15:  # fallback: use top 35 overall if few positive predictions
-        sorted_preds = sorted(
-            predictions,
+    # Whole universe by default (MVP_PLAN § B clock 1). The old top-35 shortlist saved
+    # FinBERT time but made the accumulating panel a biased sample of the model's own
+    # favourites, and no amount of later spend can re-collect the names it skipped.
+    if SENTIMENT_TOP_N > 0:
+        shortlist = sorted(
+            [p for p in predictions if p.change_pct > 0],
             key=lambda x: (x.change_pct, x.confidence),
             reverse=True,
-        )
-    top_candidates    = sorted_preds[:35]
-    predicted_tickers = [p.ticker for p in top_candidates]
-    log.info(f"Selected top {len(predicted_tickers)} candidates for sentiment analysis.")
+        ) or sorted(predictions, key=lambda x: (x.change_pct, x.confidence), reverse=True)
+        predicted_tickers = [p.ticker for p in shortlist[:SENTIMENT_TOP_N]]
+        log.warning(
+            f"SENTIMENT_TOP_N={SENTIMENT_TOP_N}: gathering sentiment for {len(predicted_tickers)} of "
+            f"{len(predictions)} scored names. The daily panel will be biased toward the model's "
+            f"own picks for this run.")
+    else:
+        predicted_tickers = [p.ticker for p in predictions]
+        log.info(f"Gathering sentiment for the full universe ({len(predicted_tickers)} names).")
 
     log.info(f"Running sentiment ({SENTIMENT_WORKERS} workers)...")
     sentiments: list[TickerSentiment] = []
@@ -866,6 +880,17 @@ def score():
                 log.warning(f"{ticker}: sentiment skipped.")
 
     log.info(f"Sentiment: {len(sentiments)}/{len(predicted_tickers)} succeeded.")
+
+    # Append this run to the panel BEFORE risk rules and gates. The panel records what
+    # the vendors said today, which stays true and worth keeping even when the run is
+    # later quarantined for a price-data problem. Best effort: a panel write must never
+    # be able to cost us the run.
+    try:
+        written = append_daily([s.model_dump() for s in sentiments])
+        if written is not None:
+            log.info(f"Sentiment panel: appended {len(sentiments)} rows -> {written}")
+    except Exception as e:
+        log.error(f"Sentiment panel append FAILED (run continues) — {e}")
 
     log.info("Applying risk rules...")
     pred_dicts = [p.model_dump() for p in predictions]

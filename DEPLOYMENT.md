@@ -41,6 +41,29 @@ in-network service DNS names (`postgres`, `redis`, `rabbitmq`, `pipeline`).
      published daily run), it raises a `ShadowRunBlockedIntegrationEvent` →
      every Admin user gets an ops notification. Silence never looks like success.
 
+## The sentiment panel is a clock, not a cache
+
+Each `/api/score` run appends a row per ticker to an append-only Parquet panel
+(`SENTIMENT_PANEL_DIR`, mounted as the `sentiment_panel` volume). This is training
+data for MVP_PLAN § D and it **cannot be backfilled**: Finnhub retains roughly 12
+months of company news and only ~4 monthly consensus buckets, so a day not captured
+is gone permanently. Two consequences for operations:
+
+- **Never run the pipeline without the volume.** Without it the panel writes into the
+  container filesystem and resets on every restart, which looks exactly like a healthy
+  clock right up until you go to use the data.
+- **Watch `sentiment_panel` in `/health`** — it reports `days`, `first` and `last`. If
+  `last` is not yesterday, the clock has stalled.
+
+```bash
+curl -s http://localhost:8000/health | python -m json.tool
+```
+
+Runs take longer than they look: sentiment is bound by vendor rate limits, not compute.
+A ~100-name universe costs 100 × 3 Finnhub calls × 1.05s = **~5.2 minutes of pure
+throttle sleep**, before FinBERT or the price download. The backend's `/api/score`
+timeout is set to 1800s to accommodate this — do not lower it below ~600s.
+
 ## Manual / external trigger
 
 Run the shadow job on demand (idempotent per UTC day) — for testing, backfilling

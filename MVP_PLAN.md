@@ -43,7 +43,39 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
       - Hybrid path intact behind the flag; both stacks load so any snapshot replays.
       - `change_pct` semantics now relative-to-median in trees mode — pipeline DTOs, the Gemini prompt and the frontend all updated (follow-up 2 in §A, resolved 2026-09-04).
 - [x] **Retire MC-dropout pseudo-confidence from user-facing output** (kept internally for the hybrid lane only).
-- [ ] **Full-universe sentiment gathering live** (not just top-35): removes selection bias before the feature ever reaches training; append-only daily Parquet (`training/data/sentiment_us/history.parquet`). Start-of-moat clock.
+- [x] **Full-universe sentiment gathering live** — ✅ done 2026-09-04. The moat clock is
+      started; it only accrues once the stack is actually deployed (next item).
+      - The top-35 shortlist is gone: `/api/score` now gathers sentiment for every scored
+        name. A panel built from the shortlist would have been conditioned on the model's
+        own output — only names it already liked — so a feature learned from it would be
+        measuring the selection as much as the sentiment, and § D could not be answered
+        with it. `SENTIMENT_TOP_N` (default 0 = all) keeps a cap as a rate-limit escape
+        hatch; a capped run logs a warning saying the panel is biased that day.
+      - `core/sentiment_panel.py` appends one row per (ticker, date) as hive-partitioned
+        Parquet under `SENTIMENT_PANEL_DIR` (`training/data/sentiment_us/date=YYYY-MM-DD/`).
+        One file per day, never rewritten — appending into a single `history.parquet` as
+        originally sketched means rewriting the whole file every run, making each run a
+        chance to corrupt the entire history. Re-running a day replaces only that day's
+        partition, so the job stays idempotent under retry.
+      - Rows store the RAW components (consensus / actions / price_target / news) plus the
+        composite. The composite's weights are a serving decision that will change; a
+        stored composite alone could never be re-derived under different weights.
+      - Written BEFORE risk rules and gates: what the vendors said today stays true and
+        worth keeping even when the run is later quarantined for a price-data problem.
+        Best-effort — a panel write can never cost us the run.
+      - Persistence: `docker-compose` mounts a `sentiment_panel` volume. Inside the
+        container filesystem the history would reset on every restart while still looking
+        like the clock was running. `/health` now reports `sentiment_panel` (days, first,
+        last) so a stalled clock is visible where uptime checks already look.
+      - **Caught in passing:** this change would have broken the nightly run. Sentiment
+        time is vendor-throttle-bound, and the full universe costs 100 × 3 Finnhub calls
+        × 1.05s = **315s of pure sleep**, before FinBERT, the batch download, or any
+        inference — already past the backend's 300s `/api/score` timeout. Raised to 1800s;
+        nothing waits on it (nightly, `[DisallowConcurrentExecution]`), whereas a short
+        timeout costs the whole day's run and its panel row.
+      - **New:** `Pipeline/test_sentiment_panel.py` (9 tests) covering partition-per-day,
+        retry idempotency, raw-component retention, null components, schema stability and
+        the cold-start read. Pipeline suites now 47 green (9 + 12 + 10 + 16).
 - [ ] **Nightly reliability**: deploy stack to VPS via existing docker-compose; ops alert (email) on quarantined runs, failed jobs, drift alarm (<45% 90-day hit-rate).
 - [x] Run the **Finnhub depth probe** (§C step 0) — results in §C.0; news ≈12-month horizon + ~250-item cap, yfinance actions to 2012, consensus ~4 buckets.
 
