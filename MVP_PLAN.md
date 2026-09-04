@@ -105,6 +105,22 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
 
 - [x] **Replay corpus builder** — ✅ done 2026-09-04, `replay/build_corpus.py`.
       Written and validated live; the full 100-ticker fetch still has to be run (hours of
+
+      **FULL CORPUS FETCHED 2026-09-04** — 100/100 tickers, zero warnings, ~1h29m,
+      4,828 API calls (under the 6,588 estimate):
+      - **430,929 headlines** (mean 4,309/ticker; NVDA 31,994, quietest SCCO 436)
+      - **47,538 analyst actions**, and every single ticker has a ledger — the yfinance
+        substitute for Finnhub's premium endpoint covers the whole window as § C.0 said
+      - 4.0 consensus buckets per ticker (shallow, as expected — near-useless for replay)
+      - 101 MB parquet across 361 day-partitions in the news store
+      - Zero uid collisions across 431,049 stored rows
+      - **Measured retention is 360 days, not 365**: coverage begins 2025-09-09 against a
+        requested 2025-09-04. The window resolver handles this on its own — it prefers the
+        corpus's measured start over the theoretical horizon, which is exactly the case it
+        was written for.
+      - Completeness check: every day in the span has headlines (min 94/day), and the
+        weekday/weekend split is the natural news cycle (Thu 86.6k vs Sat 19.9k) rather
+        than the flat profile that systematic pagination gaps would produce.
       throttled calls) — it is resumable, so it can go overnight in stages.
       - **Adaptive pagination is not optional, and now proven.** A live AAPL run over 60 days
         returned **2,711 headlines from 31 calls**; a single naive call returns ~244 (the cap).
