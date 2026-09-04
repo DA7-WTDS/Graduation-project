@@ -11,11 +11,13 @@
 #     you get the last few weeks and no error. The fix is adaptive: fetch a slice,
 #     and if it comes back at the cap, halve it and recurse. Anything else quietly
 #     builds a corpus with holes in it.
-#   • That endpoint retains roughly 12 months. The replay window starts at the
-#     chrono-split boundary (2024-12-31), so a large share of it predates any news
-#     at all. This is measured per ticker and written to the manifest rather than
-#     assumed, because "how much of the window has news" is a caveat the
-#     methodology page has to state precisely.
+#   • That endpoint retains roughly 12 months, so the DEFAULT window is the
+#     news-bearing part of the out-of-sample era rather than the whole of it
+#     (replay/window.py). Reaching further back only spends throttled calls on
+#     empty slices — ~18 per ticker at the current boundary — and yields dates whose
+#     sentiment is composed differently from every other date. The measured
+#     coverage start is written to the manifest, because "how much of the window
+#     has news" is a caveat the methodology page has to state precisely.
 #   • Finnhub's analyst actions are premium (HTTP 403 on our key). yfinance's
 #     ledger substitutes and goes back to 2012, covering the whole window.
 #   • Price targets are NOT collected. Vendors expose only the CURRENT target, so
@@ -27,8 +29,10 @@
 # completes and skipped on a later invocation unless --refresh is passed.
 #
 # Usage:
-#   python -m replay.build_corpus --market us --start 2024-12-31
+#   python -m replay.build_corpus                      # news-bearing OOS window, whole universe
 #   python -m replay.build_corpus --tickers AAPL,MSFT --refresh
+#   python -m replay.build_corpus --start 2024-12-31   # full OOS era; the pre-news part
+#                                                      # returns empty slices, see replay/window.py
 
 from __future__ import annotations
 
@@ -56,6 +60,7 @@ load_dotenv_upward()
 from core.data_provider import get_provider                                    # noqa: E402
 from markets.us.provider import (FINNHUB_BASE, _finnhub_profile_name,          # noqa: E402
                                  _finnhub_throttle, _yf_throttle)
+from replay.window import default_corpus_window, news_horizon, oos_boundary  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -323,15 +328,26 @@ def build(market: str, tickers: list[str], start: date, end: date, refresh: bool
 def main() -> int:
     ap = argparse.ArgumentParser(description="Build the point-in-time replay corpus (MVP_PLAN § C).")
     ap.add_argument("--market", default="us")
-    ap.add_argument("--start", default="2024-12-31",
-                    help="Replay window start; defaults to registry.json test_slice_from (§ C.2 rule 1).")
+    ap.add_argument("--start", default=None,
+                    help="Defaults to the news-bearing part of the out-of-sample era: "
+                         "max(registry test_slice_from, today - 365d). Earlier dates fetch "
+                         "empty slices because Finnhub does not retain them.")
     ap.add_argument("--end", default=None, help="Defaults to today (UTC).")
     ap.add_argument("--tickers", default=None, help="Comma-separated override; defaults to the live universe.")
     ap.add_argument("--refresh", action="store_true", help="Re-fetch tickers that already have a shard.")
     args = ap.parse_args()
 
-    start = date.fromisoformat(args.start)
     end = date.fromisoformat(args.end) if args.end else datetime.now(timezone.utc).date()
+    default_start, _ = default_corpus_window(today=end)
+    start = date.fromisoformat(args.start) if args.start else default_start
+
+    if start < default_start:
+        wasted = (default_start - start).days
+        log.warning(
+            f"--start {start} reaches back past what is fetchable: the news horizon is "
+            f"{news_horizon(end)} and the out-of-sample boundary is {oos_boundary()}. "
+            f"Roughly {wasted} days will return empty slices ({wasted // INITIAL_SLICE_DAYS} "
+            f"wasted calls per ticker).")
 
     if args.tickers:
         tickers = [t.strip().upper() for t in args.tickers.split(",") if t.strip()]

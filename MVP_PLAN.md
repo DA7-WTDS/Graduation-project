@@ -178,7 +178,26 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
          stating before any SIM segment is shown publicly, and it is an argument for the
          § D A/B being about grading quality, not just IC.
 
-      - **New:** `test_replay_scorer.py` (12 tests, no network). Pipeline suites now 77 green.
+      - **New:** `test_replay_scorer.py` (12 tests, no network).
+
+      **Window now follows the data (added 2026-09-04, `replay/window.py`).** Both the
+      corpus builder and the scorer default to the *news-bearing* part of the out-of-sample
+      era instead of the whole of it:
+      - Lower bound is `registry.json.test_slice_from`, **read from the registry, not
+        hard-coded** — a promoted challenger moves the split, and a stale constant would
+        leave the replay quietly measuring memorization.
+      - Upper bound on history is Finnhub's ~12-month retention. Today that makes the
+        default window **2025-09-04 → today (365 days)** rather than 612.
+      - The scorer prefers what the corpus **measured** (`news_coverage_starts`) over what
+        retention theoretically allows, so a vendor that kept 11 months shortens the window
+        rather than leaving newsless dates nobody notices.
+      - Saves ~18 wasted calls per ticker (~1,800 across the universe, ~30 min of pure
+        throttle) that would otherwise fetch empty slices.
+      - `--start` still overrides in both tools, and reaching before the boundary logs an
+        explicit warning that those dates are inside the champion's training span. Replaying
+        the full OOS window to isolate what news is worth stays possible; doing it by
+        accident does not.
+      - **New:** `test_replay_window.py` (10 tests). Pipeline suites now 87 green.
 - [ ] **Fidelity lane**: `market=us_sim` ingest (separate key), `DailyRun.Status = Simulated` (never servable), date-parameterized `ShadowPortfolioJob` consuming sim runs with historical fills via `/api/closes`; instant outcome marking (horizons elapsed); notifications gated off for `us_sim`.
 - [x] **Track-record UI page** — ✅ done 2026-09-04. Public route `/track-record`,
       anonymous like the endpoints behind it (aggregates only, no user or position data).

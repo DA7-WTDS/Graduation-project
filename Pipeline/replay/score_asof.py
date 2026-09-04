@@ -25,8 +25,9 @@
 #     in the output manifest; fixed only by point-in-time constituents.
 #
 # Usage:
-#   python -m replay.score_asof --start 2025-09-01 --end 2026-06-01
-#   python -m replay.score_asof --start 2026-08-01 --tickers AAPL,MSFT --no-finbert
+#   python -m replay.score_asof                        # whole news-bearing window
+#   python -m replay.score_asof --tickers AAPL,MSFT --no-finbert
+#   python -m replay.score_asof --start 2024-12-31     # include newsless dates too
 
 from __future__ import annotations
 
@@ -49,6 +50,7 @@ from core.data_provider import get_provider                                    #
 from core.features import compute_features                                     # noqa: E402
 from markets.us.provider import (NEWS_LIMIT, NEWS_MIN_RELEVANT,                # noqa: E402
                                  _company_keywords, _filter_relevant, _rating_label)
+from replay.window import oos_boundary, resolve_replay_start                     # noqa: E402
 from risk_rules import apply_risk_rules                                        # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -352,7 +354,10 @@ def score_day(
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Point-in-time replay scorer (MVP_PLAN § C, fast lane).")
-    ap.add_argument("--start", required=True)
+    ap.add_argument("--start", default=None,
+                    help="Defaults to where the corpus actually has news "
+                         "(manifest news_coverage_starts), clamped to the out-of-sample "
+                         "boundary. Pass an earlier date to replay newsless dates too.")
     ap.add_argument("--end", default=None, help="Defaults to today (UTC).")
     ap.add_argument("--market", default="us")
     ap.add_argument("--tickers", default=None, help="Comma-separated override.")
@@ -361,7 +366,7 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    start = date.fromisoformat(args.start)
+    explicit_start = date.fromisoformat(args.start) if args.start else None
     end = date.fromisoformat(args.end) if args.end else datetime.now(timezone.utc).date()
     out_dir = Path(args.out) if args.out else OUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -383,6 +388,14 @@ def main() -> int:
     if not available:
         raise SystemExit("No corpus shards for these tickers. Run replay.build_corpus first.")
     log.info(f"Corpus covers {len(available)}/{len(tickers)} requested tickers.")
+
+    start, why = resolve_replay_start(corpus.manifest, explicit_start)
+    log.info(f"Replay window starts {start} — {why}.")
+    if start < oos_boundary():
+        log.warning(
+            "This window includes dates inside the champion's TRAINING span. Results "
+            "from those dates measure memorization, not out-of-sample skill "
+            f"(MVP_PLAN {chr(167)} C.2 rule 1).")
 
     log.info(f"Downloading {args.period} of OHLCV...")
     frames = _prepare_frames(provider, available, args.period)
