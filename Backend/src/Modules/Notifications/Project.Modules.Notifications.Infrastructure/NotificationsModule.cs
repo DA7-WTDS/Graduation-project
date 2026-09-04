@@ -19,6 +19,7 @@ using Project.Modules.Notifications.Application.Abstractions.Data;
 using Project.Modules.Users.IntegrationEvents.Users;
 using Project.Modules.Recommendations.IntegrationEvents;
 using Project.Modules.Portfolio.IntegrationEvents;
+using Project.Modules.Notifications.Presentation.Ops;
 
 namespace Project.Modules.Notifications.Infrastructure;
 
@@ -52,6 +53,11 @@ public static class NotificationsModule
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<NotificationsDbContext>());
 
         services.AddScoped<INotificationRepository, NotificationRepository>();
+
+        // One delivery path for every operational alert (in-app + email), so a new
+        // alert cannot accidentally ship as in-app only — which is a pull channel and
+        // reaches nobody on the night it matters.
+        services.AddScoped<IOpsAlert, OpsAlert>();
 
         services.AddEmailServices(configuration);
 
@@ -92,5 +98,6 @@ public static class NotificationsModule
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDriftDetectedIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<PortfolioDigestDueIntegrationEvent>>();
         registrationConfigurator.AddConsumer<IntegrationEventConsumer<ShadowRunBlockedIntegrationEvent>>();
+        registrationConfigurator.AddConsumer<IntegrationEventConsumer<ModelDriftDetectedIntegrationEvent>>();
     }
 }

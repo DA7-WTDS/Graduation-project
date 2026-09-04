@@ -76,7 +76,29 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
       - **New:** `Pipeline/test_sentiment_panel.py` (9 tests) covering partition-per-day,
         retry idempotency, raw-component retention, null components, schema stability and
         the cold-start read. Pipeline suites now 47 green (9 + 12 + 10 + 16).
-- [ ] **Nightly reliability**: deploy stack to VPS via existing docker-compose; ops alert (email) on quarantined runs, failed jobs, drift alarm (<45% 90-day hit-rate).
+- [ ] **Nightly reliability**: deploy stack to VPS via existing docker-compose; ops alert (email)
+      on quarantined runs, failed jobs, drift alarm (<45% 90-day hit-rate).
+      - ✅ **Ops alerting done 2026-09-04.** Every operational alert now goes through one
+        `IOpsAlert` path that writes an in-app notification for each Admin **and emails**
+        them. The in-app bell alone is a pull channel: it only works if someone happens to
+        open the app, which is exactly not the case on the night a run is quarantined.
+        Delivery is best-effort per channel and per recipient — a dead SMTP host cannot stop
+        the notification being written, and one bad address cannot stop the other admins
+        being told. With no Admin users at all the full alert text is logged at warning,
+        since that is the case most likely to vanish silently.
+      - ✅ **Drift alarm now actually alarms.** `ScoreOutcomesJob.CheckDriftAsync` previously
+        wrote a `LogWarning` and published nothing, so the § 1.7 alarm reached a log file
+        nobody was tailing. It now raises `ModelDriftDetectedIntegrationEvent` — and does so
+        **on the crossing night only**, via `MonitorRules.DriftCrossed`, matching the crash
+        rule. A level test would have emailed every night for as long as the model stayed
+        bad, and an alert that arrives nightly is one nobody reads. "Yesterday's view" is
+        reconstructed from `PredictionOutcome.ScoredAt` rather than stored, so the check
+        holds no state that could drift out of sync with the outcomes table.
+      - 6 new `MonitorRulesTests` cover crossing, persistence, recovery-then-relapse, the
+        exactly-on-floor boundary, and the first night the window becomes measurable while
+        already bad (which must fire). Backend suites 188 green.
+      - **Remaining: the deploy itself.** `docker compose up -d --build` on an always-on
+        host — that is what starts both moat clocks, and it needs your VPS.
 - [x] Run the **Finnhub depth probe** (§C step 0) — results in §C.0; news ≈12-month horizon + ~250-item cap, yfinance actions to 2012, consensus ~4 buckets.
 
 ### Week 2 — Manufactured history + trust surface

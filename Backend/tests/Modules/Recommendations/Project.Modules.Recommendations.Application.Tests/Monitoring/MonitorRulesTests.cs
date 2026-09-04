@@ -113,4 +113,54 @@ public class MonitorRulesTests
 
         MonitorRules.NewReversals(["AAPL"], latest, previous).Should().BeEquivalentTo(["AAPL"]);
     }
+
+    // § 1.7 drift alarm. Same crossing discipline as the crash rule: the nightly job
+    // re-reads a 90-day window, so a level test would email every night for a month.
+    [Fact]
+    public void Drift_fires_on_the_night_the_hit_rate_crosses_below_the_floor()
+    {
+        MonitorRules.DriftCrossed(hitRate: 0.44, previousHitRate: 0.46, threshold: 0.45)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_persisting_drift_does_not_refire_the_next_night()
+    {
+        MonitorRules.DriftCrossed(hitRate: 0.42, previousHitRate: 0.44, threshold: 0.45)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_healthy_hit_rate_never_fires()
+    {
+        MonitorRules.DriftCrossed(hitRate: 0.52, previousHitRate: 0.51, threshold: 0.45)
+            .Should().BeFalse();
+        MonitorRules.DriftCrossed(hitRate: 0.52, previousHitRate: null, threshold: 0.45)
+            .Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_first_night_the_window_becomes_measurable_and_bad_does_fire()
+    {
+        // Null previous = yesterday had too few outcomes to judge. That is the night
+        // someone needs to be told, not a night to stay quiet.
+        MonitorRules.DriftCrossed(hitRate: 0.40, previousHitRate: null, threshold: 0.45)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void Recovering_then_relapsing_fires_again()
+    {
+        // Crossed, recovered above the floor, then fell back: a second, real incident.
+        MonitorRules.DriftCrossed(hitRate: 0.43, previousHitRate: 0.47, threshold: 0.45)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void Sitting_exactly_on_the_floor_is_not_a_breach()
+    {
+        MonitorRules.DriftCrossed(hitRate: 0.45, previousHitRate: 0.50, threshold: 0.45)
+            .Should().BeFalse();
+    }
+
 }

@@ -64,4 +64,21 @@ public static class MonitorRules
 
         return reversals;
     }
+
+    /// <summary>
+    /// Model-drift trigger (§ 1.7): the rolling directional hit-rate crossed below
+    /// <paramref name="threshold"/> tonight.
+    ///
+    /// Same "fire on crossing" discipline as the crash rule, and for the same reason: the
+    /// nightly job re-evaluates a slow-moving window, so a level test alone would alert
+    /// every night for as long as the model stayed bad. <paramref name="previousHitRate"/>
+    /// is the same statistic as it stood before tonight's outcomes were scored.
+    ///
+    /// A null previous rate means the window had too few samples to judge yesterday. That
+    /// is treated as "not previously alarming", so the first night the metric becomes
+    /// measurable AND bad does alert — which is the night someone needs to know.
+    /// </summary>
+    public static bool DriftCrossed(double hitRate, double? previousHitRate, double threshold) =>
+        hitRate < threshold && (previousHitRate is null || previousHitRate >= threshold);
+
 }

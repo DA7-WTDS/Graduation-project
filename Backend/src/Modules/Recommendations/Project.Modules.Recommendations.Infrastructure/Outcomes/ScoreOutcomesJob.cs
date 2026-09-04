@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Project.Common.Application.EventBus;
+using Project.Modules.Recommendations.Domain.Monitoring;
+using Project.Modules.Recommendations.IntegrationEvents;
 using Project.Modules.Recommendations.Domain.Outcomes;
 using Project.Modules.Recommendations.Infrastructure.Database;
 using Quartz;
@@ -27,6 +30,7 @@ internal sealed class ScoreOutcomesJob(
     HttpClient httpClient,
     RecommendationsDbContext dbContext,
     IOptions<OutcomesOptions> options,
+    IEventBus eventBus,
     ILogger<ScoreOutcomesJob> logger) : IJob
 {
     private sealed record PendingPrediction(
@@ -138,33 +142,66 @@ internal sealed class ScoreOutcomesJob(
         await CheckDriftAsync(opts, context.CancellationToken);
     }
 
-    /// <summary>Drift alarm (IMPLEMENTATION_PLAN § 1.7): the model is retrained
-    /// monthly, but if live accuracy degrades between retrains someone must know.</summary>
+    /// <summary>
+    /// Drift alarm (IMPLEMENTATION_PLAN § 1.7). The model is retrained monthly; this is what
+    /// notices it going bad in between, while users are still being served the incumbent.
+    ///
+    /// Evaluates the window twice — as it stands now, and as it stood before tonight's
+    /// outcomes were written — and raises an event only on the night it crosses. The old
+    /// implementation logged a warning and published nothing, so the alarm reached a log
+    /// file nobody was tailing; a level test would also have re-fired every night for as
+    /// long as the model stayed bad.
+    /// </summary>
     private async Task CheckDriftAsync(OutcomesOptions opts, CancellationToken ct)
     {
-        DateTime windowStart = DateTime.UtcNow.AddDays(-90);
-        var window = await dbContext.PredictionOutcomes
-            .Where(o => o.RunGeneratedAt >= windowStart)
-            .Select(o => o.DirectionHit)
-            .ToListAsync(ct);
+        const int WindowDays = 90;
+        DateTime now = DateTime.UtcNow;
 
-        if (window.Count < opts.DriftMinSamples)
+        List<bool> current = await HitsAsync(now.AddDays(-WindowDays), null, ct);
+        if (current.Count < opts.DriftMinSamples)
         {
+            logger.LogInformation(
+                "Drift check — skipped, {Count}/{Min} outcomes in the {Window}d window.",
+                current.Count, opts.DriftMinSamples, WindowDays);
             return;
         }
 
-        double hitRate = window.Count(h => h) / (double)window.Count;
-        if (hitRate < opts.DriftWarnHitRate)
-        {
-            logger.LogWarning(
-                "MODEL DRIFT ALARM — rolling 90d hit-rate {HitRate:P1} over {Count} outcomes is below the {Threshold:P0} floor. Investigate before the next retrain.",
-                hitRate, window.Count, opts.DriftWarnHitRate);
-        }
-        else
+        double hitRate = current.Count(h => h) / (double)current.Count;
+
+        // Yesterday's view: same window, one day earlier, and only outcomes that had
+        // actually been scored by then. Reconstructed rather than stored, so the check
+        // holds no state that could drift out of sync with the outcomes table.
+        DateTime yesterday = now.AddDays(-1);
+        List<bool> previous = await HitsAsync(yesterday.AddDays(-WindowDays), yesterday, ct);
+        double? previousHitRate = previous.Count >= opts.DriftMinSamples
+            ? previous.Count(h => h) / (double)previous.Count
+            : null;
+
+        if (!MonitorRules.DriftCrossed(hitRate, previousHitRate, opts.DriftWarnHitRate))
         {
             logger.LogInformation(
-                "Drift check — rolling 90d hit-rate {HitRate:P1} over {Count} outcomes (floor {Threshold:P0}).",
-                hitRate, window.Count, opts.DriftWarnHitRate);
+                "Drift check — rolling {Window}d hit-rate {HitRate:P1} over {Count} outcomes (floor {Threshold:P0}).",
+                WindowDays, hitRate, current.Count, opts.DriftWarnHitRate);
+            return;
         }
+
+        logger.LogError(
+            "MODEL DRIFT ALARM — rolling {Window}d hit-rate {HitRate:P1} over {Count} outcomes crossed below the {Threshold:P0} floor.",
+            WindowDays, hitRate, current.Count, opts.DriftWarnHitRate);
+
+        await eventBus.PublishAsync(
+            new ModelDriftDetectedIntegrationEvent(
+                Guid.NewGuid(), now, hitRate, opts.DriftWarnHitRate, current.Count, WindowDays),
+            ct);
     }
+
+    /// <summary>Direction hits for runs from <paramref name="from"/> onward, optionally
+    /// limited to outcomes already scored by <paramref name="scoredBefore"/>.</summary>
+    private Task<List<bool>> HitsAsync(DateTime from, DateTime? scoredBefore, CancellationToken ct) =>
+        dbContext.PredictionOutcomes
+            .Where(o => o.RunGeneratedAt >= from)
+            .Where(o => scoredBefore == null || o.ScoredAt < scoredBefore)
+            .Select(o => o.DirectionHit)
+            .ToListAsync(ct);
+
 }
