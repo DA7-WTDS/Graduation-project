@@ -103,7 +103,47 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
 
 ### Week 2 — Manufactured history + trust surface
 
-- [ ] **Replay corpus builder** (§C step 1): adaptive-pagination fetch (narrow slices while count hits the ~250 cap) over the trailing ~12-month news horizon + full yfinance action ledgers → deduped, timestamped Parquet + manifest hashes.
+- [x] **Replay corpus builder** — ✅ done 2026-09-04, `replay/build_corpus.py`.
+      Written and validated live; the full 100-ticker fetch still has to be run (hours of
+      throttled calls) — it is resumable, so it can go overnight in stages.
+      - **Adaptive pagination is not optional, and now proven.** A live AAPL run over 60 days
+        returned **2,711 headlines from 31 calls**; a single naive call returns ~244 (the cap).
+        Without cap-splitting the corpus would silently have been missing ~89% of its news,
+        with no error anywhere. Slices halve and recurse whenever a response comes back at
+        the cap, and stop subdividing at one day.
+      - Analyst actions come from yfinance (Finnhub's endpoint is premium): verified 972 rows
+        for AAPL back to 2012-09, covering the entire replay window.
+      - **Price targets are not collected at all**, per § C.2 rule 3 — vendors expose only the
+        current target, so using it at a past date leaks. Recorded in the manifest as a
+        deliberate omission so nobody later "fixes" it.
+      - Resumable: each ticker's shard is written as it completes and skipped on re-run
+        unless `--refresh`. A manifest records per-ticker counts, call counts, shard hashes,
+        and the **measured** date news actually starts — a claim the methodology page needs
+        to be able to state precisely rather than as "about twelve months".
+
+      **Measured constraint this settles:** the replay window is 2024-12-31 — today (612
+      days), but Finnhub retains ~12 months of news, so **~40% of replayed dates have no news
+      component at all**. § C.1 anticipated this; it is now quantified. Those dates score
+      through a composite renormalized over the surviving components, which is exactly why
+      the composite had to become shared code (below) rather than a replay-only copy.
+
+      - **Foundation, done first:** `core/sentiment_scoring.py` now holds the weights,
+        thresholds and the composite itself, used by BOTH `main._score_gathered` and the
+        replay scorer. § C.2 rule 3 requires "identical windows and weights"; two copies that
+        agree today are not that. Verified behaviour-identical against the pre-extraction
+        output, and `test_sentiment_scoring.py` pins it with an independent reimplementation
+        of the original arithmetic so a later "simplification" cannot quietly change what a
+        score means.
+      - **New:** `test_replay_corpus.py` (9 tests, no network) — cap-splitting recovers the
+        full set, slices tile the window with no gaps, dedup across overlaps, a transient
+        call failure does not lose the rest, and recursion terminates on a capped single day.
+        Pipeline suites now 65 green.
+
+      Note: the committed `depth_probe.json` reads as all-zeros for news and actions, which
+      is correct and not a bug — its "recent" window (2024-11 — 2025-01) is now ~21 months old,
+      past the retention horizon, and its action probe measures the premium Finnhub endpoint
+      rather than the yfinance substitute § C.0 actually recommends. Live re-checks confirm
+      both sources work.
 - [ ] **Fast-lane replay engine** (`Pipeline/replay/`): point-in-time features → batch champion scoring over OOS window → `ScoreRecord`-shaped Parquet per date (price+news+actions+consensus; PT excluded).
 - [ ] **Fidelity lane**: `market=us_sim` ingest (separate key), `DailyRun.Status = Simulated` (never servable), date-parameterized `ShadowPortfolioJob` consuming sim runs with historical fills via `/api/closes`; instant outcome marking (horizons elapsed); notifications gated off for `us_sim`.
 - [x] **Track-record UI page** — ✅ done 2026-09-04. Public route `/track-record`,

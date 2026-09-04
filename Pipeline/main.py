@@ -43,6 +43,7 @@ from core.data_provider import get_provider
 from core.features import compute_features
 from core.lstm import LSTMBackbone
 from core.quality_gates import run_quality_gates
+from core import sentiment_scoring
 from core.sentiment_panel import append_daily, panel_summary
 from risk_rules import apply_risk_rules
 
@@ -475,13 +476,18 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
 
 FINBERT_MODEL = "ProsusAI/finbert"
 
-POS_THRESHOLD = 0.15
-NEG_THRESHOLD = -0.15
-PT_REF_PCT    = 25.0
+# Weights, thresholds and the composite itself live in core.sentiment_scoring so the
+# point-in-time replay lane (MVP_PLAN § C) scores through the exact same
+# arithmetic. Re-deriving them here is what would make a replayed track record
+# measure the replay instead of the strategy.
+POS_THRESHOLD = sentiment_scoring.POS_THRESHOLD
+NEG_THRESHOLD = sentiment_scoring.NEG_THRESHOLD
+PT_REF_PCT    = sentiment_scoring.PT_REF_PCT
+WEIGHTS       = sentiment_scoring.WEIGHTS
 
-WEIGHTS = {"consensus": 0.40, "actions": 0.15, "price_target": 0.20, "news": 0.25}
 
 def _news_sentiment(titles: list[str]):
+    """FinBERT over headlines -> (score, label, count). Model call here, arithmetic shared."""
     if not titles or _state.finbert is None:
         return None, None, len(titles) if titles else 0
     try:
@@ -489,37 +495,25 @@ def _news_sentiment(titles: list[str]):
     except Exception as e:
         log.warning(f"FinBERT inference failed: {e}")
         return None, None, len(titles)
-    scores = []
-    for o in outs:
-        d = {x["label"].lower(): x["score"] for x in o}
-        scores.append(d.get("positive", 0.0) - d.get("negative", 0.0))
-    if not scores:
+    avg = sentiment_scoring.news_score_from_finbert(outs)
+    if avg is None:
         return None, None, 0
-    avg   = float(np.mean(scores))
-    label = "POSITIVE" if avg > POS_THRESHOLD else "NEGATIVE" if avg < NEG_THRESHOLD else "NEUTRAL"
-    return round(avg, 3), label, len(titles)
+    return avg, sentiment_scoring.label(avg), len(titles)
 
 
 def _score_gathered(g: dict) -> TickerSentiment | None:
     """Scoring phase (serial): FinBERT on headlines + weighted composite."""
     try:
-        consensus_score = (g["avg"] - 3.0) / 2.0 if g["avg"] is not None else None
-        pt_score        = max(-1.0, min(1.0, g["pt_up"] / PT_REF_PCT)) if g["pt_up"] is not None else None
         news_score, news_label, news_count = _news_sentiment(g["titles"])
 
-        parts = {}
-        if consensus_score   is not None: parts["consensus"]    = round(consensus_score, 3)
-        if g["action_score"] is not None: parts["actions"]       = g["action_score"]
-        if pt_score          is not None: parts["price_target"]  = round(pt_score, 3)
-        if news_score        is not None: parts["news"]          = news_score
-
-        if parts:
-            wsum  = sum(WEIGHTS[k] for k in parts)
-            score = round(sum(parts[k] * WEIGHTS[k] for k in parts) / wsum, 3)
-        else:
-            score = 0.0
-
-        signal = "POSITIVE" if score > POS_THRESHOLD else "NEGATIVE" if score < NEG_THRESHOLD else "NEUTRAL"
+        # Shared with the replay lane, so live and replayed records are scored by the
+        # same arithmetic rather than two implementations that agree today.
+        score, signal, parts = sentiment_scoring.composite(
+            consensus    = sentiment_scoring.consensus_score(g["avg"]),
+            actions      = g["action_score"],
+            price_target = sentiment_scoring.price_target_score(g["pt_up"]),
+            news         = news_score,
+        )
 
         return TickerSentiment(
             ticker               = g["ticker"],
