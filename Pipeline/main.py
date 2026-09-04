@@ -1,6 +1,17 @@
 # QuantWise — Unified Pipeline Service
-# FastAPI service: fetch tickers → LSTM+XGBoost prediction → FinBERT sentiment → risk rules.
+# FastAPI service: fetch tickers → prediction → FinBERT sentiment → risk rules.
 # Exposes POST /api/score, called once per day by the .NET FetchDailyPipelineJob Quartz job.
+#
+# SERVING MODEL (MVP_PLAN § A): two inference stacks coexist, selected by
+# SERVING_MODEL env ("trees" default | "hybrid"):
+#   • trees  — models/ranking_v1 champion: XGBoost rank score over raw base-14
+#     indicators, isotonic-calibrated conviction = P(beat universe median).
+#     change_pct is RELATIVE to the per-date universe median. No torch in the
+#     hot path.
+#   • hybrid — legacy absolute-return LSTM→XGBoost head with MC-dropout
+#     stability confidence. Kept behind the flag for rollback/comparison.
+# Both artifact sets load at startup either way, so POST /api/reproduce can
+# replay ANY historical snapshot (either mode) under today's process.
 #
 # IMPORTANT: torch.backends.mkldnn.enabled = False must stay.
 # nn.LSTM's oneDNN kernel is non-deterministic off the main thread; disabling it
@@ -55,6 +66,11 @@ FEATURE_SCALER_PATH  = MODEL_DIR / "global_feature_scaler.pkl"
 TECH_SCALER_PATH     = MODEL_DIR / "global_tech_scaler.pkl"
 TARGET_STATS_PATH    = MODEL_DIR / "target_stats.json"
 
+RANKING_DIR           = MODEL_DIR / "ranking_v1"
+RANKING_XGB_PATH      = RANKING_DIR / "xgb_ranking.json"
+RANKING_CALIBRATOR_PATH = RANKING_DIR / "calibrator.pkl"
+RANKING_FEATURES_PATH = RANKING_DIR / "features.json"
+
 with open(CONFIG_PATH) as f:
     CONFIG = json.load(f)
 
@@ -62,6 +78,17 @@ LOOK_BACK    = CONFIG["look_back"]       # 60
 FEATURE_COLS = CONFIG["feature_cols"]    # 5 LSTM input features
 TECH_COLS    = CONFIG["tech_cols"]       # 14 tech indicator features
 LSTM_PARAMS  = CONFIG["lstm_params"]
+
+# Serving-mode flag (MVP_PLAN § A). Default: the validated ranking champion.
+SERVING_MODEL = os.getenv("SERVING_MODEL", "trees").strip().lower()
+if SERVING_MODEL not in ("trees", "hybrid"):
+    raise RuntimeError(f"SERVING_MODEL must be 'trees' or 'hybrid', got {SERVING_MODEL!r}")
+
+if not RANKING_FEATURES_PATH.exists():
+    raise FileNotFoundError(
+        f"Ranking champion features missing: {RANKING_FEATURES_PATH}. "
+        "models/ranking_v1/ is required for trees serving and snapshot replay.")
+RANKING_COLS: list[str] = json.loads(RANKING_FEATURES_PATH.read_text(encoding="utf-8"))
 
 # Minimum raw OHLCV rows needed before feature engineering:
 #   60 (look_back) + 35 (indicator warmup: SMA_30 + momentum lags) + 10 buffer
@@ -75,10 +102,12 @@ MC_STD_REF   = 0.015
 
 # Feature-vector snapshotting (§ 6.3). Model identity is content-addressed —
 # hashed from the artifacts actually loaded — so it can never drift out of sync
-# with a hand-maintained version string. Scalers are hashed separately because a
-# scaler swap invalidates stored vectors even when the model is unchanged.
+# with a hand-maintained version string. Snapshots carry "mode" so /api/reproduce
+# knows which stack to replay through ("hybrid" when absent = legacy rows).
+# trees mode uses no scalers, so scaler_hash is null there; a scaler swap still
+# invalidates stored hybrid vectors via its own hash.
 SNAPSHOT_SCHEMA  = 1
-SNAPSHOT_DECIMALS = 6  # scaled features live in ~[-3,3]; 6dp reproduces to 4dp output
+SNAPSHOT_DECIMALS = 6  # features live in ~[-3,3] (scaled) or raw indicator range; 6dp reproduces to 4dp output
 
 
 def _sha256_files(*paths: Path, length: int = 16) -> str:
@@ -92,8 +121,14 @@ def _sha256_files(*paths: Path, length: int = 16) -> str:
     return h.hexdigest()[:length]
 
 
-MODEL_VERSION = _sha256_files(LSTM_PATH, XGB_PATH, CONFIG_PATH)
-SCALER_HASH   = _sha256_files(FEATURE_SCALER_PATH, TECH_SCALER_PATH, TARGET_STATS_PATH)
+if SERVING_MODEL == "trees":
+    MODEL_VERSION = _sha256_files(RANKING_XGB_PATH, RANKING_CALIBRATOR_PATH, RANKING_FEATURES_PATH)
+    SCALER_HASH: str | None = None   # no scaling in the trees path
+else:
+    MODEL_VERSION = _sha256_files(LSTM_PATH, XGB_PATH, CONFIG_PATH)
+    SCALER_HASH = _sha256_files(FEATURE_SCALER_PATH, TECH_SCALER_PATH, TARGET_STATS_PATH)
+
+RANKING_VERSION = _sha256_files(RANKING_XGB_PATH, RANKING_CALIBRATOR_PATH, RANKING_FEATURES_PATH)
 
 # Serialises LSTM train()/eval() toggle during MC-dropout across concurrent requests.
 _model_lock = threading.Lock()
@@ -118,9 +153,9 @@ RiskLevel    = Literal["LOW", "MEDIUM", "HIGH"]
 
 class TickerPrediction(BaseModel):
     ticker:       str
-    direction:    Direction
-    change_pct:   float
-    confidence:   float
+    direction:    Direction   # trees: vs universe median · hybrid: absolute sign
+    change_pct:   float       # trees: rel. return vs median % · hybrid: abs. 30d %
+    confidence:   float       # trees: calibrated P(beat median) · hybrid: MC-dropout stability
     predicted_at: str
     # Tactical dip-buyer inputs (§ 3.4): oversold state at prediction time.
     rsi_14:        float | None = None
@@ -153,7 +188,9 @@ class TickerSentiment(BaseModel):
 
 
 class ScoreRecord(BaseModel):
-    """One record in the /api/score response — matches PredictionRecordDto exactly."""
+    """One record in the /api/score response — matches PredictionRecordDto exactly.
+    trees mode: change_pct is relative to the universe median, confidence is the
+    calibrated P(beat median); hybrid mode keeps legacy absolute semantics."""
     ticker:           str
     direction:        Direction
     change_pct:       float
@@ -189,10 +226,10 @@ class ScoreResponse(BaseModel):
 
 # LSTM DEFINITION lives in core/lstm.py (shared with training).
 
-# MODEL LOADER
+# MODEL LOADER — both stacks load so /api/reproduce can replay any snapshot.
 
-def _load_models():
-    log.info("Loading LSTM + XGBoost models...")
+def _load_hybrid() -> None:
+    log.info("Loading hybrid stack (LSTM + XGBoost head)...")
     lstm = LSTMBackbone(
         input_dim=LSTM_PARAMS["input_dim"],
         hidden_dim=LSTM_PARAMS["hidden_dim"],
@@ -214,11 +251,28 @@ def _load_models():
             target_stats = json.load(f)
         log.info(f"Target stats: mean={target_stats['mean']:.4f}, std={target_stats['std']:.4f}")
     else:
-        log.warning("target_stats.json not found ΓÇö predictions will not be denormalized.")
+        log.warning("target_stats.json not found — hybrid predictions will not be denormalized.")
         target_stats = {"mean": 0.0, "std": 1.0}
 
-    log.info("LSTM + XGBoost loaded.")
-    return lstm, xgb_model, feature_scaler, tech_scaler, target_stats
+    _state.lstm           = lstm
+    _state.xgb_model      = xgb_model
+    _state.feature_scaler = feature_scaler
+    _state.tech_scaler    = tech_scaler
+    _state.target_stats   = target_stats
+    log.info("Hybrid stack loaded.")
+
+
+def _load_ranking() -> None:
+    """Ranking champion (MVP_PLAN § A): raw base-14 indicators → XGBoost rank
+    score → isotonic P(beat median). No scalers, no torch."""
+    log.info("Loading ranking champion (trees-only)...")
+    rank_model = xgb.XGBRegressor()
+    rank_model.load_model(RANKING_XGB_PATH)
+    with open(RANKING_CALIBRATOR_PATH, "rb") as f:
+        calibrator = pickle.load(f)
+    _state.ranking_model = rank_model
+    _state.calibrator    = calibrator
+    log.info("Ranking champion loaded.")
 
 
 def _load_finbert():
@@ -240,13 +294,33 @@ class _AppState:
     tech_scaler:    Any = None
     target_stats:   dict = field(default_factory=lambda: {"mean": 0.0, "std": 1.0})
     finbert:        Any = None
+    # Ranking champion (trees serving mode).
+    ranking_model:  Any = None
+    calibrator:     Any = None
+    ready:          bool = False
 
 _state = _AppState()
 
 
 # FEATURE ENGINEERING lives in core/features.py (shared with training).
 
-# PREDICTION — LSTM + XGBoost
+# PREDICTION — serving-mode dispatch
+
+def _infer_trees(tech_raw: np.ndarray) -> tuple[str, float, float]:
+    """Trees-only inference core (MVP_PLAN § A): raw base-14 indicator row ->
+    (direction, change_pct, confidence).
+
+    change_pct is the expected 21-trading-day return RELATIVE to the universe
+    median (the champion's training target); direction is vs-median; confidence
+    is the isotonic-calibrated P(beat median) — a real probability, replacing
+    MC-dropout pseudo-confidence (IMPLEMENTATION_PLAN §§ 1.1/1.4). Shared by
+    live scoring and snapshot replay so audits exercise the exact code path.
+    """
+    score = float(_state.ranking_model.predict(tech_raw.reshape(1, -1))[0])
+    prob  = float(np.clip(_state.calibrator.predict(np.array([score]))[0], 0.0, 1.0))
+    direction = "UP" if score > 0 else "DOWN"
+    return direction, round(score * 100, 4), round(prob, 4)
+
 
 def _infer(lstm_window: np.ndarray, tech_last: np.ndarray) -> tuple[str, float, float]:
     """Deterministic inference core: scaled model inputs -> (direction, change_pct, confidence).
@@ -330,22 +404,33 @@ def _predict_one(ticker: str, raw: "pd.DataFrame | None" = None) -> TickerPredic
             log.warning(f"{ticker}: only {len(df)} rows after features, need {LOOK_BACK}. Skipping.")
             return None
 
-        feature_scaled = _state.feature_scaler.transform(df[FEATURE_COLS].values)
-        tech_scaled    = _state.tech_scaler.transform(df[TECH_COLS].values)
+        if SERVING_MODEL == "trees":
+            # Raw indicator row in the champion's exact feature order (features.json).
+            tech_raw = df[RANKING_COLS].iloc[-1].to_numpy(dtype=np.float64)
+            direction, change_pct, confidence = _infer_trees(tech_raw)
+            features = {
+                "v":     SNAPSHOT_SCHEMA,
+                "mode":  "trees",
+                "tech_last": np.round(tech_raw, SNAPSHOT_DECIMALS).tolist(),
+            }
+        else:
+            feature_scaled = _state.feature_scaler.transform(df[FEATURE_COLS].values)
+            tech_scaled    = _state.tech_scaler.transform(df[TECH_COLS].values)
 
-        lstm_window = feature_scaled[-LOOK_BACK:]
-        tech_last   = tech_scaled[-1].reshape(1, -1)
+            lstm_window = feature_scaled[-LOOK_BACK:]
+            tech_last   = tech_scaled[-1].reshape(1, -1)
 
-        direction, change_pct, confidence = _infer(lstm_window, tech_last)
+            direction, change_pct, confidence = _infer(lstm_window, tech_last)
 
-        # Feature snapshot (§ 6.3): the exact scaled inputs this prediction was
-        # made from. Stored so any prediction can be re-run and audited later —
-        # impossible to reconstruct after the fact, so it is captured here.
-        features = {
-            "v":           SNAPSHOT_SCHEMA,
-            "lstm_window": np.round(lstm_window, SNAPSHOT_DECIMALS).tolist(),
-            "tech_last":   np.round(tech_last[0], SNAPSHOT_DECIMALS).tolist(),
-        }
+            # Feature snapshot (§ 6.3): the exact scaled inputs this prediction was
+            # made from. Stored so any prediction can be re-run and audited later —
+            # impossible to reconstruct after the fact, so it is captured here.
+            features = {
+                "v":           SNAPSHOT_SCHEMA,
+                "mode":        "hybrid",
+                "lstm_window": np.round(lstm_window, SNAPSHOT_DECIMALS).tolist(),
+                "tech_last":   np.round(tech_last[0], SNAPSHOT_DECIMALS).tolist(),
+            }
 
         # Tactical dip-buyer inputs (§ 3.4): last RSI-14 (already in the feature
         # frame) and distance from the 50-DMA. Best effort — never fails a prediction.
@@ -455,14 +540,11 @@ def _score_gathered(g: dict) -> TickerSentiment | None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    lstm, xgb_model, feature_scaler, tech_scaler, target_stats = _load_models()
-    _state.lstm           = lstm
-    _state.xgb_model      = xgb_model
-    _state.feature_scaler = feature_scaler
-    _state.tech_scaler    = tech_scaler
-    _state.target_stats   = target_stats
+    _load_hybrid()      # always: keeps /api/reproduce able to replay legacy snapshots
+    _load_ranking()     # always: trees serving + replay of trees snapshots under any flag
     _load_finbert()
-    log.info("QuantWise Pipeline service ready.")
+    _state.ready = True
+    log.info(f"QuantWise Pipeline service ready (serving_model={SERVING_MODEL}).")
     yield
     log.info("QuantWise Pipeline service shutting down.")
 
@@ -470,27 +552,32 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="QuantWise Pipeline Service",
     description=(
-        "Unified ML pipeline: ticker fetch ΓåÆ LSTM+XGBoost prediction ΓåÆ "
-        "FinBERT+analyst sentiment ΓåÆ risk rules. "
+        "Unified ML pipeline: ticker fetch → prediction → "
+        "FinBERT+analyst sentiment → risk rules. "
+        f"Serving model: {SERVING_MODEL} (SERVING_MODEL env; trees = ranking champion, "
+        "hybrid = legacy LSTM→XGBoost). "
         "Exposes POST /api/score for the .NET Quartz job."
     ),
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
 
 @app.get("/health")
 def health():
-    """Liveness check. Returns model + FinBERT status."""
+    """Liveness check. Returns serving mode + stack status."""
     from markets.us.provider import FINNHUB_API_KEY  # vendor detail, US interim only
 
     return {
-        "status":   "ok",
-        "market":   MARKET,
-        "models":   "loaded" if _state.lstm is not None else "not loaded",
-        "finbert":  "loaded" if _state.finbert is not None else "not loaded (news disabled)",
-        "finnhub":  "enabled" if FINNHUB_API_KEY else "disabled (set FINNHUB_API_KEY)",
-        "time":     datetime.now(timezone.utc).isoformat(),
+        "status":        "ok",
+        "market":        MARKET,
+        "serving_model": SERVING_MODEL,
+        "model_version": MODEL_VERSION,
+        "models":        "loaded" if _state.ready else "not loaded",
+        "ranking":       "loaded" if _state.ranking_model is not None else "not loaded",
+        "finbert":       "loaded" if _state.finbert is not None else "not loaded (news disabled)",
+        "finnhub":       "enabled" if FINNHUB_API_KEY else "disabled (set FINNHUB_API_KEY)",
+        "time":          datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -610,7 +697,7 @@ class ReproduceResponse(BaseModel):
     confidence:  float
     # Artifact identity now vs at prediction time.
     model_version:         str
-    scaler_hash:           str
+    scaler_hash:           str | None   # null when serving trees (no scalers)
     model_version_matches: bool | None = None
     scaler_hash_matches:   bool | None = None
     # Null when the caller supplied nothing to compare against.
@@ -623,14 +710,16 @@ def reproduce(req: ReproduceRequest):
     """Re-run inference on a stored feature snapshot (IMPLEMENTATION_PLAN § 6.3).
 
     This is the audit answer and the debugging tool in one: it replays the exact
-    scaled inputs through `_infer` — the same function live scoring uses — so a
-    mismatch means something really did change, not that an audit path drifted.
+    inputs through the SAME inference function live scoring uses (`_infer_trees`
+    or `_infer`, chosen by the snapshot's "mode"; absent mode = legacy hybrid row)
+    so a mismatch means something really did change, not that an audit drifted.
 
     A differing `model_version` is reported rather than rejected: reproducing an
     old prediction under today's artifacts is exactly how you demonstrate what a
-    model change did.
+    model change did. Both stacks load at startup, so either snapshot mode is
+    replayable under any SERVING_MODEL flag value.
     """
-    if _state.lstm is None:
+    if not _state.ready:
         raise HTTPException(status_code=503, detail="Models not loaded yet.")
 
     f = req.features or {}
@@ -639,23 +728,38 @@ def reproduce(req: ReproduceRequest):
             status_code=400,
             detail=f"Unsupported snapshot schema {f.get('v')!r}; this build reads v{SNAPSHOT_SCHEMA}.")
 
-    try:
-        lstm_window = np.asarray(f["lstm_window"], dtype=np.float64)
-        tech_last   = np.asarray(f["tech_last"], dtype=np.float64).reshape(1, -1)
-    except (KeyError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=f"Malformed snapshot: {e}")
+    mode = f.get("mode", "hybrid")
+    if mode == "trees":
+        if _state.ranking_model is None:
+            raise HTTPException(status_code=503, detail="Ranking artifacts not loaded.")
+        try:
+            tech_raw = np.asarray(f["tech_last"], dtype=np.float64).ravel()
+        except (KeyError, ValueError) as e:
+            raise HTTPException(status_code=400, detail=f"Malformed snapshot: {e}")
+        if tech_raw.shape[0] != len(RANKING_COLS):
+            raise HTTPException(
+                status_code=400,
+                detail=f"tech_last has {tech_raw.shape[0]} features, expected {len(RANKING_COLS)}.")
+        direction, change_pct, confidence = _infer_trees(tech_raw)
+    elif mode == "hybrid":
+        try:
+            lstm_window = np.asarray(f["lstm_window"], dtype=np.float64)
+            tech_last   = np.asarray(f["tech_last"], dtype=np.float64).reshape(1, -1)
+        except (KeyError, ValueError) as e:
+            raise HTTPException(status_code=400, detail=f"Malformed snapshot: {e}")
 
-    expected_shape = (LOOK_BACK, len(FEATURE_COLS))
-    if lstm_window.shape != expected_shape:
-        raise HTTPException(
-            status_code=400,
-            detail=f"lstm_window is {lstm_window.shape}, expected {expected_shape}.")
-    if tech_last.shape[1] != len(TECH_COLS):
-        raise HTTPException(
-            status_code=400,
-            detail=f"tech_last has {tech_last.shape[1]} features, expected {len(TECH_COLS)}.")
-
-    direction, change_pct, confidence = _infer(lstm_window, tech_last)
+        expected_shape = (LOOK_BACK, len(FEATURE_COLS))
+        if lstm_window.shape != expected_shape:
+            raise HTTPException(
+                status_code=400,
+                detail=f"lstm_window is {lstm_window.shape}, expected {expected_shape}.")
+        if tech_last.shape[1] != len(TECH_COLS):
+            raise HTTPException(
+                status_code=400,
+                detail=f"tech_last has {tech_last.shape[1]} features, expected {len(TECH_COLS)}.")
+        direction, change_pct, confidence = _infer(lstm_window, tech_last)
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown snapshot mode {mode!r}.")
 
     mismatches: list[str] = []
     compared = False
@@ -687,16 +791,16 @@ def reproduce(req: ReproduceRequest):
 
 @app.post("/api/score", response_model=ScoreResponse)
 def score():
-    if _state.lstm is None:
+    if not _state.ready:
         raise HTTPException(status_code=503, detail="Models not loaded yet.")
 
     tickers = _provider.get_universe()
-    log.info(f"Scoring {len(tickers)} tickers...")
+    log.info(f"Scoring {len(tickers)} tickers (serving_model={SERVING_MODEL})...")
 
     log.info("Batch downloading historical price data...")
     all_data = _provider.get_ohlcv_batch(tickers)
 
-    log.info("Running LSTM+XGBoost predictions...")
+    log.info(f"Running {SERVING_MODEL} predictions...")
     # Pre-build per-ticker frames from the batch download for efficiency
     ticker_frames: dict[str, "pd.DataFrame | None"] = {}
     if all_data is not None and not all_data.empty:

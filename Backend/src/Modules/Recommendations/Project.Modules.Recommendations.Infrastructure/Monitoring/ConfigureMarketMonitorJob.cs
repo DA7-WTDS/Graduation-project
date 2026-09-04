@@ -18,6 +18,7 @@ internal sealed class ConfigureMarketMonitorJob(IOptions<MonitorOptions> monitor
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_monitorOptions.CronSchedule));
+                    .WithCronSchedule(_monitorOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

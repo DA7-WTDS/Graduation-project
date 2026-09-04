@@ -18,6 +18,7 @@ internal sealed class ConfigureShadowPortfolioJob(IOptions<ShadowPortfolioOption
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_shadowOptions.CronSchedule));
+                    .WithCronSchedule(_shadowOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

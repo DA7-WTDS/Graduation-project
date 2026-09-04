@@ -15,15 +15,29 @@ from fastapi import HTTPException
 
 
 def _stub_models(direction="UP", change_pct=2.5, confidence=0.9):
-    """Bypass model loading; _infer is exercised for real in the live round-trip."""
-    main._state.lstm = object()  # non-None so the 503 guard passes
+    """Bypass model loading; _infer/_infer_trees are exercised for real in the
+    live round-trip."""
+    main._state.ready = True  # non-None so the 503 guard passes
+    main._state.ranking_model = object()
     main._infer = lambda lw, tl: (direction, change_pct, confidence)
+    main._infer_trees = lambda tech: (direction, change_pct, confidence)
 
 
-def snapshot(v=main.SNAPSHOT_SCHEMA, rows=None, tech=None):
+def snapshot(v=main.SNAPSHOT_SCHEMA, rows=None, tech=None, mode="hybrid"):
     rows = rows if rows is not None else [[0.1] * len(main.FEATURE_COLS)] * main.LOOK_BACK
     tech = tech if tech is not None else [0.1] * len(main.TECH_COLS)
-    return {"v": v, "lstm_window": rows, "tech_last": tech}
+    snap = {"v": v}
+    if mode is not None:
+        snap["mode"] = mode
+    if mode != "trees":
+        snap["lstm_window"] = rows
+    snap["tech_last"] = tech
+    return snap
+
+
+def trees_snapshot(**kw):
+    kw.setdefault("tech", [0.1] * len(main.RANKING_COLS))
+    return snapshot(mode="trees", **kw)
 
 
 def expect_http(status, fn, *a, **kw):
@@ -109,15 +123,59 @@ def test_rejects_malformed_snapshot():
 
 
 def test_503_when_models_not_loaded():
-    main._state.lstm = None
+    main._state.ready = False
     expect_http(503, main.reproduce, main.ReproduceRequest(features=snapshot()))
 
 
 def test_model_identity_is_content_addressed():
     # Derived from the artifacts themselves, so it cannot drift out of sync with
     # a hand-maintained version string.
-    assert len(main.MODEL_VERSION) == 16 and len(main.SCALER_HASH) == 16
-    assert main.MODEL_VERSION != main.SCALER_HASH
+    assert len(main.MODEL_VERSION) == 16
+    if main.SERVING_MODEL == "trees":
+        assert main.SCALER_HASH is None          # no scalers in the trees path
+    else:
+        assert len(main.SCALER_HASH) == 16
+        assert main.MODEL_VERSION != main.SCALER_HASH
+
+
+# ── Trees-mode snapshots (MVP_PLAN § A) ──────────────────────────────────────
+
+def test_trees_snapshot_replays_through_trees_infer():
+    _stub_models(change_pct=1.234)
+    r = main.reproduce(main.ReproduceRequest(features=trees_snapshot()))
+    assert (r.direction, r.change_pct, r.confidence) == ("UP", 1.234, 0.9)
+
+
+def test_legacy_hybrid_snapshot_without_mode_key_still_replays():
+    # Rows stored before the mode field existed replay as hybrid under any flag.
+    _stub_models()
+    legacy = {"v": main.SNAPSHOT_SCHEMA,
+              "lstm_window": [[0.1] * len(main.FEATURE_COLS)] * main.LOOK_BACK,
+              "tech_last": [0.1] * len(main.TECH_COLS)}
+    r = main.reproduce(main.ReproduceRequest(features=legacy))
+    assert r.direction == "UP" and r.matches is None
+
+
+def test_rejects_wrong_ranking_width():
+    _stub_models()
+    detail = expect_http(400, main.reproduce,
+                         main.ReproduceRequest(features=trees_snapshot(tech=[0.1, 0.2])))
+    assert "tech_last" in detail
+
+
+def test_rejects_unknown_mode():
+    _stub_models()
+    expect_http(400, main.reproduce,
+                main.ReproduceRequest(features=snapshot(mode="transformer")))
+
+
+def test_scaler_hash_mismatch_reported_across_modes():
+    # A trees row carries scaler_hash=null; a stored hybrid row has one.
+    # Both must be reported, never rejected.
+    _stub_models()
+    r = main.reproduce(main.ReproduceRequest(
+        features=trees_snapshot(), model_version="old", scaler_hash="old"))
+    assert r.model_version_matches is False and r.scaler_hash_matches is False
 
 
 if __name__ == "__main__":

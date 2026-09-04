@@ -18,6 +18,7 @@ internal sealed class ConfigurePortfolioValuationJob(IOptions<PortfolioValuation
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_valuationOptions.CronSchedule));
+                    .WithCronSchedule(_valuationOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

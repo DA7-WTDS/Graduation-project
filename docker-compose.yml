@@ -28,6 +28,12 @@ services:
       - postgres_data:/var/lib/postgresql
     networks:
       - project-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:8-alpine
@@ -39,6 +45,12 @@ services:
       - redis_data:/data
     networks:
       - project-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mailpit:
     image: axllent/mailpit:latest
@@ -80,7 +92,52 @@ services:
     networks:
       - project-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
+
+  backend:
+    build:
+      context: ./Backend
+    image: quantwise-backend:latest
+    container_name: quantwise-backend
+    restart: unless-stopped
+    # Secrets (Authentication__Key, Recommendations__Ingest/Llm__ApiKey,
+    # Finnhub__ApiKey, ...) come from the repo-root .env. The explicit
+    # environment: block below overrides the host-oriented values in .env with
+    # the in-network service DNS names.
+    env_file:
+      - ./.env
+    environment:
+      # Development keeps console logging on so `docker logs` is useful; switch
+      # to Production once a log aggregator is wired.
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__Database=Host=postgres;Port=5432;Database=project_db;Username=postgres;Password=postgres
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=admin
+      - RabbitMQ__Password=admin
+      # Reach the pipeline by its in-network service name, not localhost.
+      - Portfolio__Instruments__PipelineBaseUrl=http://pipeline:8000
+      - Recommendations__Pipeline__BaseUrl=http://pipeline:8000
+    ports:
+      - "5099:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      pipeline:
+        condition: service_started
+    networks:
+      - project-network
 
 volumes:
   postgres_data:

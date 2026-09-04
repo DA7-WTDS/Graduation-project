@@ -18,6 +18,7 @@ internal sealed class ConfigureScoreOutcomesJob(IOptions<OutcomesOptions> outcom
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_outcomesOptions.CronSchedule));
+                    .WithCronSchedule(_outcomesOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

@@ -18,6 +18,9 @@ internal sealed class ConfigureRefreshInstrumentStatsJob(IOptions<InstrumentsOpt
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_instrumentsOptions.CronSchedule));
+                    // Fire-and-proceed: a tick missed during downtime runs once on
+                    // recovery instead of being silently skipped (§ ops reliability).
+                    .WithCronSchedule(_instrumentsOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

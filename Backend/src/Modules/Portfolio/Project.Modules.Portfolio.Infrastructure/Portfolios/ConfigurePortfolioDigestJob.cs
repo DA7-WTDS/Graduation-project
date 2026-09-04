@@ -18,6 +18,7 @@ internal sealed class ConfigurePortfolioDigestJob(IOptions<PortfolioDigestOption
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_digestOptions.CronSchedule));
+                    .WithCronSchedule(_digestOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

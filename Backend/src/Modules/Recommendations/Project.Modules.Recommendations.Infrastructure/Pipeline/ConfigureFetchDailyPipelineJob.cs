@@ -23,6 +23,7 @@ internal sealed class ConfigureFetchDailyPipelineJob(IOptions<PipelineOptions> p
             .AddTrigger(configure =>
                 configure
                     .ForJob(jobName)
-                    .WithCronSchedule(_pipelineOptions.CronSchedule));
+                    .WithCronSchedule(_pipelineOptions.CronSchedule,
+                        x => x.WithMisfireHandlingInstructionFireAndProceed()));
     }
 }

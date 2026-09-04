@@ -92,6 +92,8 @@ public static class PortfolioModule
         services.Configure<PortfolioDigestOptions>(configuration.GetSection("Portfolio:Digest"));
         services.ConfigureOptions<ConfigureShadowPortfolioJob>();
         services.Configure<ShadowPortfolioOptions>(configuration.GetSection("Portfolio:Shadow"));
+        services.AddScoped<IShadowRunTrigger, ShadowRunTrigger>();
+        services.AddHostedService<ShadowCatchUpService>();
         services.Configure<Application.Shadow.GetShadowTrackRecord.ShadowTrackRecordOptions>(
             configuration.GetSection("Portfolio:Shadow"));
 

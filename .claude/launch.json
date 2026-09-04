@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "frontend",
       "port": 3000
+    },
+    {
+      "name": "slides",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "serve"],
+      "cwd": "conference-presentation",
+      "port": 3030
     }
   ]
 }

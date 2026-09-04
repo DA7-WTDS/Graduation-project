@@ -9,6 +9,8 @@ using Project.Modules.Portfolio.Domain.Instruments;
 using Project.Modules.Portfolio.Domain.Portfolios;
 using Project.Modules.Portfolio.Domain.Shadow;
 using Project.Modules.Portfolio.Domain.Strategies;
+using Project.Modules.Portfolio.IntegrationEvents;
+using Project.Common.Application.EventBus;
 using Project.Modules.Recommendations.PublicApi;
 using Quartz;
 
@@ -35,6 +37,7 @@ internal sealed class ShadowPortfolioJob(
     IStrategyTemplateRepository templateRepository,
     IInstrumentRepository instrumentRepository,
     IRecommendationsApi recommendationsApi,
+    IEventBus eventBus,
     IUnitOfWork unitOfWork,
     IOptions<ShadowPortfolioOptions> options,
     ILogger<ShadowPortfolioJob> logger) : IJob
@@ -147,6 +150,21 @@ internal sealed class ShadowPortfolioJob(
         logger.LogInformation(
             "ShadowPortfolioJob — valued {Valued}, rebalanced {Rebalanced}, skipped {Skipped} (missing prices), drawdown alerts {Alerts}.",
             valued, rebalanced, skipped, drawdownAlerts);
+
+        // Missed-snapshot alert: the run executed but the track record did not
+        // advance for any existing portfolio. Silence must not look like success —
+        // flag it to ops (stale prices / no published run / partial price book).
+        if (existing.Count > 0 && valued == 0)
+        {
+            string reason = rankings.Count == 0
+                ? "no published daily run / rankings available"
+                : "no priced book tonight (stale or incomplete instrument prices)";
+            logger.LogError(
+                "ShadowPortfolioJob — wrote 0 snapshots for {Count} portfolio(s): {Reason}.",
+                existing.Count, reason);
+            await eventBus.PublishAsync(new ShadowRunBlockedIntegrationEvent(
+                Guid.NewGuid(), DateTime.UtcNow, opts.Market, existing.Count, reason), ct);
+        }
     }
 
     /// <summary>The cadence clock runs from the last rebalance, or from inception
