@@ -31,6 +31,7 @@ internal sealed class GetLatestPredictionsQueryHandler(IDailyRunRepository daily
                 p.Rationale))
             .ToList();
 
-        return Result.Ok(new PredictionsResponse(run.GeneratedAt, predictions));
+        return Result.Ok(new PredictionsResponse(
+            run.GeneratedAt, predictions, PredictionScale.Of(run.Predictions)));
     }
 }

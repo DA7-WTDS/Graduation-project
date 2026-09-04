@@ -10,8 +10,34 @@ Ported 1-to-1 from Risk Node/risk_core.js — thresholds and logic are identical
 """
 
 # ── Tunable thresholds (mirrors risk_core.js CONFIG exactly) ──────────────────
-LOW_CONVICTION_PCT: float = 1.5    # |change_pct| below this  → low conviction
-LOW_CONFIDENCE: float     = 0.30   # model reliability below this → low conviction
+# Low conviction is RANK-BASED, not a fixed cutoff (MVP_PLAN § A follow-up 1).
+#
+# Under the hybrid stack the two absolute thresholds below flagged the weakest ~10%
+# of a run, entirely via the confidence leg. The trees champion broke both: measured
+# over its 35,515-row OOS test slice, |change_pct| < 1.5 fires on 95.9% of records
+# (relative returns are small numbers) while confidence < 0.30 fires on 0.0% (isotonic
+# output is floored around 0.458). One leg flagged almost everything, the other
+# nothing, so the flag stopped carrying information either way.
+#
+# A re-fitted pair of constants would rot again at the next champion promotion
+# (retrain.py runs monthly and promotes on IC, which is scale-free — nothing keeps the
+# score's SCALE stable across models). Ranking within the run is immune to that, and
+# it is also the right question for a ranking model: is this name distinguishable from
+# the rest of today's cross-section? The same code then serves both stacks.
+# 0.10 per leg, chosen against the champion's own OOS distribution so the UNION of the
+# two legs reproduces the ~10% firing rate the original thresholds were built around.
+# Measured across 360 daily cross-sections of the 2024-12-31 — 2026-06-09 test slice:
+# 9.5% mean (range 7.1-14.1%), against 95.9% under the old absolute cutoff.
+#
+# Replaying the last hybrid live run through the same code gives 18% rather than its
+# original 10%. That is deliberate: the tuning target is the stack that actually
+# serves, and a rollback erring toward MORE caution is the safe direction to err in.
+LOW_CONVICTION_QUANTILE: float = 0.10
+
+# Fallback cutoffs, used only when a run is too small to rank (see _low_conviction).
+# These are the original hybrid-era values and are correct on an absolute-return scale.
+LOW_CONVICTION_PCT: float = 1.5    # |change_pct| below this  -> low conviction
+LOW_CONFIDENCE: float     = 0.30   # model reliability below this -> low conviction
 EXTREME_PCT: float        = 12.0   # |change_pct| above this → possible outlier
 MIN_RATINGS: int          = 5      # analyst count below this → thin coverage
 MIN_NEWS: int             = 3      # news count below this → thin coverage
@@ -76,14 +102,53 @@ def build_rationale(rec: dict, agreement: str, flags: list[str]) -> str:
     return " | ".join(parts)
 
 
+# ── Rank-based low-conviction selection ───────────────────────────────────────────
+
+def _weakest(records: list[dict], value, quantile: float) -> set[str]:
+    """Tickers strictly weaker than the `quantile` cutoff of the run, by `value`.
+
+    Ranks rather than thresholds a value, so the selected share is stable no matter
+    what scale the current champion scores on.
+
+    Records TIED with the cutoff are excluded, which is why this can return fewer
+    than `quantile` of the run. The alternative is worse: calibrated confidence is
+    heavily tied (isotonic regression emits steps, so a quarter of a run can share
+    one probability), and taking a fixed count would flag some tied names and not
+    others on nothing but alphabetical order — indefensible in an audit. The flag
+    means "measurably weaker than the rest of today's run"; equal is not weaker.
+    """
+    values = sorted(value(r) for r in records)
+    k = int(len(values) * quantile)
+    if k == 0:
+        return set()
+    cutoff = values[k]
+    return {str(r.get("ticker") or "") for r in records if value(r) < cutoff}
+
+
+def _low_conviction(records: list[dict]) -> set[str] | None:
+    """Tickers flagged `low_conviction` for this run: the weakest tenth on model
+    confidence, plus the weakest tenth on |score| (the undifferentiated middle of the
+    cross-section). Union, mirroring the OR the absolute thresholds used to express.
+
+    Returns None when the run is too small for a decile to mean anything, in which
+    case each record falls back to the absolute cutoffs.
+    """
+    if len(records) * LOW_CONVICTION_QUANTILE < 1:
+        return None
+    return (_weakest(records, lambda r: float(r.get("confidence") or 0.0), LOW_CONVICTION_QUANTILE)
+            | _weakest(records, lambda r: abs(float(r.get("change_pct") or 0.0)), LOW_CONVICTION_QUANTILE))
+
+
 # ── Enrich a single merged record ─────────────────────────────────────────────
 
-def enrich_record(rec: dict) -> dict:
+def enrich_record(rec: dict, low_conviction: bool | None = None) -> dict:
     """
     Takes a merged prediction+sentiment dict and attaches:
       agreement, risk_flags, risk_level, conviction_score, rationale.
 
-    Mirrors enrichRecord() in risk_core.js exactly.
+    `low_conviction` is decided per RUN by apply_risk_rules (see _low_conviction).
+    Passing None keeps the original per-record absolute thresholds, which is what a
+    caller enriching a single record in isolation gets.
     """
     flags: list[str] = []
 
@@ -99,8 +164,10 @@ def enrich_record(rec: dict) -> dict:
     elif agreement == "CONTRADICT":
         flags.append("signal_contradiction")
 
-    # Conviction / signal strength
-    if abs(ch) < LOW_CONVICTION_PCT or conf < LOW_CONFIDENCE:
+    # Conviction / signal strength (rank-based for a full run, absolute otherwise)
+    if low_conviction is None:
+        low_conviction = abs(ch) < LOW_CONVICTION_PCT or conf < LOW_CONFIDENCE
+    if low_conviction:
         flags.append("low_conviction")
 
     # Extreme move (possible model outlier)
@@ -191,8 +258,15 @@ def apply_risk_rules(predictions: list[dict], sentiments: list[dict]) -> list[di
     Raises ValueError if fewer than MIN_RECORDS records survive the merge —
     mirrors the MIN_RECORDS guard in n8n_code_node.js.
     """
-    merged   = _merge_by_ticker(predictions, sentiments)
-    enriched = [enrich_record(r) for r in merged]
+    merged = _merge_by_ticker(predictions, sentiments)
+
+    # Low conviction is a statement about this name RELATIVE to the rest of today's
+    # run, so it is resolved once, here, where the whole cross-section is in hand.
+    weak = _low_conviction(merged)
+    enriched = [
+        enrich_record(r, None if weak is None else str(r.get("ticker") or "") in weak)
+        for r in merged
+    ]
     enriched.sort(key=lambda r: r.get("conviction_score", 0.0), reverse=True)
 
     if len(enriched) < MIN_RECORDS:

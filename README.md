@@ -1,6 +1,6 @@
 # QuantWise — An AI-Powered Decision-Support Stock Advisory Platform
 
-QuantWise delivers **personalised, risk-graded BUY / SELL / HOLD recommendations** to non-expert retail investors — without requiring any financial expertise. It pairs a hybrid LSTM–XGBoost forecasting model with FinBERT news-sentiment analysis and a deterministic risk-grading engine, then uses a *constrained* Large Language Model (Google Gemini) to turn those pre-validated signals into plain-language, risk-tailored advice.
+QuantWise delivers **personalised, risk-graded BUY / SELL / HOLD recommendations** to non-expert retail investors — without requiring any financial expertise. A gradient-boosted **cross-sectional ranking model** scores the investable universe against itself, FinBERT and analyst data supply a sentiment cross-check, and a deterministic risk-grading engine grades the result. A *constrained* Large Language Model (Google Gemini) then turns those pre-validated signals into plain-language, risk-tailored advice — it never forecasts, ranks, or invents a number.
 
 > Graduation Project · 2025 / 2026 · Faculty of Computer Science, MSA University
 > Aligned with UN Sustainable Development Goals **9** (Industry, Innovation & Infrastructure) and **10** (Reduced Inequalities).
@@ -15,14 +15,14 @@ QuantWise spans three tiers, all in this repository:
 |------|------|----------------|
 | **Frontend** | React 18 · TypeScript · Vite · TanStack Query · Framer Motion | "Quant Terminal" dashboard — onboarding, recommendations, portfolio, market hub, notifications |
 | **Backend** | .NET 10 · ASP.NET Core · MediatR (CQRS) · EF Core · MassTransit | Modular monolith — auth, portfolios, recommendation orchestration + Gemini, notifications |
-| **AI Pipeline** | Python · FastAPI · PyTorch (LSTM) · XGBoost · FinBERT | Daily market-wide scoring: prediction → sentiment → risk grading |
+| **AI Pipeline** | Python · FastAPI · XGBoost · scikit-learn · FinBERT | Daily market-wide scoring: ranking → sentiment → risk grading |
 
 Supporting infrastructure: **PostgreSQL 18**, **Redis 8** (HybridCache), **RabbitMQ 4** (Outbox/Inbox via MassTransit), JWT bearer auth.
 
 ### How a recommendation is produced
 
 ```
-yFinance / Finnhub ──▶ FastAPI pipeline (LSTM→XGBoost + FinBERT + risk rules)
+yFinance / Finnhub ──▶ FastAPI pipeline (XGBoost ranking + calibration + FinBERT + risk rules)
                               │  POST /api/score  (daily, triggered by .NET Quartz job)
                               ▼
         .NET Recommendations module ──▶ Gemini (constrained, schema-JSON)
@@ -110,13 +110,23 @@ App: http://localhost:3000 → talks to the backend on :5000.
 The pipeline (`Pipeline/`) is a single FastAPI service that scores the full ticker universe daily.
 
 - **Phase 1 — Data acquisition**: ~100 US large-caps via yFinance; analyst ratings & news headlines via Finnhub.
-- **Phase 2 — Pre-processing**: 5 sequential features + 14 technical indicators, MinMax-scaled, 60-day look-back windows.
-- **Phase 3 — Hybrid model**: LSTM encoder (60-day window → 64-dim embedding, MC-Dropout ×30) → XGBoost head; FinBERT composite sentiment.
+- **Phase 2 — Feature engineering**: 14 technical indicators computed by one shared module (`core/features.py`) used by both training and serving, with `shift(1)` on every moving average so no feature can see its own bar. The champion consumes them raw; the hybrid rollback additionally MinMax-scales them and builds 60-day look-back windows.
+- **Phase 3 — Ranking model**: XGBoost scores each name's expected 21-trading-day return *relative to the universe median*, and an isotonic calibrator turns that score into a real probability of beating the median. Serving is flag-controlled (`SERVING_MODEL`); the legacy LSTM→XGBoost hybrid stays available as a rollback.
 - **Phase 4 — Risk grading**: deterministic `risk_rules.py` → agreement, risk level (LOW/MED/HIGH), conviction.
 
-Endpoints: `GET /health`, `POST /api/score`. Trained artefacts live in `Pipeline/models/` (`lstm_backbone.pth`, `xgb_head.json`, scalers, config). Model notebook: `Pipeline/models/Hybrid_Model_v2.ipynb`.
+Endpoints: `GET /health`, `POST /api/score`, `POST /api/closes`, `POST /api/instrument-stats`, `POST /api/reproduce` (replays a stored feature snapshot for audit). Champion artefacts live in `Pipeline/models/ranking_v1/`; the hybrid rollback artefacts sit alongside in `Pipeline/models/`.
 
-**Result:** the hybrid model achieves a **30-day test RMSE of 0.0949** — roughly one-third that of a standalone LSTM baseline.
+**Results** (held-out 2024-12-31 — 2026-06-09 slice, straight from `models/ranking_v1/metrics.json`):
+
+| Metric | Champion | Reference |
+|---|---|---|
+| Information coefficient (mean daily Spearman) | **0.077** (t ≈ 9.2) | 0.064 for a naive Momentum_21 baseline |
+| Directional hit rate | **51.5%** | 49.7% base rate (50% by construction) |
+| Calibration error (ECE) | **3.8pp** | 11.5pp uncalibrated |
+
+The edge is small and honestly reported: this ranks stocks against each other, it does not forecast prices. An absolute-return target was tried first and abandoned — 30-day returns are mostly market noise, and subtracting the per-date universe median cancels the part no model can predict. The LSTM was dropped on the same evidence: on the ranking target it *lost* 0.025 IC against trees alone (`models/ranking_v1/lstm_experiment.json`).
+
+A cost-aware walk-forward backtest (`models/ranking_v1/backtest.json`, 25bps per side) is also published, but note its own caveats: the universe is survivorship-biased, and while the strategy beats the S&P 500 on return it trails an equal-weight basket of the same universe on Sharpe.
 
 ---
 
@@ -126,7 +136,7 @@ Endpoints: `GET /health`, `POST /api/score`. Trained artefacts live in `Pipeline
 - **API / Integration** — xUnit + WebApplicationFactory over real Postgres & Redis (Testcontainers)
 - **GUI / System** — Playwright (end-to-end, 12 black-box cases)
 - **Load** — k6 (50 VUs, read paths)
-- **Model** — RMSE · MAE · directional accuracy vs standalone baselines
+- **Model** — information coefficient · hit rate vs the 50% base rate · decile spread · calibration error, all against a naive momentum baseline
 
 68 automated tests across the suite. Quick manual check — log in, open the browser console, and run:
 
@@ -148,10 +158,10 @@ window.triggerTestNotification()
 │           ├── Portfolio/     # Risk profiling & allocation
 │           ├── Recommendations/# Pipeline ingest + Gemini personalisation
 │           └── Notifications/ # Notifications & emails
-├── Pipeline/                  # FastAPI ML service (LSTM + XGBoost + FinBERT)
+├── Pipeline/                  # FastAPI ML service (XGBoost ranking + FinBERT)
 │   ├── main.py
 │   ├── risk_rules.py
-│   └── models/                # Trained artefacts + Hybrid_Model_v2.ipynb
+│   └── models/                # Champion (ranking_v1/) + hybrid rollback artefacts + registry.json
 ├── frontend/                  # React + TypeScript + Vite
 │   └── src/{components,context,pages,services}
 ├── presentation/             # Slidev defence deck + exported PDFs
@@ -181,4 +191,4 @@ window.triggerTestNotification()
 
 **Supervision:** Dr. Marwa Solayman · Eng. Farah Darwish (TA)
 
-**Publication:** *A Hybrid LSTM–XGBoost Framework for Multi-Horizon Stock Return Prediction Across Diversified Equity Portfolios* — accepted (pending publication), IEEE.
+**Publication:** *A Hybrid LSTM–XGBoost Framework for Multi-Horizon Stock Return Prediction Across Diversified Equity Portfolios* — accepted (pending publication), IEEE. The paper documents the earlier absolute-return hybrid; the system has since moved to the cross-sectional ranking model described above, and the reasoning for that change is recorded in `IMPLEMENTATION_PLAN.md` §§ 1.1–1.2.

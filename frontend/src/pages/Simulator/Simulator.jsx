@@ -8,11 +8,19 @@ const fmtUSD = (n) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
 
 const pct = (n) => `${n > 0 ? '+' : ''}${n.toFixed(2)}%`
+const pp = (n) => `${n >= 0 ? '+' : ''}${n.toFixed(2)} pp`
 
 const Simulator = () => {
     const { data, isLoading, isError, refetch } = usePredictions()
     const predictions = useMemo(() => data?.predictions ?? [], [data])
     const byTicker = useMemo(() => Object.fromEntries(predictions.map((p) => [p.ticker, p])), [predictions])
+
+    // The pipeline's two serving stacks put changePct on different scales, and the
+    // API says which (PredictionScale on the backend). Under the trees champion it is
+    // performance RELATIVE to the universe median, so multiplying it by a cash amount
+    // would invent a price forecast the model never made. Default to relative when the
+    // field is missing: the failure mode that shows no dollar figure is the safe one.
+    const relative = data?.scoreScale !== 'absolute'
 
     const [initialCapital, setInitialCapital] = useState(10000)
     const [allocations, setAllocations] = useState([])
@@ -55,30 +63,38 @@ const Simulator = () => {
             const breakdown = allocations.map((a) => {
                 const p = byTicker[a.symbol]
                 const invested = (cap * a.weight) / 100
-                const changePct = p ? p.changePct : 0
-                const projected = invested * (1 + changePct / 100)
+                const score = p ? p.changePct : 0
+                // Absolute mode only: an expected 30-day return can be applied to money.
+                const projected = relative ? null : invested * (1 + score / 100)
                 return {
                     symbol: a.symbol,
                     weight: a.weight,
                     invested,
-                    changePct,
+                    score,
                     projected,
-                    gain: projected - invested,
+                    gain: projected === null ? null : projected - invested,
                     direction: p?.direction,
                     riskLevel: p?.riskLevel,
                     confidence: p?.confidence ?? 0,
                 }
             })
-            const projectedValue = breakdown.reduce((s, b) => s + b.projected, 0)
-            const totalReturn = cap > 0 ? ((projectedValue - cap) / cap) * 100 : 0
+            // Weighted relative strength: what this mix is expected to do versus the
+            // median stock, in percentage points. Defined in both modes; it is the only
+            // headline number shown when the score is relative.
+            const weightedScore = breakdown.reduce((s, b) => s + (b.score * b.weight) / 100, 0)
+            const projectedValue = relative ? null : breakdown.reduce((s, b) => s + b.projected, 0)
+            const totalReturn = relative || cap <= 0 ? null : ((projectedValue - cap) / cap) * 100
             const weightedConfidence = breakdown.reduce((s, b) => s + (b.confidence * b.weight) / 100, 0)
-            setResults({ cap, breakdown, projectedValue, totalReturn, weightedConfidence })
+            setResults({ cap, breakdown, weightedScore, projectedValue, totalReturn, weightedConfidence })
             setIsSimulating(false)
         }, 400)
     }
 
     const runDate = data?.generatedAt ? new Date(data.generatedAt).toLocaleDateString() : null
-    const maxGainAbs = results ? Math.max(...results.breakdown.map((b) => Math.abs(b.gain)), 1) : 1
+    // Bars are sized by whichever quantity is actually being shown.
+    const maxBarValue = results
+        ? Math.max(...results.breakdown.map((b) => Math.abs(relative ? b.score : b.gain)), 1)
+        : 1
 
     return (
         <div className="simulator-page">
@@ -91,7 +107,9 @@ const Simulator = () => {
                             Model-driven{runDate ? ` · run ${runDate}` : ''}
                         </span>
                         <h1 className="gradient-text">Learning Environment</h1>
-                        <p>Allocate across the model's latest predictions and see the projected outcome.</p>
+                        <p>{relative
+                            ? "Allocate across the model's latest signals and see how the mix is expected to rank against the market."
+                            : "Allocate across the model's latest predictions and see the projected outcome."}</p>
                     </div>
 
                     {isLoading ? (
@@ -146,7 +164,7 @@ const Simulator = () => {
                                                     >
                                                         {predictions.map((pr) => (
                                                             <option key={pr.ticker} value={pr.ticker}>
-                                                                {pr.ticker} ({pct(pr.changePct)})
+                                                                {pr.ticker} ({relative ? pp(pr.changePct) : pct(pr.changePct)})
                                                             </option>
                                                         ))}
                                                     </select>
@@ -189,21 +207,36 @@ const Simulator = () => {
                                 {results ? (
                                     <div className="results-view">
                                         <div className="results-header">
-                                            <h3>Projected Outcome</h3>
-                                            <div className={`stat-badge ${results.totalReturn >= 0 ? 'positive' : 'negative'}`}>
-                                                {pct(results.totalReturn)}
+                                            <h3>{relative ? 'Expected Relative Strength' : 'Projected Outcome'}</h3>
+                                            <div className={`stat-badge ${(relative ? results.weightedScore : results.totalReturn) >= 0 ? 'positive' : 'negative'}`}>
+                                                {relative ? pp(results.weightedScore) : pct(results.totalReturn)}
                                             </div>
                                         </div>
 
                                         <div className="stats-row">
-                                            <div className="stat-card">
-                                                <span className="label">Projected Value</span>
-                                                <span className="value">{fmtUSD(results.projectedValue)}</span>
-                                            </div>
-                                            <div className="stat-card">
-                                                <span className="label">Projected P/L</span>
-                                                <span className="value">{fmtUSD(results.projectedValue - results.cap)}</span>
-                                            </div>
+                                            {relative ? (
+                                                <>
+                                                    <div className="stat-card">
+                                                        <span className="label">Capital Allocated</span>
+                                                        <span className="value">{fmtUSD(results.cap)}</span>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <span className="label">Vs Market (weighted)</span>
+                                                        <span className="value">{pp(results.weightedScore)}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="stat-card">
+                                                        <span className="label">Projected Value</span>
+                                                        <span className="value">{fmtUSD(results.projectedValue)}</span>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <span className="label">Projected P/L</span>
+                                                        <span className="value">{fmtUSD(results.projectedValue - results.cap)}</span>
+                                                    </div>
+                                                </>
+                                            )}
                                             <div className="stat-card">
                                                 <span className="label">Avg Confidence</span>
                                                 <span className="value">{(results.weightedConfidence * 100).toFixed(0)}%</span>
@@ -216,19 +249,21 @@ const Simulator = () => {
                                                     <div className="projection-meta">
                                                         <span className="projection-ticker">{b.symbol}</span>
                                                         <span className="projection-weight">{b.weight}%</span>
-                                                        <span className={`projection-change ${b.changePct >= 0 ? 'up' : 'down'}`}>
-                                                            {pct(b.changePct)}
+                                                        <span className={`projection-change ${b.score >= 0 ? 'up' : 'down'}`}>
+                                                            {relative ? pp(b.score) : pct(b.score)}
                                                         </span>
                                                         {b.riskLevel && <span className={`risk-tag risk-${b.riskLevel.toLowerCase()}`}>{b.riskLevel}</span>}
                                                     </div>
                                                     <div className="projection-bar-track">
                                                         <span
-                                                            className={`projection-bar ${b.gain >= 0 ? 'up' : 'down'}`}
-                                                            style={{ width: `${(Math.abs(b.gain) / maxGainAbs) * 100}%` }}
+                                                            className={`projection-bar ${(relative ? b.score : b.gain) >= 0 ? 'up' : 'down'}`}
+                                                            style={{ width: `${(Math.abs(relative ? b.score : b.gain) / maxBarValue) * 100}%` }}
                                                         />
                                                     </div>
                                                     <span className="projection-amount">
-                                                        {fmtUSD(b.invested)} → {fmtUSD(b.projected)}
+                                                        {relative
+                                                            ? fmtUSD(b.invested)
+                                                            : `${fmtUSD(b.invested)} → ${fmtUSD(b.projected)}`}
                                                     </span>
                                                 </div>
                                             ))}
@@ -237,8 +272,13 @@ const Simulator = () => {
                                         <div className="ai-commentary">
                                             <span className="ai-icon"><Sparkles size={22} aria-hidden="true" /></span>
                                             <p>
-                                                Projection applies each ticker's model-predicted move to your allocation. It's an
-                                                estimate from the latest run — not a guarantee of future performance.
+                                                {relative
+                                                    ? "The model ranks stocks against each other, it does not forecast prices. " +
+                                                      "These figures are expected out- or under-performance versus the median stock " +
+                                                      "in the universe over about 30 days, which is why no projected cash value is " +
+                                                      "shown. Estimates from the latest run, not a guarantee."
+                                                    : "Projection applies each ticker's model-predicted move to your allocation. It's an " +
+                                                      "estimate from the latest run — not a guarantee of future performance."}
                                             </p>
                                         </div>
                                     </div>

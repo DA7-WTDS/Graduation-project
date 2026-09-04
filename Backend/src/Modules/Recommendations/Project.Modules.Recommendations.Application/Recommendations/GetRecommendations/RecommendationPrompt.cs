@@ -58,7 +58,8 @@ internal static class RecommendationPrompt
         "Include in the summary that this is informational only and not financial advice, and note that allocation_pct is the suggested split of the user's stock allocation.\n" +
         "8. If the user message includes OUR REAL TRACK RECORD, you may cite those exact figures in the summary — never any other performance number.\n" +
         "9. Write summary, reason, risk_note and fit in the language given under LANGUAGE (English or Arabic). " +
-        "For Arabic use clear Modern Standard Arabic with a calm, non-promotional tone; keep tickers, JSON keys and the action values in English.";
+        "For Arabic use clear Modern Standard Arabic with a calm, non-promotional tone; keep tickers, JSON keys and the action values in English.\n" +
+        "10. The candidate score (`rel` or `chg`) is a model signal over a ~30-day horizon, not a promise. Never state or imply a target price, a monetary gain, or a guaranteed return, and never convert the score into an amount of money. When the score is labelled `rel`, describe it as expected out- or under-performance versus the market, never as a price move.";
 
     public static string BuildUserPrompt(
         MonitoringProfileResponse profile,
@@ -99,14 +100,25 @@ internal static class RecommendationPrompt
         }
         sb.AppendLine();
 
-        sb.AppendLine("CANDIDATE STOCKS (today's risk-graded predictions, 30-day horizon):");
+        // Which scale ChangePct is on depends on the serving stack, so the wording is
+        // derived from the run itself — never hard-coded. Calling a relative score an
+        // expected price move would put a forecast in the model's mouth, and it would
+        // repeat that framing straight back to the user.
+        bool relative = PredictionScale.IsRelative(predictions);
+
+        sb.AppendLine(relative
+            ? "CANDIDATE STOCKS (today's risk-graded signals, ~30-day horizon). `rel` is the model's RELATIVE-STRENGTH score: expected return versus the median stock in the universe, in percentage points. It is NOT a forecast of the share price."
+            : "CANDIDATE STOCKS (today's risk-graded predictions, ~30-day horizon). `chg` is the model's expected 30-day return in percent.");
         foreach (StockPrediction p in predictions)
         {
             string pt = p.PtUpsidePct.HasValue
                 ? p.PtUpsidePct.Value.ToString("F1", CultureInfo.InvariantCulture) + "%"
                 : "n/a";
+            string score = relative
+                ? $"rel={p.ChangePct:+0.00;-0.00}pp"
+                : $"chg={p.ChangePct:F2}%";
             sb.AppendLine(CultureInfo.InvariantCulture,
-                $"- {p.Ticker}: dir={p.Direction} change={p.ChangePct:F2}% conf={p.Confidence:F2} " +
+                $"- {p.Ticker}: dir={p.Direction} {score} conf={p.Confidence:F2} " +
                 $"sentiment={p.SentimentScore:F2}({p.Signal}) agreement={p.Agreement} risk={p.RiskLevel} " +
                 $"conviction={p.ConvictionScore:F2} ptUpside={pt} flags=[{string.Join(",", p.RiskFlags)}]");
         }

@@ -39,7 +39,19 @@ COPY main.py risk_rules.py ./
 COPY core/ ./core/
 COPY markets/ ./markets/
 
-# ML model artifacts (only the 6 runtime files — notebooks/backups excluded)
+# ML model artifacts — runtime files only (notebooks/backups/training data excluded).
+#
+# BOTH stacks are copied because main.py loads both at startup whichever
+# SERVING_MODEL is set, so /api/reproduce can replay any stored snapshot:
+#   * ranking_v1/ — the trees champion, the DEFAULT serving path. main.py raises
+#     FileNotFoundError at import without features.json, so these are REQUIRED,
+#     not optional — omitting them yields an image that dies on startup.
+#   * the six hybrid files — legacy LSTM+XGBoost rollback path.
+COPY models/ranking_v1/xgb_ranking.json \
+     models/ranking_v1/calibrator.pkl \
+     models/ranking_v1/features.json \
+     ./models/ranking_v1/
+
 COPY models/lstm_backbone.pth \
      models/xgb_head.json \
      models/global_feature_scaler.pkl \
