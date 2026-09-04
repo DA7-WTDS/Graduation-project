@@ -109,6 +109,7 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
         'track.empty': 'Not enough scored predictions yet',
         'track.emptyHint': 'Predictions are scored once their 30-day horizon matures. This fills in as outcomes land.',
         'track.note': 'Every prediction is scored against what the market actually did 30 days later — wins and losses alike. Past results never guarantee future ones. Informational only, not financial advice.',
+        'track.more': 'Full record and methodology',
     },
     ar: {
         // nav / shell
@@ -208,5 +209,6 @@ export const STRINGS: Record<Lang, Record<string, string>> = {
         'track.empty': 'لا توجد توقعات مُقيّمة كافية بعد',
         'track.emptyHint': 'تُقيَّم التوقعات بعد اكتمال مدة الثلاثين يومًا. ستمتلئ هذه الأرقام تباعًا.',
         'track.note': 'كل توقع يُقيَّم مقابل ما فعله السوق فعليًا بعد 30 يومًا — المكاسب والخسائر على حد سواء. النتائج السابقة لا تضمن النتائج المستقبلية. لأغراض معلوماتية فقط وليست نصيحة مالية.',
+        'track.more': 'السجل الكامل والمنهجية',
     },
 }

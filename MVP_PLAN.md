@@ -106,8 +106,40 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
 - [ ] **Replay corpus builder** (§C step 1): adaptive-pagination fetch (narrow slices while count hits the ~250 cap) over the trailing ~12-month news horizon + full yfinance action ledgers → deduped, timestamped Parquet + manifest hashes.
 - [ ] **Fast-lane replay engine** (`Pipeline/replay/`): point-in-time features → batch champion scoring over OOS window → `ScoreRecord`-shaped Parquet per date (price+news+actions+consensus; PT excluded).
 - [ ] **Fidelity lane**: `market=us_sim` ingest (separate key), `DailyRun.Status = Simulated` (never servable), date-parameterized `ShadowPortfolioJob` consuming sim runs with historical fills via `/api/closes`; instant outcome marking (horizons elapsed); notifications gated off for `us_sim`.
-- [ ] **Track-record UI page**: realized outcomes + shadow series (live + simulated segments flagged with provenance + "model portfolio, costs simulated" wording).
-- [ ] Methodology page skeleton (metrics, definitions, limitations list).
+- [x] **Track-record UI page** — ✅ done 2026-09-04. Public route `/track-record`,
+      anonymous like the endpoints behind it (aggregates only, no user or position data).
+      - Two tabs, because there are genuinely two track records and they answer different
+        questions: **model portfolios** (what a portfolio following each strategy did, costs
+        simulated) and **prediction accuracy** (how often the daily signal was directionally
+        right). `/api/shadow-track-record` existed since § 6.1 but nothing rendered it.
+      - The backend's disclaimer is printed verbatim — it is FRA-safe wording, not copy for
+        the frontend to improve on. The accuracy tab states the 50%-by-construction base rate
+        next to the hit rate, so 51.5% cannot read as a 51.5% win rate.
+      - NAV curves are inline SVG (no chart dependency), scaled to each series' own min/max
+        rather than to zero — these move a few percent and a zero axis flattens them all into
+        the same line. Rebalance days are marked: that is when costs were charged, and the
+        reader should see what they paid for. Losing series stroke red and stay on the page.
+      - Not in the authed nav: the page is public and chrome-less, so a nav entry would have
+        dropped a signed-in user out of the app shell mid-session. Reached instead from the
+        Plan page's existing track-record card, which is where the § 5 demo already goes.
+      - **SIM/LIVE provenance is deliberately absent** — there are no simulated segments until
+        the § C replay lane exists. Adding a provenance flag now would mean shipping a legend
+        for a distinction the data cannot yet make.
+- [x] Methodology page — ✅ done 2026-09-04, at `/methodology` and linked from the track
+      record. Metrics, definitions and the limitations list, every figure traceable to a
+      checked-in artifact file named inline (`metrics.json`, `backtest.json`,
+      `lstm_experiment.json`, `registry.json`). Explains the relative-ranking target and why
+      the absolute-return one was abandoned; lists what runs nightly (gates, outcome scoring,
+      drift alarm, audit snapshots, champion/challenger). The six known limitations from § 6
+      are stated in full, including the two that are unflattering: a naive momentum baseline
+      beats the model on decile spread, and the backtest trails an equal-weight basket on
+      Sharpe. Static in the bundle, since these are versioned facts that change with the
+      artifacts, not live data.
+      - **Verified in a browser**, not just built: both pages rendered against a stubbed API
+        (the two endpoints are anonymous, so no auth was needed). All three NAV curves drew
+        with the right point counts and rebalance markers, the losing portfolio stroked red,
+        both tabs populated, and the responsive rules held. A JSX whitespace bug that ran
+        "flagged" into a `<code>` element was caught and fixed this way.
 
 ### Week 3 — Sentiment A/B + demo hardening
 

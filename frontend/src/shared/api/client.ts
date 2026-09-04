@@ -56,7 +56,7 @@ function buildHeaders(requireAuth: boolean, extra?: HeadersInit): Headers {
 // Routes that never force a redirect on 401 (the token is still cleared).
 // Includes the public landing/auth pages so a stale token doesn't bounce a
 // logged-out visitor off them when AuthContext auto-loads the profile on mount.
-const PUBLIC_PATHS = ['/', '/login', '/signup']
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/track-record', '/methodology']
 
 /** On expiry/invalid token: clear it and bounce to /login (unless on a public page). */
 function handleUnauthorized(): void {

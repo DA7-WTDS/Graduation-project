@@ -15,6 +15,8 @@ const Profile = lazy(() => import('./pages/Profile/Profile'))
 const Portfolios = lazy(() => import('./pages/Portfolios/Portfolios'))
 const Simulator = lazy(() => import('./pages/Simulator/Simulator'))
 const Market = lazy(() => import('./pages/Market/Market'))
+const TrackRecord = lazy(() => import('./pages/TrackRecord/TrackRecord'))
+const Methodology = lazy(() => import('./pages/Methodology/Methodology'))
 
 const PageLoader = () => (
     <div style={{
@@ -38,6 +40,11 @@ function App() {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />
+                        {/* The trust surface is public on purpose: aggregates only, no
+                            user or position data, and it has to be linkable to someone
+                            who has not signed up (MVP_PLAN § 5). */}
+                        <Route path="/track-record" element={<TrackRecord />} />
+                        <Route path="/methodology" element={<Methodology />} />
 
                         {/* Authed, full-screen (no app shell) */}
                         <Route

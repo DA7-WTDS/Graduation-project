@@ -498,3 +498,17 @@
         display: none;
     }
 }
+
+/* Outbound link to the public track-record page (MVP_PLAN § 5 step 2). */
+.plan-track-more {
+    display: inline-block;
+    margin-top: var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-small);
+    color: var(--qw-amber);
+    text-decoration: none;
+}
+
+.plan-track-more:hover {
+    text-decoration: underline;
+}

@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Target } from 'lucide-react'
 import { Card, StatTile, EmptyState } from '@/shared/ui'
 import { useLanguage } from '@/shared/i18n'
@@ -62,6 +63,10 @@ export const TrackRecordCard = ({ trackRecord }) => {
                 <Target size={13} aria-hidden="true" />
                 {t('track.note')}
             </p>
+
+            <Link className="plan-track-more" to="/track-record">
+                {t('track.more')} →
+            </Link>
         </Card>
     )
 }
