@@ -125,6 +125,21 @@ def test_finbert_labels_are_case_insensitive():
     assert ss.news_score_from_finbert(upper) == 0.6
 
 
+def test_nan_counts_as_absent_not_as_a_value():
+    """Live passes None for a missing component, but every pandas/Parquet path
+    yields NaN instead. Letting NaN through poisons the weighted sum, and the
+    result then labels NEUTRAL because comparisons against NaN are all False —
+    so the bug disguises itself as a considered "no strong opinion"."""
+    nan = float("nan")
+    assert ss.composite(consensus=0.6, actions=nan) == (0.6, "POSITIVE", {"consensus": 0.6})
+    assert ss.composite(consensus=nan, actions=nan, news=nan) == (0.0, "NEUTRAL", {})
+
+
+def test_nan_reweights_exactly_like_a_missing_component():
+    nan = float("nan")
+    assert ss.composite(consensus=0.6, news=0.2) == ss.composite(consensus=0.6, actions=nan, news=0.2)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

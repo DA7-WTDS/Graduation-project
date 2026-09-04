@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import math
+
 from typing import Any
 
 # Component weights. Renormalized over whatever is actually present, so a missing
@@ -59,6 +61,19 @@ def label(score: float) -> str:
     return "NEUTRAL"
 
 
+def _present(value: float | None) -> bool:
+    """Whether a component actually carries a signal.
+
+    NaN counts as absent, not as a value. Components arrive as None from live
+    scoring but as NaN from any pandas/Parquet path (a missing struct field reads
+    back as NaN), and letting one through poisons the weighted sum to NaN — which
+    then labels as NEUTRAL, because every comparison against NaN is False. The
+    failure therefore looks exactly like 'no strong opinion' rather than like a
+    bug, which is the worst way for it to fail.
+    """
+    return value is not None and not math.isnan(float(value))
+
+
 def composite(
     consensus: float | None = None,
     actions: float | None = None,
@@ -81,7 +96,7 @@ def composite(
         ("price_target", price_target),
         ("news", news),
     ):
-        if value is not None:
+        if _present(value):
             present[name] = round(float(value), 3)
 
     if not present:
