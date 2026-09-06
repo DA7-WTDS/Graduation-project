@@ -50,6 +50,7 @@ from core.data_provider import get_provider                                    #
 from core.features import compute_features                                     # noqa: E402
 from markets.us.provider import (NEWS_LIMIT, NEWS_MIN_RELEVANT,                # noqa: E402
                                  _company_keywords, _filter_relevant, _rating_label)
+from replay.finbert_cache import FinbertCache                                   # noqa: E402
 from replay.window import oos_boundary, resolve_replay_start                     # noqa: E402
 from risk_rules import apply_risk_rules                                        # noqa: E402
 
@@ -131,6 +132,10 @@ class Corpus:
             self.consensus[t] = pd.read_parquet(cpath) if cpath.exists() else pd.DataFrame()
         return available
 
+    def tickers(self) -> list[str]:
+        """Every ticker the corpus actually holds " the definition of what is replayable."""
+        return sorted(p.stem for p in (self.dir / "news").glob("*.parquet"))
+
     def company_name(self, ticker: str) -> str:
         return (self.manifest.get("per_ticker", {}).get(ticker, {}) or {}).get("company_name") or ""
 
@@ -178,47 +183,6 @@ class Corpus:
             return None, None, 0
         avg = (5 * sb + 4 * b + 3 * h + 2 * s + 1 * sell) / n
         return round(avg, 2), _rating_label(avg), int(n)
-
-
-class FinbertCache:
-    """Scores each unique headline once.
-
-    The same headline appears in every window it falls into, so scoring per
-    (ticker, date) would run the model tens of times on identical text. One pass
-    over the deduplicated set makes an overnight CPU run feasible (§ C.3).
-    """
-
-    def __init__(self, enabled: bool = True):
-        self.scores: dict[str, float] = {}
-        self.model = None
-        if enabled:
-            try:
-                from transformers import pipeline as hf_pipeline
-                self.model = hf_pipeline("text-classification", model="ProsusAI/finbert", top_k=None)
-                log.info("FinBERT loaded for replay scoring.")
-            except Exception as e:
-                log.error(f"FinBERT unavailable, replay will run without a news component — {e}")
-
-    def warm(self, headlines: set[str], batch_size: int = 32) -> None:
-        if self.model is None or not headlines:
-            return
-        todo = sorted(h for h in headlines if h not in self.scores)
-        if not todo:
-            return
-        log.info(f"FinBERT: scoring {len(todo)} unique headlines...")
-        for i in range(0, len(todo), 512):
-            chunk = todo[i:i + 512]
-            outs = self.model(chunk, truncation=True, max_length=128, batch_size=batch_size)
-            for headline, out in zip(chunk, outs):
-                probs = {x["label"].lower(): x["score"] for x in out}
-                self.scores[headline] = probs.get("positive", 0.0) - probs.get("negative", 0.0)
-            log.info(f"    {min(i + 512, len(todo))}/{len(todo)}")
-
-    def score(self, headlines: list[str]) -> float | None:
-        vals = [self.scores[h] for h in headlines if h in self.scores]
-        if not vals:
-            return None
-        return round(float(np.mean(vals)), 3)
 
 
 def trading_days(frames: dict[str, pd.DataFrame], start: date, end: date) -> list[date]:
@@ -382,12 +346,26 @@ def main() -> int:
 
     corpus = Corpus()
     provider = get_provider(args.market)
-    tickers = ([t.strip().upper() for t in args.tickers.split(",")] if args.tickers
-               else provider.get_universe())
+    # The corpus defines the replayable universe. Resolving it from the live screener
+    # instead makes the run non-deterministic: a transient screener failure silently
+    # falls back to the hardcoded list, and only its overlap with the corpus gets
+    # replayed. That is exactly what happened on the first full run — 67 of 100 corpus
+    # tickers were scored and nothing reported the gap.
+    if args.tickers:
+        tickers = [t.strip().upper() for t in args.tickers.split(",")]
+    else:
+        tickers = corpus.tickers()
+        log.info(f"Universe: {len(tickers)} tickers, taken from the corpus.")
+
     available = corpus.load(tickers)
     if not available:
         raise SystemExit("No corpus shards for these tickers. Run replay.build_corpus first.")
-    log.info(f"Corpus covers {len(available)}/{len(tickers)} requested tickers.")
+    missing = sorted(set(tickers) - set(available))
+    if missing:
+        log.warning(
+            f"{len(missing)} requested tickers have no corpus shard and will be skipped: "
+            f"{', '.join(missing[:10])}{' ...' if len(missing) > 10 else ''}")
+    log.info(f"Replaying {len(available)} tickers.")
 
     start, why = resolve_replay_start(corpus.manifest, explicit_start)
     log.info(f"Replay window starts {start} — {why}.")
@@ -407,13 +385,16 @@ def main() -> int:
     # Warm FinBERT once over every headline any window will ask for, rather than
     # per date — the same headline sits in up to 14 consecutive windows.
     finbert = FinbertCache(enabled=not args.no_finbert)
-    if finbert.model is not None:
-        wanted: set[str] = set()
+    wanted: set[str] = set()
+    if finbert.available:
         for d in days:
             cut = as_of_cutoff(d)
             for t in available:
                 wanted.update(corpus.headlines(t, cut))
-        finbert.warm(wanted)
+        cache_stats = finbert.warm(wanted)
+        log.info(
+            f"FinBERT: {cache_stats['requested']:,} headlines needed, "
+            f"{cache_stats['cached']:,} already cached, {cache_stats['scored']:,} newly scored.")
 
     written = 0
     for n, d in enumerate(days, 1):
@@ -437,7 +418,7 @@ def main() -> int:
         "days_replayed": written,
         "tickers": len(available),
         "cutoff_convention": f"t+1 {CUTOFF_HOUR_UTC:02d}:00 UTC, matching the live post-close run",
-        "news_component": "disabled" if finbert.model is None else "FinBERT over corpus headlines",
+        "news_component": "disabled" if not finbert.available else "FinBERT over corpus headlines",
         "news_coverage_starts": corpus.manifest.get("news_coverage_starts"),
         "excluded": {
             "price_targets": "current-only at source; using them at a past date would leak",

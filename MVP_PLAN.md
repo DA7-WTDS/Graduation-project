@@ -196,6 +196,31 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
 
       - **New:** `test_replay_scorer.py` (12 tests, no network).
 
+      **First full replay run (2026-09-04 — 09-06) and what it exposed.** 250 trading days
+      written, 2025-09-09 — 2026-09-04. Two real defects, both now fixed:
+      1. **It replayed 67 of 100 corpus tickers and said nothing.** The universe was
+         resolved from the live screener at replay time; the screener failed with a
+         connection reset, fell back to the hardcoded list, and only its overlap with the
+         corpus got scored. A third of the corpus went unused silently. **The corpus now
+         defines the replayable universe** — same principle already applied to the window:
+         the run should depend on what was actually fetched, not on a live call that can
+         fail. Missing shards are now reported rather than skipped quietly.
+      2. **98,217 FinBERT scores were discarded at process exit.** `replay/finbert_cache.py`
+         persists them, keyed by a hash of the exact headline text (FinBERT is
+         deterministic, so a score is a pure function of the string). Flushed every 2,000
+         and written atomically, so an interruption costs minutes rather than the run.
+         Verified: a repeat run loaded 1,917 scores, scored **0**, and finished in ~7s
+         instead of ~3min — it did not even load the model.
+
+      **Timing, corrected honestly.** The pass was estimated at ~5 hours and took **39.5**
+      (0.69 headlines/s vs an estimated 9.3). The throughput estimate was not the problem:
+      a clean benchmark gives 29.5/s and a real cached run gives 8.8/s. The run degraded
+      because heavy .NET builds and test suites were running against the same machine for
+      hours. Lesson recorded: **run the scoring pass on an otherwise idle machine**, and
+      with the cache in place an interrupted run now resumes instead of restarting.
+
+      - **New:** `test_finbert_cache.py` (9 tests). Pipeline suites now 111 green.
+
       **Window now follows the data (added 2026-09-04, `replay/window.py`).** Both the
       corpus builder and the scorer default to the *news-bearing* part of the out-of-sample
       era instead of the whole of it:
