@@ -221,6 +221,27 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
 
       - **New:** `test_finbert_cache.py` (9 tests). Pipeline suites now 111 green.
 
+      **FULL REPLAY COMPLETE 2026-09-06** — re-run after both fixes, **3h08m** (vs 39.5h),
+      120,711 headlines scored, zero errors.
+      - **250 trading days, 2025-09-09 → 2026-09-04, 24,750 records, 99 tickers.**
+        (SPCX dropped: insufficient price history for the 60-day look-back + warmup. The
+        corpus-derived universe correctly surfaced 100 and the scorer skipped the one that
+        could not be scored, rather than the silent 67 of the first run.)
+      - News component present on **99% of rows** — the whole point of narrowing the window
+        to the news-bearing era. The earlier full-OOS window would have left ~40% newsless.
+      - Leakage guard holds: `pt_upside_pct` null on every row.
+      - Confidence spans exactly the champion's calibrated range [0.458, 0.596].
+
+      **Correction to the earlier § D finding.** On the 240-record no-news sample I said a
+      NEGATIVE signal was *arithmetically unreachable*. Over a full year with news it is
+      reachable but rare: **388 of 24,750 (1.6%)**. The structural-bullishness conclusion
+      stands — 17,247 POSITIVE against 388 NEGATIVE — but "unreachable" was too strong, and
+      it was the missing news component doing most of that work, not consensus alone.
+      - 72% of DOWN names still auto-flag `signal_contradiction` (was 99% without news).
+      - Portfolio impact remains benign: among UP names it is 23% LOW / 72% MEDIUM / 5%
+        HIGH, giving a Conservative pool of **56-77 names per day** against a TopN of 10.
+        § D stays parked; it does not gate the manufactured track record.
+
       **Window now follows the data (added 2026-09-04, `replay/window.py`).** Both the
       corpus builder and the scorer default to the *news-bearing* part of the out-of-sample
       era instead of the whole of it:
