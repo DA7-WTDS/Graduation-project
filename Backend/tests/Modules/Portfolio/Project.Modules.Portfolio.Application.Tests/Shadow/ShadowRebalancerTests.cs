@@ -99,4 +99,63 @@ public class ShadowRebalancerTests
 
         r.Lots.Should().ContainSingle().Which.Symbol.Should().Be("SPY");
     }
+
+    [Fact]
+    public void The_same_instrument_from_two_sleeves_becomes_one_merged_holding()
+    {
+        // The optimizer can legitimately reach one instrument from two buckets: a broad
+        // equity-ETF core and a named fixed-income stability sleeve both selecting AGG.
+        // That is one holding whose weight is the sum. Before merging, this threw
+        // "same key has already been added" and took the entire nightly run down.
+        var targets = new List<ShadowTarget>
+        {
+            new("AGG", "core", 0.30),
+            new("AGG", "stability", 0.20),
+            new("SPY", "core", 0.50),
+        };
+        var prices = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["AGG"] = 100, ["SPY"] = 400,
+        };
+
+        RebalanceResult result = ShadowRebalancer.Rebalance([], targets, prices, cash: 10_000);
+
+        result.Lots.Should().HaveCount(2);
+        ShadowLot agg = result.Lots.Single(l => l.Symbol == "AGG");
+        ShadowLot spy = result.Lots.Single(l => l.Symbol == "SPY");
+        // 50% of the book, i.e. the two sleeves summed, not one of them and not double.
+        (agg.Shares * 100).Should().BeApproximately(spy.Shares * 400, 1e-6);
+    }
+
+    [Fact]
+    public void A_merged_holding_is_labelled_with_its_largest_sleeve()
+    {
+        var targets = new List<ShadowTarget>
+        {
+            new("AGG", "stability", 0.10),
+            new("AGG", "core", 0.40),
+        };
+        var prices = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase) { ["AGG"] = 100 };
+
+        RebalanceResult result = ShadowRebalancer.Rebalance([], targets, prices, cash: 10_000);
+
+        result.Lots.Single().Sleeve.Should().Be("core");
+    }
+
+    [Fact]
+    public void Merging_does_not_double_count_traded_value()
+    {
+        // Cost is charged on notional traded. If the merge happened after the turnover
+        // sum, a split holding would be charged twice for one position.
+        var split = new List<ShadowTarget> { new("AGG", "core", 0.5), new("AGG", "stability", 0.5) };
+        var whole = new List<ShadowTarget> { new("AGG", "core", 1.0) };
+        var prices = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase) { ["AGG"] = 100 };
+
+        RebalanceResult a = ShadowRebalancer.Rebalance([], split, prices, cash: 10_000);
+        RebalanceResult b = ShadowRebalancer.Rebalance([], whole, prices, cash: 10_000);
+
+        a.Cost.Should().BeApproximately(b.Cost, 1e-9);
+        a.NavAfter.Should().BeApproximately(b.NavAfter, 1e-9);
+    }
+
 }

@@ -16,10 +16,14 @@ internal sealed class RunShadowNow : IEndpoint
 {
     private const string PipelineKeyHeader = "X-Pipeline-Key";
 
+    /// <param name="Date">Session to value; null = today. A past date replays it (§ C).</param>
+    /// <param name="Simulated">Read Simulated runs rather than Published ones.</param>
+    internal sealed record RunRequest(DateOnly? Date, bool Simulated);
+
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/internal/shadow/run",
-            async (HttpContext http, IConfiguration config, IShadowRunTrigger trigger) =>
+            async (RunRequest? request, HttpContext http, IConfiguration config, IShadowRunTrigger trigger) =>
         {
             // Shared internal machine key (the pipeline/ops key), not a user JWT.
             string? expected = config["Recommendations:Ingest:ApiKey"];
@@ -29,8 +33,8 @@ internal sealed class RunShadowNow : IEndpoint
                 return Results.Problem(title: "Unauthorized", statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            await trigger.TriggerAsync(http.RequestAborted);
-            return Results.Accepted(value: new { status = "triggered" });
+            await trigger.TriggerAsync(request?.Date, request?.Simulated ?? false, http.RequestAborted);
+            return Results.Accepted(value: new { status = "triggered", date = request?.Date, simulated = request?.Simulated ?? false });
         })
         .WithName(nameof(RunShadowNow))
         .WithSummary("Run the shadow-portfolio job now")

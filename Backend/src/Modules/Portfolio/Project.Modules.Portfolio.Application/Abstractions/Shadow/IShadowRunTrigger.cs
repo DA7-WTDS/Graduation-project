@@ -7,5 +7,9 @@ namespace Project.Modules.Portfolio.Application.Abstractions.Shadow;
 /// </summary>
 public interface IShadowRunTrigger
 {
-    Task TriggerAsync(CancellationToken cancellationToken = default);
+    /// <param name="runDate">Session to value. Null = today (the nightly tick);
+    /// a past date replays that session (§ C fidelity lane).</param>
+    /// <param name="simulated">Read Simulated runs instead of Published ones.</param>
+    Task TriggerAsync(
+        DateOnly? runDate = null, bool simulated = false, CancellationToken cancellationToken = default);
 }

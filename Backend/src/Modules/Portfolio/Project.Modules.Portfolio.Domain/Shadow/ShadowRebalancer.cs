@@ -52,13 +52,29 @@ public static class ShadowRebalancer
     {
         List<ShadowLot> currentList = current.ToList();
 
+        // A book holds ONE position per symbol, but the optimizer can legitimately
+        // reach the same instrument from two buckets — a broad "equity ETF" core and a
+        // named fixed-income stability sleeve can both select AGG. Those are one
+        // holding whose weight is the sum, not two holdings and not a crash. Keying
+        // targets by symbol alone without merging first threw
+        // "same key has already been added" and took the whole nightly run with it.
+        List<ShadowTarget> merged = targets
+            .GroupBy(t => t.Symbol, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new ShadowTarget(
+                g.Key,
+                // Label it with the sleeve contributing the most, so a merged holding
+                // reports the sleeve a reader would expect to find it under.
+                g.OrderByDescending(t => t.Weight).First().Sleeve,
+                g.Sum(t => t.Weight)))
+            .ToList();
+
         double navBefore = cash + currentList.Sum(l => l.Shares * prices[l.Symbol]);
 
         // Current vs target market value per symbol; the union covers names being
         // fully exited (target 0) as well as new buys.
         var currentValue = currentList.ToDictionary(
             l => l.Symbol, l => l.Shares * prices[l.Symbol], StringComparer.OrdinalIgnoreCase);
-        var targetValue = targets.ToDictionary(
+        var targetValue = merged.ToDictionary(
             t => t.Symbol, t => t.Weight * navBefore, StringComparer.OrdinalIgnoreCase);
 
         double tradedValue = 0;
@@ -76,7 +92,7 @@ public static class ShadowRebalancer
         // for every held lot is today's price — this is the lot as of this rebalance.
         var lots = new List<ShadowLot>();
         double investedValue = 0;
-        foreach (ShadowTarget t in targets.Where(t => t.Weight > 0).OrderBy(t => t.Symbol, StringComparer.Ordinal))
+        foreach (ShadowTarget t in merged.Where(t => t.Weight > 0).OrderBy(t => t.Symbol, StringComparer.Ordinal))
         {
             double price = prices[t.Symbol];
             if (price <= 0)

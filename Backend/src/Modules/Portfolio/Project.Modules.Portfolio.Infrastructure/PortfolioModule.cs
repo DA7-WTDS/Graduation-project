@@ -110,6 +110,7 @@ public static class PortfolioModule
             client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
         });
         services.AddScoped<RefreshInstrumentStatsJob>();
+        services.AddScoped<IShadowRunner, ShadowRunner>();
 
         return services;
     }

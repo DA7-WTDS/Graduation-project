@@ -260,7 +260,7 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
         the full OOS window to isolate what news is worth stays possible; doing it by
         accident does not.
       - **New:** `test_replay_window.py` (10 tests). Pipeline suites now 87 green.
-- [ ] **Fidelity lane** — partly built. Driver and point-in-time stats done 2026-09-07;
+- [x] **Fidelity lane** — ✅ COMPLETE 2026-09-07. Five portfolios replayed over 250 sessions.
       the date-parameterised `ShadowPortfolioJob` is the remaining piece.
       - ✅ `DailyRunStatus.Simulated` + `DailyRun.Market` + migration. Terminal by
         construction (the transition table has no arm in or out), raises **no ingest
@@ -372,6 +372,54 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
 
 ### Week 3 — Sentiment A/B + demo hardening
 
+
+      **FIRST REPLAYED TRACK RECORD (2025-09-09 → 2026-09-04, 361 calendar sessions,
+      1,805 valuations, 120 rebalances, 4m43s).** Benchmarks over the same window:
+      SPY +19.7%, GLD +21.8%, AGG +0.7%.
+
+      | template | risk | total | annualized | max DD | rebalances |
+      |---|---|---|---|---|---|
+      | Balanced Growth | Moderate | **+40.8%** | +27.0% | 7.0% | 12 |
+      | Opportunistic / Speculation | Aggressive | +32.0% | +21.4% | 10.4% | 52 |
+      | Active Growth | Aggressive | +30.1% | +20.2% | 9.3% | 52 |
+      | Retirement / Set-and-Forget | Moderate | +15.2% | +10.4% | 8.1% | 2 |
+      | Capital Preservation | Conservative | +9.4% | +6.5% | **4.6%** | 2 |
+
+      Risk ordering is coherent: the conservative book has both the smallest drawdown
+      and the smallest return. **The monthly-rebalanced Balanced Growth beat both
+      weekly aggressive books on return AND drawdown**, which is a turnover-cost result
+      worth investigating before anyone reads it as a strategy ranking — 52 rebalances at
+      25bps per side is a materially different cost base from 12.
+
+      Templates replaced (migration `ReplaceStrategyTemplatesWithFiveUserTypes`): five
+      covering distinct investor types, differing on equity exposure (20%→90%), passive
+      index vs ranked stock picking, stability mix, cadence (semi-annual→weekly) and
+      drawdown tolerance.
+
+      **Four real bugs this run surfaced, none of which unit tests would have caught:**
+      1. **`ShadowPosition.Id` was treated as store-generated.** EF's convention makes a
+         Guid PK `ValueGeneratedOnAdd`, so a position added to an ALREADY-TRACKED
+         portfolio was classified Modified rather than Added — an UPDATE against a row
+         never inserted. Inception hid it (the parent was itself Added, cascading the
+         graph as inserts); it only bit on the first REBALANCE. Fixed with
+         `ValueGeneratedNever()`. **This would have broken every live nightly rebalance.**
+      2. **`ShadowRebalancer` keyed targets by symbol alone**, so one instrument reachable
+         from two sleeves (a broad equity core and a named fixed-income sleeve both
+         selecting AGG) threw "same key has already been added" and killed the whole run.
+         Targets are now merged — one holding whose weight is the sum.
+      3. **`/api/instrument-stats` returned a bare date for `as_of`**, which deserializes
+         as `DateTimeKind.Unspecified` and Npgsql refuses to write to a `timestamptz`
+         column. Now always a full UTC instant, plus defensive normalization backend-side.
+      4. **Point-in-time refresh was unusably slow** (~80s per date — 5.5 hours for the
+         range) because the sector map costs one vendor call per ticker and the OHLCV
+         download repeated per date. Both cached for point-in-time requests only (history
+         does not change; today's close does): **80s → 0.8s**.
+
+      `ApplyRebalance` now merges positions rather than clearing and recreating them —
+      a holding that survives a rebalance is the same holding at a new size.
+
+      **Still outstanding:** SIM/LIVE provenance on `ShadowSnapshot` and the track-record
+      page, and instant outcome marking for replayed predictions.
 - [ ] **`build_sentiment_panel.py`**: as-of aggregation of corpus ledgers into a (ticker, date) feature panel (§D).
 - [ ] **`build_dataset.py --with-sentiment`** + third variant in `train_ranking.py` (identical-row-subset A/B, walk-forward folds); pre-registered keep rule; registry entry either way.
 - [ ] Staging hardening: seeded demo account(s), stable data, k6 smoke, Arabic/EN toggle QA.

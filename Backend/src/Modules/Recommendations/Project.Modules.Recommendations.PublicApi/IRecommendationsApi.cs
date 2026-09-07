@@ -28,4 +28,15 @@ public interface IRecommendationsApi
     /// <summary>Latest run's predictions ordered by conviction (best first);
     /// empty when no run has been ingested yet.</summary>
     Task<IReadOnlyList<RankedTicker>> GetLatestRankedTickersAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The run that scored <paramref name="sessionDate"/>, for the § C replay.
+    ///
+    /// A live run for session D is generated at D+1 01:00 UTC, so the lookup takes the
+    /// latest run at or before the end of D+1. <paramref name="simulated"/> selects
+    /// provenance: false stays Published-only (a user must never be served a replay),
+    /// true reads Simulated runs, which no other query returns.
+    /// </summary>
+    Task<IReadOnlyList<RankedTicker>> GetRankedTickersForDateAsync(
+        DateOnly sessionDate, bool simulated = false, CancellationToken cancellationToken = default);
 }

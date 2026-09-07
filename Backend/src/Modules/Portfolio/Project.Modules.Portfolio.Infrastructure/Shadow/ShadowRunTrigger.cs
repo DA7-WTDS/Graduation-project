@@ -13,9 +13,18 @@ internal sealed class ShadowRunTrigger(ISchedulerFactory schedulerFactory) : ISh
     // Matches the identity in ConfigureShadowPortfolioJob (typeof(...).FullName).
     private static readonly JobKey JobKey = new(typeof(ShadowPortfolioJob).FullName!);
 
-    public async Task TriggerAsync(CancellationToken cancellationToken = default)
+    public async Task TriggerAsync(
+        DateOnly? runDate = null, bool simulated = false, CancellationToken cancellationToken = default)
     {
         IScheduler scheduler = await schedulerFactory.GetScheduler(cancellationToken);
-        await scheduler.TriggerJob(JobKey, cancellationToken);
+
+        var data = new JobDataMap();
+        if (runDate is not null)
+        {
+            data.Put(ShadowPortfolioJob.RunDateKey, runDate.Value.ToString("yyyy-MM-dd"));
+        }
+        data.Put(ShadowPortfolioJob.SimulatedKey, simulated.ToString());
+
+        await scheduler.TriggerJob(JobKey, data, cancellationToken);
     }
 }

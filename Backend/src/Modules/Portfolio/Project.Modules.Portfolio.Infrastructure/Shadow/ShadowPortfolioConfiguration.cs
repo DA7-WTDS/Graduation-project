@@ -42,6 +42,15 @@ internal sealed class ShadowPositionConfiguration : IEntityTypeConfiguration<Sha
     public void Configure(EntityTypeBuilder<ShadowPosition> builder)
     {
         builder.HasKey(p => p.Id);
+        // Keys here are assigned by the domain, not the store. Without this, EF's
+        // convention treats a Guid primary key as ValueGeneratedOnAdd and then decides
+        // Added-vs-Modified from whether the key is default. A position created during a
+        // rebalance already carries a Guid, so a new child added to an ALREADY-TRACKED
+        // portfolio was classified Modified — EF issued an UPDATE against a row that had
+        // never been inserted, and the run died on "expected to affect 1 row, actually
+        // affected 0". Inception hid it: the parent was itself Added, so the whole graph
+        // cascaded as inserts.
+        builder.Property(p => p.Id).ValueGeneratedNever();
 
         builder.Property(p => p.ShadowPortfolioId).IsRequired();
         builder.Property(p => p.Symbol).HasMaxLength(20).IsRequired();

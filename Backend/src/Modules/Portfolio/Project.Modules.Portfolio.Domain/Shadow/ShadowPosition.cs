@@ -24,4 +24,17 @@ public sealed class ShadowPosition : Entity
             Shares = shares,
             AvgCost = avgCost,
         };
+
+    /// <summary>
+    /// Re-state an existing holding after a rebalance.
+    ///
+    /// A position that survives a rebalance is the SAME holding at a new size, not a new
+    /// one, so its identity is preserved rather than destroyed and recreated.
+    /// </summary>
+    public void Restate(string sleeve, double shares, double avgCost)
+    {
+        Sleeve = sleeve;
+        Shares = shares;
+        AvgCost = avgCost;
+    }
 }

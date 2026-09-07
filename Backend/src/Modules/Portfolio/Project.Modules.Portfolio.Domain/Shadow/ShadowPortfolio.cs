@@ -70,17 +70,31 @@ public sealed class ShadowPortfolio : Entity
     /// its first rebalance (inception buy).</summary>
     public bool IsInvested => _positions.Count > 0;
 
-    /// <summary>
-    /// Replace the book after a rebalance: new lots, residual cash, and the NAV
-    /// it was valued at. Lifts the high-water mark and stamps both valuation and
-    /// rebalance dates.
-    /// </summary>
+    /// <summary>Trade the book to a new set of lots.
+    ///
+    /// Merges rather than clearing and recreating: holdings that survive are restated,
+    /// exited ones removed, new ones added. Beyond being the truer model of a book, it
+    /// avoids handing the ORM a wholesale replace of a tracked child collection, which
+    /// it resolved as an UPDATE against rows it had just been told to delete.</summary>
     public void ApplyRebalance(IEnumerable<ShadowLot> lots, double cash, double nav, DateOnly asOf)
     {
-        _positions.Clear();
-        foreach (ShadowLot lot in lots)
+        List<ShadowLot> target = lots.ToList();
+        var wanted = target.Select(l => l.Symbol).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        _positions.RemoveAll(p => !wanted.Contains(p.Symbol));
+
+        foreach (ShadowLot lot in target)
         {
-            _positions.Add(ShadowPosition.Create(Id, lot.Symbol, lot.Sleeve, lot.Shares, lot.AvgCost));
+            ShadowPosition? held = _positions.FirstOrDefault(
+                p => string.Equals(p.Symbol, lot.Symbol, StringComparison.OrdinalIgnoreCase));
+            if (held is null)
+            {
+                _positions.Add(ShadowPosition.Create(Id, lot.Symbol, lot.Sleeve, lot.Shares, lot.AvgCost));
+            }
+            else
+            {
+                held.Restate(lot.Sleeve, lot.Shares, lot.AvgCost);
+            }
         }
 
         CashBalance = cash;

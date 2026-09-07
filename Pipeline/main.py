@@ -27,7 +27,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from pathlib import Path
 from typing import Any, Literal
 
@@ -635,6 +635,44 @@ class InstrumentStatsResponse(BaseModel):
     stats: list[InstrumentStat]
 
 
+# Caches for point-in-time stat requests. A replay asks for the same history and the
+# same sector map once per replayed date — 250 times for one backfill. Neither changes
+# with as_of, so both are fetched once. Live requests bypass these entirely: today's
+# close does move, and serving a stale one would be a real error rather than a saving.
+#
+# Bounded and keyed by ticker set, NOT cleared on miss: a refresh makes two calls with
+# different ticker lists (the universe, then registry leftovers), so a single-entry
+# cache thrashes and re-downloads on every one.
+_PIT_OHLCV_CACHE: dict[tuple[str, ...], Any] = {}
+_PIT_SECTOR_CACHE: dict[str, str] = {}
+_PIT_CACHE_MAX_SETS = 4
+
+
+def _pit_ohlcv(tickers: list[str]):
+    """5y history for a ticker set, downloaded once per process."""
+    key = tuple(sorted(tickers))
+    if key not in _PIT_OHLCV_CACHE:
+        if len(_PIT_OHLCV_CACHE) >= _PIT_CACHE_MAX_SETS:
+            _PIT_OHLCV_CACHE.pop(next(iter(_PIT_OHLCV_CACHE)))
+        log.info(f"instrument-stats: caching 5y history for {len(tickers)} tickers.")
+        _PIT_OHLCV_CACHE[key] = _provider.get_ohlcv_batch(tickers, period="5y")
+    return _PIT_OHLCV_CACHE[key]
+
+
+def _pit_sectors(tickers: list[str]) -> dict[str, str]:
+    """Sector per ticker, resolved once. This is the expensive one: the vendor
+    exposes no bulk endpoint, so an uncached map costs ~one throttled call per ticker
+    per replayed date — hours of vendor time for an attribute that barely changes."""
+    missing = [t for t in tickers if t not in _PIT_SECTOR_CACHE]
+    if missing:
+        log.info(f"instrument-stats: resolving sectors for {len(missing)} new tickers.")
+        try:
+            _PIT_SECTOR_CACHE.update(_provider.get_sector_map(missing))
+        except Exception as e:
+            log.warning(f"instrument-stats: sector map unavailable — {e}")
+    return {t: _PIT_SECTOR_CACHE.get(t) for t in tickers}
+
+
 @app.post("/api/instrument-stats", response_model=InstrumentStatsResponse)
 def instrument_stats(req: InstrumentStatsRequest):
     """Computed stats for the instrument registry (IMPLEMENTATION_PLAN § 3.1).
@@ -653,12 +691,23 @@ def instrument_stats(req: InstrumentStatsRequest):
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Malformed as_of {req.as_of!r}; expected ISO date.")
 
-    data = _provider.get_ohlcv_batch(tickers, period="5y" if as_of_ts is not None else "1y")
-    try:
-        sectors = _provider.get_sector_map(tickers)
-    except Exception as e:
-        log.warning(f"instrument-stats: sector map unavailable — {e}")
-        sectors = {}
+    if as_of_ts is None:
+        data = _provider.get_ohlcv_batch(tickers, period="1y")
+    else:
+        # Point-in-time requests are cached. A replay asks for the SAME price history
+        # once per replayed date — 250 identical 5-year downloads for one backfill, which
+        # is hours of vendor time to produce bytes we already have. History does not
+        # change, so one fetch serves every as_of. Live stays uncached: today's close
+        # does change, and a stale one there would be a real error.
+        data = _pit_ohlcv(tickers)
+    if as_of_ts is not None:
+        sectors = _pit_sectors(tickers)
+    else:
+        try:
+            sectors = _provider.get_sector_map(tickers)
+        except Exception as e:
+            log.warning(f"instrument-stats: sector map unavailable — {e}")
+            sectors = {}
 
     stats: list[InstrumentStat] = []
     is_multi = data is not None and hasattr(data.columns, "levels")
@@ -688,7 +737,12 @@ def instrument_stats(req: InstrumentStatsRequest):
              f"{f' as of {req.as_of}' if as_of_ts is not None else ''}.")
     return InstrumentStatsResponse(
         market=MARKET,
-        as_of=(as_of_ts.date().isoformat() if as_of_ts is not None else datetime.now(timezone.utc).isoformat()),
+        # Always a full UTC instant, never a bare date: a date-only string
+        # deserializes as DateTimeKind.Unspecified, which PostgreSQL rejects for a
+        # 'timestamp with time zone' column. End of the session day, so it sorts
+        # after anything stamped during it.
+        as_of=(datetime.combine(as_of_ts.date(), time(23, 59, 59), tzinfo=timezone.utc).isoformat()
+               if as_of_ts is not None else datetime.now(timezone.utc).isoformat()),
         stats=stats,
     )
 

@@ -45,6 +45,9 @@ internal sealed class InstrumentStatsRefresher(
         CancellationToken cancellationToken = default)
     {
         InstrumentsOptions opts = options.Value;
+        // Normalize the vendor's timestamp to UTC before it reaches EF. A date-only
+        // value deserializes as Kind=Unspecified, and Npgsql refuses to write that to a
+        // 'timestamp with time zone' column — which fails the whole refresh, not one row.
 
         StatsResponse? universe = await FetchAsync(tickers?.ToList(), asOf, cancellationToken);
         if (universe is null)
@@ -128,7 +131,13 @@ internal sealed class InstrumentStatsRefresher(
                 new StatsRequest(tickers, asOf?.ToString("yyyy-MM-dd")),
                 cancellationToken);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<StatsResponse>(cancellationToken: cancellationToken);
+            StatsResponse? parsed = await response.Content.ReadFromJsonAsync<StatsResponse>(cancellationToken: cancellationToken);
+            return parsed is null ? null : parsed with
+            {
+                AsOf = parsed.AsOf.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(parsed.AsOf, DateTimeKind.Utc)
+                    : parsed.AsOf.ToUniversalTime(),
+            };
         }
         catch (Exception ex)
         {

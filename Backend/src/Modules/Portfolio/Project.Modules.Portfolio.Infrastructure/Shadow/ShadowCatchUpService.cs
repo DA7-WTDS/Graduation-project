@@ -61,7 +61,7 @@ internal sealed class ShadowCatchUpService(
 
             logger.LogWarning("ShadowCatchUp — no snapshot for {Today}; triggering a catch-up run.", today);
             var trigger = scope.ServiceProvider.GetRequiredService<IShadowRunTrigger>();
-            await trigger.TriggerAsync(stoppingToken);
+            await trigger.TriggerAsync(cancellationToken: stoppingToken);
         }
         catch (Exception ex)
         {
