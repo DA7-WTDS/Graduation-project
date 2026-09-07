@@ -41,6 +41,7 @@ from pydantic import BaseModel
 
 from core.data_provider import get_provider
 from core.features import compute_features
+from core.instrument_stats import compute as compute_instrument_stats
 from core.lstm import LSTMBackbone
 from core.quality_gates import run_quality_gates
 from core import sentiment_scoring
@@ -614,6 +615,10 @@ def closes(req: ClosesRequest):
 
 class InstrumentStatsRequest(BaseModel):
     tickers: list[str] | None = None  # omitted/empty -> current universe
+    # Point-in-time: compute every stat as it stood at the close of this date
+    # (ISO). Omitted = today, the live nightly behaviour. Used by the § C replay,
+    # where weighting a 2025 portfolio by 2026 volatility would be lookahead.
+    as_of: str | None = None
 
 
 class InstrumentStat(BaseModel):
@@ -639,7 +644,16 @@ def instrument_stats(req: InstrumentStatsRequest):
     if len(tickers) > 300:
         raise HTTPException(status_code=400, detail="Too many tickers (max 300).")
 
-    data = _provider.get_ohlcv_batch(tickers, period="1y")
+    # A point-in-time request needs a year of history BEFORE as_of, so pull a wide
+    # window and truncate per ticker. Live keeps the cheap 1y fetch.
+    as_of_ts = None
+    if req.as_of:
+        try:
+            as_of_ts = pd.Timestamp(req.as_of)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Malformed as_of {req.as_of!r}; expected ISO date.")
+
+    data = _provider.get_ohlcv_batch(tickers, period="5y" if as_of_ts is not None else "1y")
     try:
         sectors = _provider.get_sector_map(tickers)
     except Exception as e:
@@ -659,31 +673,22 @@ def instrument_stats(req: InstrumentStatsRequest):
         except Exception:
             frame = None
 
-        vol = adv = last_close = None
-        if frame is not None and len(frame) >= 60 and "Close" in frame:
-            closes = frame["Close"].dropna()
-            returns = closes.pct_change().dropna()
-            if len(returns) >= 60:
-                vol = float(returns.std() * np.sqrt(252))
-            last_close = float(closes.iloc[-1])
-            if "Volume" in frame:
-                dv = (frame["Close"] * frame["Volume"]).dropna().tail(90)
-                if not dv.empty:
-                    adv = float(dv.mean())
+        s = compute_instrument_stats(frame, as_of_ts)
 
         stats.append(InstrumentStat(
             ticker=t,
-            realized_vol_1y=vol,
-            avg_daily_value_traded=adv,
-            last_close=last_close,
+            realized_vol_1y=s.realized_vol_1y,
+            avg_daily_value_traded=s.avg_daily_value_traded,
+            last_close=s.last_close,
             sector=sectors.get(t),
         ))
 
     computed = sum(1 for s in stats if s.realized_vol_1y is not None)
-    log.info(f"instrument-stats: {computed}/{len(tickers)} tickers with stats.")
+    log.info(f"instrument-stats: {computed}/{len(tickers)} tickers with stats"
+             f"{f' as of {req.as_of}' if as_of_ts is not None else ''}.")
     return InstrumentStatsResponse(
         market=MARKET,
-        as_of=datetime.now(timezone.utc).isoformat(),
+        as_of=(as_of_ts.date().isoformat() if as_of_ts is not None else datetime.now(timezone.utc).isoformat()),
         stats=stats,
     )
 

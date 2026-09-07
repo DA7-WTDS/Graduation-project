@@ -17,6 +17,7 @@ using Project.Modules.Portfolio.Application.Abstractions.Strategies;
 using Project.Modules.Portfolio.Application.Abstractions.Shadow;
 using Project.Modules.Portfolio.Infrastructure.Database;
 using Project.Modules.Portfolio.Infrastructure.Goals;
+using Project.Modules.Portfolio.Application.Abstractions.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Instruments;
 using Project.Modules.Portfolio.Infrastructure.Portfolios;
 using Project.Modules.Portfolio.Infrastructure.Proposals;
@@ -99,12 +100,16 @@ public static class PortfolioModule
 
         // Instrument registry refresh — typed HTTP client against the pipeline
         services.Configure<InstrumentsOptions>(configuration.GetSection("Portfolio:Instruments"));
-        services.AddHttpClient<RefreshInstrumentStatsJob>((sp, client) =>
+        // The refresher owns the HTTP call now; the Quartz job and the replay
+        // endpoint both go through it so live and replayed registries are built by
+        // one implementation.
+        services.AddHttpClient<IInstrumentStatsRefresher, InstrumentStatsRefresher>((sp, client) =>
         {
             InstrumentsOptions o = sp.GetRequiredService<IOptions<InstrumentsOptions>>().Value;
             client.BaseAddress = new Uri(o.PipelineBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
         });
+        services.AddScoped<RefreshInstrumentStatsJob>();
 
         return services;
     }

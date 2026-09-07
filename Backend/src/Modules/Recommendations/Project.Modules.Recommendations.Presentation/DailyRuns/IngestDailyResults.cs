@@ -32,7 +32,9 @@ internal sealed class IngestDailyResults : IEndpoint
             bool gatesPassed = !string.Equals(request.Status, "quarantined", StringComparison.OrdinalIgnoreCase);
 
             Result<Guid> result = await sender.Send(
-                new IngestDailyRunCommand(request.GeneratedAt, request.Records, gatesPassed, request.GateFailures));
+                new IngestDailyRunCommand(
+                    request.GeneratedAt, request.Records, gatesPassed, request.GateFailures,
+                    request.Market ?? "us", request.Simulated));
 
             return result.Match(
                 runId => Results.Ok(new { runId, request.Count }),
@@ -40,7 +42,7 @@ internal sealed class IngestDailyResults : IEndpoint
         })
         .WithName(nameof(IngestDailyResults))
         .WithSummary("Ingest a daily prediction run from the pipeline")
-        .WithDescription("Internal endpoint. The n8n pipeline POSTs the risk-graded daily run here, authenticated via the X-Pipeline-Key header.")
+        .WithDescription("Internal endpoint. The pipeline POSTs the risk-graded daily run here, authenticated via the X-Pipeline-Key header. Set simulated=true for a point-in-time replay: the run is stored for the fidelity lane but never served.")
         .Produces<object>(StatusCodes.Status200OK)
         .ProducesProblem(StatusCodes.Status400BadRequest)
         .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -56,5 +58,13 @@ internal sealed class IngestDailyResults : IEndpoint
         // § 6.2 quality-gate verdict ("ok" | "quarantined"); absent = ok.
         [JsonPropertyName("status")] public string Status { get; init; } = "ok";
         [JsonPropertyName("gate_failures")] public List<string> GateFailures { get; init; } = [];
+
+        // Which market produced the run (D4: one codebase, per-market instances).
+        [JsonPropertyName("market")] public string? Market { get; init; }
+
+        // § C point-in-time replay. Lands as DailyRunStatus.Simulated: never servable,
+        // not promotable by an operator, and raises no ingest event — a year-long
+        // backfill would otherwise deliver several hundred ops alerts.
+        [JsonPropertyName("simulated")] public bool Simulated { get; init; }
     }
 }

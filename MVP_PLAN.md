@@ -260,7 +260,56 @@ EGX activation · speculative sleeve (stays gated-off) · DCA engine · zakat ca
         the full OOS window to isolate what news is worth stays possible; doing it by
         accident does not.
       - **New:** `test_replay_window.py` (10 tests). Pipeline suites now 87 green.
-- [ ] **Fidelity lane**: `market=us_sim` ingest (separate key), `DailyRun.Status = Simulated` (never servable), date-parameterized `ShadowPortfolioJob` consuming sim runs with historical fills via `/api/closes`; instant outcome marking (horizons elapsed); notifications gated off for `us_sim`.
+- [ ] **Fidelity lane** — partly built. Driver and point-in-time stats done 2026-09-07;
+      the date-parameterised `ShadowPortfolioJob` is the remaining piece.
+      - ✅ `DailyRunStatus.Simulated` + `DailyRun.Market` + migration. Terminal by
+        construction (the transition table has no arm in or out), raises **no ingest
+        event** (a year-long backfill would deliver several hundred admin ops alerts),
+        and ingest idempotency is scoped by (generated_at, market, simulated) — without
+        that scoping a replayed date collides with the live run for the same timestamp,
+        returns the LIVE run's id, and the replay is silently dropped.
+      - ✅ `POST /api/internal/daily-results` accepts `market` + `simulated`.
+      - ✅ **Point-in-time instrument stats.** `/api/instrument-stats` accepts `as_of`,
+        truncating the price frame so vol, ADV **and close** all derive from one slice
+        that cannot see past that date. `core/instrument_stats.py` holds the
+        computation; `POST /api/internal/instrument-stats` exposes it; and
+        `IInstrumentStatsRefresher` is now shared by the nightly job and the replay, so
+        a manufactured registry is built by the same code that serves live.
+      - ✅ **Driver** `replay/ingest_runs.py`: pushes point-in-time stats, then the
+        run, per date. Idempotent (the backend keys on generated_at/market/simulated),
+        stops on first rejection rather than burying a gap under later dates.
+
+      **Why the stats had to be point-in-time, measured rather than assumed.** The
+      optimizer weights every core position by `score / realized_vol`, caps sectors, and
+      gates the tactical sleeve on traded value — all read from the registry, which the
+      nightly job overwrites with TODAY's numbers. Replaying 2025 against 2026 vol is
+      lookahead. Measured across the replayed universe: rank correlation between
+      then-vol and now-vol is 0.86, but **23% of names moved more than 30%**, the largest
+      1.5—2.2× (GLW 32%→70%, STX 41%→74%).
+
+      **Direction of that bias, which I had backwards.** I assumed it flattered (vol
+      spikes in drawdowns → underweight names about to fall → foreknowledge). In THIS
+      window the opposite holds: vol risers returned **+150.8%** on average against
+      +20.6% for fallers, because an AI-infrastructure melt-up raised vol and price
+      together. Under-weighting them **understates** the result here. The direction is
+      regime-dependent and unknowable in advance — which is exactly why it cannot be
+      claimed as conservatism, and why it is fixed rather than disclosed.
+
+      **Still impure, and disclosed rather than solved:** `Sector` has no historical GICS
+      mapping on free data (near-static, low impact), and registry MEMBERSHIP is today's
+      screener — a name that has since dropped out cannot be bought in the replay even
+      though it was buyable then. That one unambiguously flatters, and is the same
+      survivorship limitation already on the methodology page.
+
+      - **New:** `test_instrument_stats.py` (10) and `test_ingest_runs.py` (10).
+        Pipeline suites 131 green; backend 194.
+
+      **Remaining:** `ShadowPortfolioJob` still stamps `DateTime.UtcNow` for the snapshot
+      date and the rebalance-cadence check, and prices the book from `Instrument.LastClose`
+      via the registry. With the stats endpoint now point-in-time the registry holds the
+      right numbers for a replayed date, but the job must be told WHICH date it is running
+      and must select that date's run rather than `GetLatestRankedTickersAsync()` (which
+      filters Published and would return nothing for a Simulated run).
       - ✅ **Ingest half done 2026-09-04.** `DailyRunStatus.Simulated` + a `Market` column
         (migration `AddSimulatedRunsAndMarket`; `market` defaults to `us` so existing rows
         backfill).
